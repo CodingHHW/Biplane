@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+env/
+venv/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Testing/build dirs
+Testing/build/
+
+# Data / binary files used in project
+*.nrrd
+*.mrml
+*.h5
+*.vp
+

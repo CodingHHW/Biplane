@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Biplane</class>
+ <widget class="qMRMLWidget" name="Biplane">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>455</width>
+    <height>903</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>simulation data</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Input volume:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="qMRMLNodeComboBox" name="inputSelector">
+              <property name="toolTip">
+               <string>Pick the input to the algorithm.</string>
+              </property>
+              <property name="nodeTypes">
+               <stringlist notr="true">
+                <string>vtkMRMLMarkupsFiducialNode</string>
+                <string>vtkMRMLScalarVolumeNode</string>
+               </stringlist>
+              </property>
+              <property name="showChildNodeTypes">
+               <bool>false</bool>
+              </property>
+              <property name="addEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="removeEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="SlicerParameterName" stdset="0">
+               <string>inputVolume</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>First you should simulation data!!!</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QPushButton" name="showVolumeButton">
+              <property name="text">
+               <string>showVolume</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="showMarkerButton">
+              <property name="text">
+               <string>showMarker</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_5">
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QPushButton" name="shot1Button">
+              <property name="text">
+               <string>shot1</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot1ButtonAgain">
+              <property name="text">
+               <string>shot1again</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot1ButtonShow">
+              <property name="text">
+               <string>shot1show</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <item>
+             <widget class="QPushButton" name="shot2Button">
+              <property name="text">
+               <string>shot2</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot2ButtonAgain">
+              <property name="text">
+               <string>shot2again</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot2ButtonShow">
+              <property name="text">
+               <string>shot2show</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <widget class="QPushButton" name="shot3Button">
+              <property name="text">
+               <string>shot3</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot3ButtonAgain">
+              <property name="text">
+               <string>shot3again</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shot3ButtonShow">
+              <property name="text">
+               <string>shot3show</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTabWidget" name="tabWidget_2">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>operation</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Second choose where you want to operation!!!</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QPushButton" name="markersSortButton">
+            <property name="text">
+             <string>markersSort</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>Red 2D Point:    </string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="qMRMLNodeComboBox" name="Red2DPSelector">
+              <property name="nodeTypes">
+               <stringlist notr="true">
+                <string>vtkMRMLMarkupsFiducialNode</string>
+               </stringlist>
+              </property>
+              <property name="showChildNodeTypes">
+               <bool>false</bool>
+              </property>
+              <property name="hideChildNodeTypes">
+               <stringlist notr="true"/>
+              </property>
+              <property name="addEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="removeEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="interactionNodeSingletonTag">
+               <string notr="true"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="redPushButton">
+              <property name="text">
+               <string>redPush</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>Green 2D Point:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="qMRMLNodeComboBox" name="Green2DPSelector">
+              <property name="nodeTypes">
+               <stringlist notr="true">
+                <string>vtkMRMLMarkupsFiducialNode</string>
+               </stringlist>
+              </property>
+              <property name="showChildNodeTypes">
+               <bool>false</bool>
+              </property>
+              <property name="hideChildNodeTypes">
+               <stringlist notr="true"/>
+              </property>
+              <property name="addEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="removeEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="interactionNodeSingletonTag">
+               <string notr="true"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="greenPushButton">
+              <property name="text">
+               <string>greenPush</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="title">
+          <string>Finally add your knife and  tracing !!!</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>knife</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="qMRMLNodeComboBox" name="knifeSelector">
+              <property name="nodeTypes">
+               <stringlist notr="true">
+                <string>vtkMRMLMarkupsFiducialNode</string>
+               </stringlist>
+              </property>
+              <property name="showChildNodeTypes">
+               <bool>false</bool>
+              </property>
+              <property name="hideChildNodeTypes">
+               <stringlist notr="true"/>
+              </property>
+              <property name="addEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="removeEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="interactionNodeSingletonTag">
+               <string notr="true"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="tracingPushButton">
+              <property name="text">
+               <string>real time tracing</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>qMRMLNodeComboBox</class>
+   <extends>QWidget</extends>
+   <header>qMRMLNodeComboBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>Biplane</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>inputSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>122</x>
+     <y>132</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>248</x>
+     <y>61</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Biplane</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>knifeSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>237</x>
+     <y>333</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>253</x>
+     <y>545</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Biplane</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>Red2DPSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>237</x>
+     <y>314</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>289</x>
+     <y>402</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Biplane</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>Green2DPSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>237</x>
+     <y>319</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>289</x>
+     <y>459</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
