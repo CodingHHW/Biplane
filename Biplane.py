@@ -68,9 +68,55 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic = None
         self._parameterNode = None
         self._parameterNodeGuiTag = None
-        self.savePath = r"/Users/hongweihe/Desktop"
+        self._knifeObserverTag = None
+        basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
+        self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
+
+    def _error(self, message: str, detailedText: Optional[str] = None) -> None:
+        try:
+            slicer.util.errorDisplay(message, detailedText=detailedText)
+        except Exception:
+            logging.error(message)
+            if detailedText:
+                logging.error(detailedText)
+
+    def _getBodyVolumeNode(self):
+        if self._parameterNode and getattr(self._parameterNode, "inputVolume", None):
+            return self._parameterNode.inputVolume
+        return slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+
+    def _getMarkersModelNode(self):
+        return slicer.mrmlScene.GetFirstNodeByName("markers")
+
+    def _getThreeDView(self):
+        lm = slicer.app.layoutManager()
+        if not lm:
+            return None
+        threeDWidget = lm.threeDWidget(0)
+        if not threeDWidget:
+            return None
+        return threeDWidget.threeDView()
+
+    def _captureViewToFile(self, filepath: str) -> bool:
+        view = self._getThreeDView()
+        if not view:
+            self._error("3D 视图不可用，无法截图")
+            return False
+        view.forceRender()
+        cap = ScreenCapture.ScreenCaptureLogic()
+        cap.captureImageFromView(view, filepath)
+        return os.path.exists(filepath)
+
+    def _requireImage(self, filepath: str, label: str):
+        if not os.path.exists(filepath):
+            self._error(f"缺少 {label} 文件：{filepath}")
+            return None
+        img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            self._error(f"无法读取 {label} 文件：{filepath}")
+        return img
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -193,12 +239,17 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._checkCanApply()
 
     def _checkCanApply(self, caller=None, event=None) -> None:
-        if self._parameterNode and self._parameterNode.inputVolume and self._parameterNode.thresholdedVolume:
-            self.ui.shot1Button.toolTip = _("Compute output volume")
-            self.ui.shot1Button.enabled = True
-        else:
-            self.ui.shot1Button.toolTip = _("Select input and output volume nodes")
-            self.ui.shot1Button.enabled = True
+        canRun = bool(self._parameterNode and getattr(self._parameterNode, "inputVolume", None))
+        self.ui.shot1Button.enabled = canRun
+        self.ui.shot2Button.enabled = canRun
+        self.ui.shot3Button.enabled = canRun
+        self.ui.shot1ButtonAgain.enabled = canRun
+        self.ui.shot2ButtonAgain.enabled = canRun
+        self.ui.shot3ButtonAgain.enabled = canRun
+        self.ui.shot1ButtonShow.enabled = True
+        self.ui.shot2ButtonShow.enabled = True
+        self.ui.shot3ButtonShow.enabled = True
+        self.ui.shot1Button.toolTip = _("Select input volume" if not canRun else "Capture shot")
 
     def flipImage(self, image):
         tmp = sitk.GetImageFromArray(sitk.GetArrayFromImage(image))
@@ -252,7 +303,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return img
 
     def onShowVolumeButton(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
+        bodyVolumeNode = self._getBodyVolumeNode()
+        if not bodyVolumeNode:
+            self._error("未找到输入 Volume，请先在 Input volume 中选择")
+            return
         volRenLogic = slicer.modules.volumerendering.logic()
         displayNode = volRenLogic.CreateDefaultVolumeRenderingNodes(bodyVolumeNode)
         displayNode.SetVisibility(True)
@@ -274,36 +328,29 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         markerModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
 
     def onShot1Button(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
-
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
-        cap.captureImageFromView(view, saveBodyFile)
+        self._captureViewToFile(saveBodyFile)
 
 
     def onShot1ButtonAgain(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(False)
         markerModelNode.SetDisplayVisibility(True)
-
-        saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot1Markers.png")
-        cap.captureImageFromView(view, saveMarkerFile)
+        self._captureViewToFile(saveMarkerFile)
 
 
     def onShot1ButtonShow(self):
@@ -311,8 +358,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         saveMarkerFile = os.path.join(self.savePath, "shot1Markers.png")
         saveNiiFile = os.path.join(self.savePath, "shot1.nii.gz")
 
-        imgBody = cv2.imread(saveBodyFile, cv2.IMREAD_UNCHANGED)
-        imgMarkers = cv2.imread(saveMarkerFile, cv2.IMREAD_UNCHANGED)
+        imgBody = self._requireImage(saveBodyFile, "shot1Body")
+        imgMarkers = self._requireImage(saveMarkerFile, "shot1Markers")
+        if imgBody is None or imgMarkers is None:
+            return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
@@ -335,7 +384,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         volumeNode.SetName("shot1")
         volumeNode.SetAndObserveImageData(vtkImage)
 
-        mm = [[-1,0,0],[0,-1,0],[0,0,0]]
+        mm = [[-1,0,0],[0,-1,0],[0,0,1]]
         volumeNode.SetIJKToRASDirections(mm)
 
         sliceNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeRed")
@@ -349,36 +398,29 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onShot2Button(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
-
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
-        cap.captureImageFromView(view, saveBodyFile)
+        self._captureViewToFile(saveBodyFile)
 
 
     def onShot2ButtonAgain(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(False)
         markerModelNode.SetDisplayVisibility(True)
-
-        saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot2Markers.png")
-        cap.captureImageFromView(view, saveMarkerFile)
+        self._captureViewToFile(saveMarkerFile)
 
 
     def onShot2ButtonShow(self):
@@ -386,8 +428,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         saveMarkerFile = os.path.join(self.savePath, "shot2Markers.png")
         saveNiiFile = os.path.join(self.savePath, "shot2.nii.gz")
 
-        imgBody = cv2.imread(saveBodyFile, cv2.IMREAD_UNCHANGED)
-        imgMarkers = cv2.imread(saveMarkerFile, cv2.IMREAD_UNCHANGED)
+        imgBody = self._requireImage(saveBodyFile, "shot2Body")
+        imgMarkers = self._requireImage(saveMarkerFile, "shot2Markers")
+        if imgBody is None or imgMarkers is None:
+            return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
@@ -410,7 +454,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         volumeNode.SetName("shot2")
         volumeNode.SetAndObserveImageData(vtkImage)
 
-        mm = [[-1,0,0],[0,-1,0],[0,0,0]]
+        mm = [[-1,0,0],[0,-1,0],[0,0,1]]
         volumeNode.SetIJKToRASDirections(mm)
 
         sliceNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeGreen")
@@ -424,35 +468,28 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onShot3Button(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
-
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
-        cap.captureImageFromView(view, saveBodyFile)
+        self._captureViewToFile(saveBodyFile)
 
     def onShot3ButtonAgain(self):
-        bodyVolumeNode = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode1")
-        markerModelNode = slicer.mrmlScene.GetFirstNodeByName("markers")
-
-        view = slicer.app.layoutManager().threeDWidget(0).threeDView()
-        view.forceRender()
-
-        cap = ScreenCapture.ScreenCaptureLogic()
+        bodyVolumeNode = self._getBodyVolumeNode()
+        markerModelNode = self._getMarkersModelNode()
+        if not bodyVolumeNode or not markerModelNode:
+            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            return
 
         bodyVolumeNode.SetDisplayVisibility(False)
         markerModelNode.SetDisplayVisibility(True)
-
-        saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot3Markers.png")
-        cap.captureImageFromView(view, saveMarkerFile)
+        self._captureViewToFile(saveMarkerFile)
 
 
     def onShot3ButtonShow(self):
@@ -460,8 +497,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         saveMarkerFile = os.path.join(self.savePath, "shot3Markers.png")
         saveNiiFile = os.path.join(self.savePath, "shot3.nii.gz")
 
-        imgBody = cv2.imread(saveBodyFile, cv2.IMREAD_UNCHANGED)
-        imgMarkers = cv2.imread(saveMarkerFile, cv2.IMREAD_UNCHANGED)
+        imgBody = self._requireImage(saveBodyFile, "shot3Body")
+        imgMarkers = self._requireImage(saveMarkerFile, "shot3Markers")
+        if imgBody is None or imgMarkers is None:
+            return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
@@ -484,7 +523,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         volumeNode.SetName("shot3")
         volumeNode.SetAndObserveImageData(vtkImage)
 
-        mm = [[-1,0,0],[0,-1,0],[0,0,0]]
+        mm = [[-1,0,0],[0,-1,0],[0,0,1]]
         volumeNode.SetIJKToRASDirections(mm)
 
         sliceNode = slicer.mrmlScene.GetNodeByID("vtkMRMLSliceNodeYellow")
@@ -498,9 +537,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onMarkersSortButton(self):
-        volumeShot1Node = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode2")
-        volumeShot2Node = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode3")
-        volumeShot3Node = slicer.mrmlScene.GetNodeByID("vtkMRMLScalarVolumeNode4")
+        volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
+        volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
+        volumeShot3Node = slicer.mrmlScene.GetFirstNodeByName("shot3")
+        if not volumeShot1Node or not volumeShot2Node or not volumeShot3Node:
+            self._error("需要先生成 shot1/shot2/shot3 三个切片图像")
+            return
 
         shot1vtkImage = volumeShot1Node.GetImageData()
         shot2vtkImage = volumeShot2Node.GetImageData()
@@ -589,7 +631,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             for i, p in enumerate(self.bigMarkersSort2.keys()):
                 markupsNode2.SetNthControlPointPosition(i, p)
             for i, p in enumerate(self.smallMarkersSort2.keys()):
-                markupsNode2.SetNthControlPointPosition(len(self.smallMarkersSort2.keys())+i, p)
+                markupsNode2.SetNthControlPointPosition(len(self.bigMarkersSort2.keys())+i, p)
         
         markupsNode3 = slicer.mrmlScene.GetFirstNodeByName("markers3")
         if markupsNode3 == None:
@@ -616,7 +658,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             for i, p in enumerate(self.bigMarkersSort3.keys()):
                 markupsNode3.SetNthControlPointPosition(i, p)
             for i, p in enumerate(self.smallMarkersSort3.keys()):
-                markupsNode3.SetNthControlPointPosition(len(self.smallMarkersSort3.keys())+i, p)
+                markupsNode3.SetNthControlPointPosition(len(self.bigMarkersSort3.keys())+i, p)
 
         # 编排所有marker顺序
         self.initMarkers()  
@@ -915,6 +957,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onTwoD2ThreeDRed(self):
         markupNode = self.ui.Red2DPSelector.currentNode()
+        if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
+            self._error("请先在 Red 视图添加一个 2D 点")
+            return
         # 在 Red 视图上的点只显示在 Red 视图
         displayNode = markupNode.GetDisplayNode()
         displayNode.SetVisibility(True)
@@ -1011,6 +1056,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 showPs.append(p4)
 
         # 只在Green 视图中显示线
+        if len(showPs) < 2:
+            self._error("计算得到的边界交点不足，无法绘制 GreenLine2D")
+            return
         lineNodeGreen = slicer.mrmlScene.GetFirstNodeByName("GreenLine2D")
         if lineNodeGreen == None:
             lineNodeGreen = slicer.vtkMRMLMarkupsLineNode()
@@ -1033,6 +1081,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onTwoD2ThreeDGreen(self):
         markupNode = self.ui.Green2DPSelector.currentNode()
+        if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
+            self._error("请先在 Green 视图添加一个 2D 点")
+            return
         # 在 Green 视图上的点只显示 Green 视图
         displayNode = markupNode.GetDisplayNode()
         displayNode.SetVisibility(True)
@@ -1046,7 +1097,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         lineP1 = np.array([0, 0])
         lineP2 = np.array([0, 0])
         if lineNodeGreen == None:
-            print("must have lineNode")
+            self._error("需要先在 Red 视图点击 redPush 生成 GreenLine2D")
+            return
         else:
             lineStartP = lineNodeGreen.GetLineStartPositionWorld()
             lineEndP = lineNodeGreen.GetLineEndPositionWorld()
@@ -1127,8 +1179,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onTracing(self):
         knifeNode = self.ui.knifeSelector.currentNode()
+        if not knifeNode or knifeNode.GetNumberOfControlPoints() < 1:
+            self._error("请先选择 knife 点并至少添加一个控制点")
+            return
         self.tracingP3D(0, 0)      
-        knifeNode.AddObserver(slicer.vtkMRMLMarkupsNode.PointModifiedEvent, self.tracingP3D)
+        if self._knifeObserverTag is not None:
+            try:
+                knifeNode.RemoveObserver(self._knifeObserverTag)
+            except Exception:
+                pass
+        self._knifeObserverTag = knifeNode.AddObserver(slicer.vtkMRMLMarkupsNode.PointModifiedEvent, self.tracingP3D)
         
 
     def tracingP3D(self, caller, event):

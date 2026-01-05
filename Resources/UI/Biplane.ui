@@ -43,7 +43,6 @@
               </property>
               <property name="nodeTypes">
                <stringlist notr="true">
-                <string>vtkMRMLMarkupsFiducialNode</string>
                 <string>vtkMRMLScalarVolumeNode</string>
                </stringlist>
               </property>

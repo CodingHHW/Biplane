@@ -11,7 +11,6 @@ from slicer import vtkMRMLScalarVolumeNode
 
 import SimpleITK as sitk
 import cv2
-from scipy.linalg import svd
 import numpy as np
 import copy
 from slicer.parameterNodeWrapper import (
@@ -39,11 +38,11 @@ class BiplaneParameterNode:
     invertedVolume - The output volume that will contain the inverted thresholded volume.
     """
 
-    inputVolume: vtkMRMLScalarVolumeNode
+    inputVolume: Optional[vtkMRMLScalarVolumeNode] = None
     imageThreshold: Annotated[float, WithinRange(-100, 500)] = 100
     invertThreshold: bool = False
-    thresholdedVolume: vtkMRMLScalarVolumeNode
-    invertedVolume: vtkMRMLScalarVolumeNode
+    thresholdedVolume: Optional[vtkMRMLScalarVolumeNode] = None
+    invertedVolume: Optional[vtkMRMLScalarVolumeNode] = None
 
 
 class GenerateMarkers():
@@ -299,10 +298,6 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         return BiplaneParameterNode(super().getParameterNode())
 
     def getRigidMatrix(self, source_points: np.array, target_points: np.array):
-        source_center = np.mean(source_points, axis=0)
-        target_center = np.mean(target_points, axis=0)
-
-        source_points_centered = source_points - source_center
         # 计算质心
         source_center = np.mean(source_points, axis=0)
         target_center = np.mean(target_points, axis=0)
@@ -314,9 +309,14 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         # 计算协方差矩阵
         covariance_matrix = np.dot(source_points_centered.T, target_points_centered)
 
-        # 使用奇异值分解计算旋转矩阵
-        U, S, V = svd(covariance_matrix)
-        rotation_matrix = np.dot(V.T, U.T)
+        # 使用奇异值分解计算旋转矩阵（避免 SciPy 依赖，使用 NumPy）
+        U, _, Vt = np.linalg.svd(covariance_matrix)
+        rotation_matrix = np.dot(Vt.T, U.T)
+
+        # 处理反射情况，确保是 proper rotation（det=+1）
+        if np.linalg.det(rotation_matrix) < 0:
+            Vt[-1, :] *= -1
+            rotation_matrix = np.dot(Vt.T, U.T)
 
         # 计算平移向量
         translation_vector = target_center - np.dot(rotation_matrix, source_center)
@@ -375,14 +375,14 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
             intercept2 = line2_p1[1] - slope2 * line2_p1[0]
         
         # 判断直线是否平行
-        if slope1 == slope2:
+        if (np.isinf(slope1) and np.isinf(slope2)) or np.isclose(slope1, slope2):
             return None  # 无交点
         
         # 计算交点的坐标
-        if slope1 is np.inf:
+        if np.isinf(slope1):
             x = intercept1
             y = slope2 * x + intercept2
-        elif slope2 is np.inf:
+        elif np.isinf(slope2):
             x = intercept2
             y = slope1 * x + intercept1
         else:
@@ -446,8 +446,12 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         # 构造平面的法向量
         normal = np.cross(plane_p2 - plane_p1, plane_p3 - plane_p1)
         
+        denom = np.dot(normal, direction)
+        if np.isclose(denom, 0.0):
+            return None
+
         # 计算直线与平面的交点
-        t = np.dot(normal, plane_p1 - line_p1) / np.dot(normal, direction)
+        t = np.dot(normal, plane_p1 - line_p1) / denom
         P = line_p1 + t * direction
         
         return P
@@ -461,6 +465,8 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         
         # 计算线段的长度的平方
         line_length_sq = np.dot(line_vec, line_vec)
+        if np.isclose(line_length_sq, 0.0):
+            return line_p1
         
         # 计算点p在线段上的投影长度的比例
         t = np.dot(p_vec, line_vec) / line_length_sq
@@ -516,3 +522,35 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
 
         stopTime = time.time()
         logging.info(f"Processing completed in {stopTime-startTime:.2f} seconds")
+
+
+# -----------------------------------------------------------------------------
+# Compatibility shim:
+#
+# This repository historically had `BiplaneLogics.py` as a helper module.
+# However, if the repo folder is added to Slicer "Additional module paths",
+# Slicer attempts to load each top-level `*.py` as a ScriptedLoadableModule.
+# It will expect a `class BiplaneLogics(ScriptedLoadableModule)` inside this file.
+# Provide a minimal hidden module to avoid instantiation errors.
+# -----------------------------------------------------------------------------
+
+
+class BiplaneLogics(ScriptedLoadableModule):
+    def __init__(self, parent):
+        ScriptedLoadableModule.__init__(self, parent)
+        self.parent.title = "BiplaneLogics"
+        self.parent.categories = []
+        self.parent.dependencies = []
+        self.parent.contributors = []
+        self.parent.hidden = True
+        self.parent.helpText = "Internal helper module (hidden)."
+        self.parent.acknowledgementText = ""
+
+
+class BiplaneLogicsWidget(ScriptedLoadableModuleWidget):
+    def setup(self) -> None:
+        ScriptedLoadableModuleWidget.setup(self)
+
+
+class BiplaneLogicsLogic(ScriptedLoadableModuleLogic):
+    pass
