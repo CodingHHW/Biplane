@@ -5,7 +5,12 @@ from typing import Annotated, Optional
 import numpy as np
 import vtk
 import SimpleITK as sitk
-import cv2
+# Ensure OpenCV is available; install on demand for Slicer environment
+try:
+    import cv2
+except ImportError:  # pragma: no cover - runtime install path
+    slicer.util.pip_install("opencv-python")
+    import cv2
 import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
@@ -1255,5 +1260,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             markupsNode3.SetNthControlPointLabel(n, "tracingYellow")
         else:
             markupsNode3.SetNthControlPointPosition(0, p2DYellow[0], p2DYellow[1], 0)
+
+
 
 
