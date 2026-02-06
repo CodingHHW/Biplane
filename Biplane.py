@@ -1138,7 +1138,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         line1_p1, line1_p2 = np.array(self.p3DBigRed), np.array(self.p3DSmallRed)
         line2_p1, line2_p2 = np.array(self.p3DBigGreen), np.array(self.p3DSmallGreen)
 
-        p3D = self.logic.line2line_intersection3D(line1_p1, line1_p2, line2_p1, line2_p2)
+        p3D, line_gap = self.logic.line2line_closest_midpoint3D(line1_p1, line1_p2, line2_p1, line2_p2)
+        if p3D is None:
+            self._error("两条3D光线接近平行，无法稳定计算 TargetP3D")
+            return
+        if line_gap is not None:
+            self.ui.lineGapDisplay.setText(f"{line_gap:.2f} mm")
+            logging.info(f"Ray gap (closest distance): {line_gap:.4f} mm")
 
         # 显示在 3D 空间的实际位置的点，该点是最终结果点
         markupNode3D = slicer.mrmlScene.GetFirstNodeByName("TargetP3D")
@@ -1289,10 +1295,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 return
             
             # Get the coordinates of the first control point from each node
-            pos1 = np.array([0, 0, 0])
-            pos2 = np.array([0, 0, 0])
-            point1Node.GetNthControlPointPosition(0, pos1)
-            point2Node.GetNthControlPointPosition(0, pos2)
+            pos1 = np.array(point1Node.GetNthControlPointPositionWorld(0))
+            pos2 = np.array(point2Node.GetNthControlPointPositionWorld(0))
             
             # Calculate the Euclidean distance (TRE)
             tre = np.linalg.norm(pos2 - pos1)

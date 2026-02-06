@@ -421,6 +421,32 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
 
         return intersection_point
 
+    def line2line_closest_midpoint3D(self, line1_p1: np.array, line1_p2: np.array, line2_p1: np.array, line2_p2: np.array):
+        # 计算两条3D直线的最近点中点（适用于斜交直线）
+        u = line1_p2 - line1_p1
+        v = line2_p2 - line2_p1
+        w0 = line1_p1 - line2_p1
+
+        a = np.dot(u, u)
+        b = np.dot(u, v)
+        c = np.dot(v, v)
+        d = np.dot(u, w0)
+        e = np.dot(v, w0)
+
+        denom = a * c - b * b
+        if np.isclose(denom, 0.0):
+            return None, None
+
+        s = (b * e - c * d) / denom
+        t = (a * e - b * d) / denom
+
+        p1 = line1_p1 + s * u
+        p2 = line2_p1 + t * v
+        midpoint = (p1 + p2) * 0.5
+        distance = np.linalg.norm(p1 - p2)
+
+        return midpoint, distance
+
     def isPinLine(self, p: np.array, line_p1: np.array, line_p2: np.array):
         # 判断点是否在线段内
         # p 是待判断的点的坐标
