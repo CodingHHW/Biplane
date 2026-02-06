@@ -10,7 +10,12 @@ from slicer.ScriptedLoadableModule import *
 from slicer import vtkMRMLScalarVolumeNode
 
 import SimpleITK as sitk
-import cv2
+# Ensure OpenCV is available; install on demand for Slicer environment
+try:
+    import cv2
+except ImportError:  # pragma: no cover - runtime install path
+    slicer.util.pip_install("opencv-python")
+    import cv2
 import numpy as np
 import copy
 from slicer.parameterNodeWrapper import (

@@ -5,13 +5,13 @@ from typing import Annotated, Optional
 import numpy as np
 import vtk
 import SimpleITK as sitk
+import slicer
 # Ensure OpenCV is available; install on demand for Slicer environment
 try:
     import cv2
 except ImportError:  # pragma: no cover - runtime install path
     slicer.util.pip_install("opencv-python")
     import cv2
-import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
@@ -171,6 +171,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.greenPushButton.connect("clicked(bool)", self.onTwoD2ThreeDGreen)
 
         self.ui.tracingPushButton.connect("clicked(bool)", self.onTracing)
+
+        self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -1261,6 +1263,49 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         else:
             markupsNode3.SetNthControlPointPosition(0, p2DYellow[0], p2DYellow[1], 0)
 
+
+    def onCalculateTRE(self):
+        """Calculate Target Registration Error (TRE) between two selected fiducial points."""
+        try:
+            # Get the selected nodes
+            point1Node = self.ui.point1Selector.currentNode()
+            point2Node = self.ui.point2Selector.currentNode()
+            
+            # Validate that both nodes are selected
+            if not point1Node:
+                self._error("Please select Point 1")
+                return
+            if not point2Node:
+                self._error("Please select Point 2")
+                return
+            
+            # Get the number of control points
+            if point1Node.GetNumberOfControlPoints() < 1:
+                self._error("Point 1 has no fiducial points")
+                return
+            if point2Node.GetNumberOfControlPoints() < 1:
+                self._error("Point 2 has no fiducial points")
+                return
+            
+            # Get the coordinates of the first control point from each node
+            pos1 = np.array([0, 0, 0])
+            pos2 = np.array([0, 0, 0])
+            point1Node.GetNthControlPointPosition(0, pos1)
+            point2Node.GetNthControlPointPosition(0, pos2)
+            
+            # Calculate the Euclidean distance (TRE)
+            tre = np.linalg.norm(pos2 - pos1)
+            
+            # Display the result in the UI (formatted to 2 decimal places)
+            self.ui.treValueDisplay.setText(f"{tre:.2f} mm")
+            
+            # Also log the result
+            logging.info(f"TRE calculated: {tre:.4f} mm")
+            logging.info(f"  Point 1: ({pos1[0]:.2f}, {pos1[1]:.2f}, {pos1[2]:.2f})")
+            logging.info(f"  Point 2: ({pos2[0]:.2f}, {pos2[1]:.2f}, {pos2[2]:.2f})")
+            
+        except Exception as e:
+            self._error(f"Error calculating TRE: {str(e)}", detailedText=f"{e}")
 
 
 
