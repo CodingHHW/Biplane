@@ -78,12 +78,18 @@
               <property name="text">
                <string>showVolume</string>
               </property>
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #2d6a4f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1b4332; }</string>
+              </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="showMarkerButton">
               <property name="text">
                <string>showMarker</string>
+              </property>
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #3a5a78; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #2b4158; }</string>
               </property>
              </widget>
             </item>
@@ -105,6 +111,9 @@
               <property name="text">
                <string>shot1</string>
               </property>
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #b23a48; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #8a2b36; }</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -116,6 +125,9 @@
               <property name="text">
                <string>shot2</string>
               </property>
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #2f7d6d; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #225c51; }</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -126,6 +138,9 @@
              <widget class="QPushButton" name="shot3AllButton">
               <property name="text">
                <string>shot3</string>
+              </property>
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #c49b2d; color: #1d1d1d; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #a37e1f; }</string>
               </property>
              </widget>
             </item>
@@ -158,6 +173,9 @@
            <widget class="QPushButton" name="markersSortButton">
             <property name="text">
              <string>markersSort</string>
+            </property>
+            <property name="styleSheet">
+             <string>QPushButton { background-color: #0f766e; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #0a5b55; }</string>
             </property>
            </widget>
           </item>
@@ -199,6 +217,9 @@
               <property name="text">
                <string>redPush</string>
               </property>
+             <property name="styleSheet">
+              <string>QPushButton { background-color: #d62828; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #a91f1f; }</string>
+             </property>
              </widget>
             </item>
            </layout>
@@ -241,6 +262,9 @@
               <property name="text">
                <string>greenPush</string>
               </property>
+             <property name="styleSheet">
+              <string>QPushButton { background-color: #2a9d8f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1e7369; }</string>
+             </property>
              </widget>
             </item>
            </layout>
@@ -292,6 +316,9 @@
               <property name="text">
                <string>real time tracing</string>
               </property>
+             <property name="styleSheet">
+              <string>QPushButton { background-color: #2b6cb0; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #214f82; }</string>
+             </property>
              </widget>
             </item>
            </layout>
@@ -476,6 +503,9 @@
             <property name="text">
              <string>Calculate TRE</string>
             </property>
+           <property name="styleSheet">
+            <string>QPushButton { background-color: #7c3aed; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #5b21b6; }</string>
+           </property>
            </widget>
           </item>
           <item>
