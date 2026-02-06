@@ -993,34 +993,26 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #     lineNode.SetNthControlPointPosition(1, self.p3DSmallRed)
         ###################################
 
-        # 计算光线在Green 视图marker 平面的 big 与 small 的交点
+        # 计算 Red 光线在 Green 视图下的投影（与 tracingGreen2D 使用同一投影模型）
         line_p1, line_p2 = np.array(self.p3DBigRed), np.array(self.p3DSmallRed)
-
-        bigPlane_p1 = np.array(self.bigMarker3DDic2[1])
-        bigPlane_p2 = np.array(self.bigMarker3DDic2[2])
-        bigPlane_p3 = np.array(self.bigMarker3DDic2[3])
-
-        smallPlane_p1 = np.array(self.smallMarker3DDic2[1])
-        smallPlane_p2 = np.array(self.smallMarker3DDic2[2])
-        smallPlane_p3 = np.array(self.smallMarker3DDic2[3])
-
-        bigIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, bigPlane_p1, bigPlane_p2, bigPlane_p3)
-        smallIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, smallPlane_p1, smallPlane_p2, smallPlane_p3)
-
-        # 调试显示  #########################
-        # markupsNode1 = slicer.vtkMRMLMarkupsFiducialNode()
-        # markupsNode1.SetName("TMPintersectionP")
-
-        # slicer.mrmlScene.AddNode(markupsNode1)
-
-        # n = markupsNode1.AddControlPoint(bigIntersectionP3D)
-        # markupsNode1.SetNthControlPointLabel(n, "Big")
-        # n = markupsNode1.AddControlPoint(smallIntersectionP3D)
-        # markupsNode1.SetNthControlPointLabel(n, "Small")
-        ####################################
-
-        bigIntersectionP2DGreen = self.logic.threeD2twoD(bigIntersectionP3D, self.M3D2DRigidMatrixsBig2, self.M3D2DPerspectiveMatrixsBig2)
-        smallIntersectionP2DGreen = self.logic.threeD2twoD(smallIntersectionP3D, self.M3D2DRigidMatrixsSmall2, self.M3D2DPerspectiveMatrixsSmall2)
+        p2DGreen_from_red1 = self.logic.threeD2twoDFor3DSpace(
+            line_p1,
+            self.green3DVec,
+            np.array(self.bigMarker3DDic2[1]),
+            np.array(self.bigMarker3DDic2[2]),
+            np.array(self.bigMarker3DDic2[3]),
+            self.M3D2DRigidMatrixsBig2,
+            self.M3D2DPerspectiveMatrixsBig2,
+        )
+        p2DGreen_from_red2 = self.logic.threeD2twoDFor3DSpace(
+            line_p2,
+            self.green3DVec,
+            np.array(self.bigMarker3DDic2[1]),
+            np.array(self.bigMarker3DDic2[2]),
+            np.array(self.bigMarker3DDic2[3]),
+            self.M3D2DRigidMatrixsBig2,
+            self.M3D2DPerspectiveMatrixsBig2,
+        )
 
         # 计算在绿色窗口中与边界的交点
         greenImageNode = slicer.mrmlScene.GetFirstNodeByName("shot2")
@@ -1032,16 +1024,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         line2 = (np.array([xmin, ymin]), np.array([xmax, ymin]))
         line3 = (np.array([xmax, ymax]), np.array([xmin, ymax]))
         line4 = (np.array([xmax, ymax]), np.array([xmax, ymin]))
-        p1 = self.logic.line2line_intersection(bigIntersectionP2DGreen, smallIntersectionP2DGreen, line1[0], line1[1])
+        p1 = self.logic.line2line_intersection(p2DGreen_from_red1, p2DGreen_from_red2, line1[0], line1[1])
         # print("------")
         # print(bigIntersectionP2DGreen)
         # print(smallIntersectionP2DGreen)
         # print(line1[0])
         # print(line1[1])
         # print("---------")
-        p2 = self.logic.line2line_intersection(bigIntersectionP2DGreen, smallIntersectionP2DGreen, line2[0], line2[1])
-        p3 = self.logic.line2line_intersection(bigIntersectionP2DGreen, smallIntersectionP2DGreen, line3[0], line3[1])
-        p4 = self.logic.line2line_intersection(bigIntersectionP2DGreen, smallIntersectionP2DGreen, line4[0], line4[1])
+        p2 = self.logic.line2line_intersection(p2DGreen_from_red1, p2DGreen_from_red2, line2[0], line2[1])
+        p3 = self.logic.line2line_intersection(p2DGreen_from_red1, p2DGreen_from_red2, line3[0], line3[1])
+        p4 = self.logic.line2line_intersection(p2DGreen_from_red1, p2DGreen_from_red2, line4[0], line4[1])
         
         # print(p1)
         # print(p2)
@@ -1145,6 +1137,17 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if line_gap is not None:
             self.ui.lineGapDisplay.setText(f"{line_gap:.2f} mm")
             logging.info(f"Ray gap (closest distance): {line_gap:.4f} mm")
+        p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
+            p3D,
+            self.green3DVec,
+            np.array(self.bigMarker3DDic2[1]),
+            np.array(self.bigMarker3DDic2[2]),
+            self.bigMarker3DDic2[3],
+            self.M3D2DRigidMatrixsBig2,
+            self.M3D2DPerspectiveMatrixsBig2,
+        )
+        reproj_err = np.linalg.norm(p2DGreen_check - p2DNearest2Line)
+        logging.info(f"Green reprojection residual: {reproj_err:.4f} px")
 
         # 显示在 3D 空间的实际位置的点，该点是最终结果点
         markupNode3D = slicer.mrmlScene.GetFirstNodeByName("TargetP3D")
@@ -1208,15 +1211,33 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def tracingP3D(self, caller, event):
         knifeNode = self.ui.knifeSelector.currentNode()    
         p3D = np.array(knifeNode.GetNthControlPointPosition(0))
-        p2DRed = self.logic.threeD2twoDFor3DSpace(p3D, self.red3DVec, 
-                                                np.array(self.bigMarker3DDic1[1]), np.array(self.bigMarker3DDic1[2]), self.bigMarker3DDic1[3],
-                                                self.M3D2DRigidMatrixsBig1, self.M3D2DPerspectiveMatrixsBig1)
-        p2DGreen = self.logic.threeD2twoDFor3DSpace(p3D, self.green3DVec, 
-                                                    np.array(self.bigMarker3DDic2[1]), np.array(self.bigMarker3DDic2[2]), self.bigMarker3DDic2[3],
-                                                    self.M3D2DRigidMatrixsBig2, self.M3D2DPerspectiveMatrixsBig2)
-        p2DYellow = self.logic.threeD2twoDFor3DSpace(p3D, self.yellow3DVec, 
-                                                    np.array(self.bigMarker3DDic3[1]), np.array(self.bigMarker3DDic3[2]), self.bigMarker3DDic3[3],
-                                                    self.M3D2DRigidMatrixsBig3, self.M3D2DPerspectiveMatrixsBig3)
+        p2DRed = self.logic.threeD2twoDFor3DSpace(
+            p3D,
+            self.red3DVec,
+            np.array(self.bigMarker3DDic1[1]),
+            np.array(self.bigMarker3DDic1[2]),
+            self.bigMarker3DDic1[3],
+            self.M3D2DRigidMatrixsBig1,
+            self.M3D2DPerspectiveMatrixsBig1,
+        )
+        p2DGreen = self.logic.threeD2twoDFor3DSpace(
+            p3D,
+            self.green3DVec,
+            np.array(self.bigMarker3DDic2[1]),
+            np.array(self.bigMarker3DDic2[2]),
+            self.bigMarker3DDic2[3],
+            self.M3D2DRigidMatrixsBig2,
+            self.M3D2DPerspectiveMatrixsBig2,
+        )
+        p2DYellow = self.logic.threeD2twoDFor3DSpace(
+            p3D,
+            self.yellow3DVec,
+            np.array(self.bigMarker3DDic3[1]),
+            np.array(self.bigMarker3DDic3[2]),
+            self.bigMarker3DDic3[3],
+            self.M3D2DRigidMatrixsBig3,
+            self.M3D2DPerspectiveMatrixsBig3,
+        )
         
         # 显示追踪点
         markupsNode1 = slicer.mrmlScene.GetFirstNodeByName("tracingRed2D")
