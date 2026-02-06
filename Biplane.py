@@ -596,7 +596,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode1.SetVisibility(True)
             displayNode1.SetViewNodeIDs(["vtkMRMLSliceNodeRed"])
             displayNode1.SetVisibility3D(False)
-            displayNode1.SetGlyphScale(0.3)
+            displayNode1.SetGlyphScale(0.15)
             displayNode1.SetSelectedColor([1, 0, 0])
 
             for p in self.bigMarkersSort1.keys():
@@ -623,7 +623,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode2.SetVisibility(True)
             displayNode2.SetViewNodeIDs(["vtkMRMLSliceNodeGreen"])
             displayNode2.SetVisibility3D(False)
-            displayNode2.SetGlyphScale(0.3)
+            displayNode2.SetGlyphScale(0.15)
             displayNode2.SetSelectedColor([0, 1, 0])
 
             for p in self.bigMarkersSort2.keys():
@@ -650,7 +650,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode3.SetVisibility(True)
             displayNode3.SetViewNodeIDs(["vtkMRMLSliceNodeYellow"])
             displayNode3.SetVisibility3D(False)
-            displayNode3.SetGlyphScale(0.3)
+            displayNode3.SetGlyphScale(0.15)
             displayNode3.SetSelectedColor([0, 0, 1])
         
             for p in self.bigMarkersSort3.keys():
@@ -717,9 +717,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode2.SetVisibility3D(True)
         displayNode3.SetVisibility3D(True)
 
-        displayNode1.SetGlyphScale(0.3)
-        displayNode2.SetGlyphScale(0.3)
-        displayNode3.SetGlyphScale(0.3)
+        displayNode1.SetGlyphScale(0.15)
+        displayNode2.SetGlyphScale(0.15)
+        displayNode3.SetGlyphScale(0.15)
 
         displayNode1.SetSelectedColor([1, 0, 0])
         displayNode2.SetSelectedColor([0, 1, 0])
@@ -1099,23 +1099,24 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # displayNode.SetGlyphScale(0.6)
         displayNode.SetSelectedColor([0.392, 0.584, 0.929])
 
-        p2D = np.array(markupNode.GetNthControlPointPosition(0)[0:2])   #手动添加的点
+        p3D = np.array(markupNode.GetNthControlPointPosition(0))   #手动添加的点
         lineNodeGreen = slicer.mrmlScene.GetFirstNodeByName("GreenLine2D")
-        lineP1 = np.array([0, 0])
-        lineP2 = np.array([0, 0])
+        lineP1 = np.array([0.0, 0.0, 0.0])
+        lineP2 = np.array([0.0, 0.0, 0.0])
         if lineNodeGreen == None:
             self._error("需要先在 Red 视图点击 redPush 生成 GreenLine2D")
             return
         else:
             lineStartP = lineNodeGreen.GetLineStartPositionWorld()
             lineEndP = lineNodeGreen.GetLineEndPositionWorld()
-            lineP1[0], lineP1[1] = lineStartP.GetX(), lineStartP.GetY()
-            lineP2[0], lineP2[1] = lineEndP.GetX(), lineEndP.GetY()
+            lineP1[0], lineP1[1], lineP1[2] = lineStartP.GetX(), lineStartP.GetY(), lineStartP.GetZ()
+            lineP2[0], lineP2[1], lineP2[2] = lineEndP.GetX(), lineEndP.GetY(), lineEndP.GetZ()
             
         # 计算手动添加的点到直线的最近点，将点自动移动到直线上
-        p2DNearest2Line = self.logic.pointNearest2Line(p2D, lineP1, lineP2)
+        p3DNearest2Line = self.logic.pointNearest2Line(p3D, lineP1, lineP2)
         # 替换手动添加的 markupNode
-        markupNode.SetNthControlPointPosition(0, [p2DNearest2Line[0], p2DNearest2Line[1], 0])
+        markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
+        p2DNearest2Line = p3DNearest2Line[0:2]
 
         self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
         self.p3DSmallGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsSmall2, self.M2D3DRigidMatrixsSmall2, self.originSmallMarker3D_Z)
