@@ -74,6 +74,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = None
         self._parameterNodeGuiTag = None
         self._knifeObserverTag = None
+        self.debugVisualization = False
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
@@ -173,6 +174,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.tracingPushButton.connect("clicked(bool)", self.onTracing)
 
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
+
+        self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -1007,6 +1010,33 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bigIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, bigPlane_p1, bigPlane_p2, bigPlane_p3)
         smallIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, smallPlane_p1, smallPlane_p2, smallPlane_p3)
 
+        # Debug visualization: Red ray and intersections
+        if self.debugVisualization:
+            # Red ray line (from big to small plane)
+            self._createOrUpdateVisualizationNode(
+                "vis_RedRay", 
+                nodeType="MarkupsLine",
+                color=(1, 0, 0),  # Red
+                linePoints=[self.p3DBigRed, self.p3DSmallRed]
+            )
+            
+            # Intersection points
+            if bigIntersectionP3D is not None:
+                self._createOrUpdateVisualizationNode(
+                    "vis_RedBigIntersection",
+                    position=bigIntersectionP3D,
+                    color=(1, 0.5, 0.5),  # Light red
+                    nodeType="MarkupsFiducial"
+                )
+            
+            if smallIntersectionP3D is not None:
+                self._createOrUpdateVisualizationNode(
+                    "vis_RedSmallIntersection",
+                    position=smallIntersectionP3D,
+                    color=(1, 0.5, 0.5),  # Light red
+                    nodeType="MarkupsFiducial"
+                )
+
         # 调试显示  #########################
         # markupsNode1 = slicer.vtkMRMLMarkupsFiducialNode()
         # markupsNode1.SetName("TMPintersectionP")
@@ -1121,6 +1151,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
         self.p3DSmallGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsSmall2, self.M2D3DRigidMatrixsSmall2, self.originSmallMarker3D_Z)
 
+        # Debug visualization: Green ray
+        if self.debugVisualization:
+            # Green ray line (from big to small plane)
+            self._createOrUpdateVisualizationNode(
+                "vis_GreenRay",
+                nodeType="MarkupsLine",
+                color=(0, 1, 0),  # Green
+                linePoints=[self.p3DBigGreen, self.p3DSmallGreen]
+            )
+
         # 调试显示  ############################
         # lineNode = slicer.mrmlScene.GetFirstNodeByName("TMPGreenLight3D")
         # if lineNode == None:
@@ -1145,6 +1185,33 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if line_gap is not None:
             self.ui.lineGapDisplay.setText(f"{line_gap:.2f} mm")
             logging.info(f"Ray gap (closest distance): {line_gap:.4f} mm")
+        
+        # Debug visualization: TargetP3D calculation steps
+        if self.debugVisualization:
+            # Ray lines if not already shown
+            if not slicer.mrmlScene.GetFirstNodeByName("vis_RedRay"):
+                self._createOrUpdateVisualizationNode(
+                    "vis_RedRay",
+                    nodeType="MarkupsLine",
+                    color=(1, 0, 0),  # Red
+                    linePoints=[line1_p1, line1_p2]
+                )
+            if not slicer.mrmlScene.GetFirstNodeByName("vis_GreenRay"):
+                self._createOrUpdateVisualizationNode(
+                    "vis_GreenRay",
+                    nodeType="MarkupsLine",
+                    color=(0, 1, 0),  # Green
+                    linePoints=[line2_p1, line2_p2]
+                )
+            
+            # TargetP3D midpoint
+            self._createOrUpdateVisualizationNode(
+                "vis_TargetP3DMidpoint",
+                position=p3D,
+                color=(1, 1, 0),  # Yellow
+                nodeType="MarkupsFiducial"
+            )
+
         p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
             p3D,
             self.green3DVec,
@@ -1340,6 +1407,85 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             
         except Exception as e:
             self._error(f"Error calculating TRE: {str(e)}", detailedText=f"{e}")
+
+    def onDebugVisToggle(self, enabled):
+        """Toggle visibility of all debug visualization nodes"""
+        self.debugVisualization = enabled
+        
+        # Toggle visibility of all visualization nodes if they exist
+        visNodeNames = [
+            "vis_RedRay", "vis_GreenRay", "vis_RedGreenIntersections",
+            "vis_GreenReprojected", "vis_TargetP3DRay1", "vis_TargetP3DRay2",
+            "vis_TargetP3DMidpoint", "vis_TargetP3DStep"
+        ]
+        
+        for nodeName in visNodeNames:
+            node = slicer.mrmlScene.GetFirstNodeByName(nodeName)
+            if node:
+                displayNode = node.GetDisplayNode()
+                if displayNode:
+                    displayNode.SetVisibility(enabled)
+
+    def _createOrUpdateVisualizationNode(self, nodeName, position, color=(1, 1, 1), 
+                                        nodeType="MarkupsFiducial", linePoints=None):
+        """
+        Helper method to create or update a visualization node.
+        
+        Args:
+            nodeName: Unique name for the visualization node
+            position: 3D point (for fiducial) or None (for line)
+            color: RGB tuple (0-1 range)
+            nodeType: Type of node ("MarkupsFiducial" or "MarkupsLine")
+            linePoints: List of two 3D points if creating a line
+        
+        Returns:
+            Created or existing node
+        """
+        # Remove existing node if present
+        existingNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
+        if existingNode:
+            slicer.mrmlScene.RemoveNode(existingNode)
+        
+        if nodeType == "MarkupsFiducial" and position is not None:
+            # Create fiducial node
+            node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", nodeName)
+            node.AddControlPoint(vtk.vtkVector3d(position[0], position[1], position[2]))
+            node.SetNthMarkupAssignedID(0, nodeName)
+            
+            # Set display properties
+            displayNode = node.GetDisplayNode()
+            if not displayNode:
+                displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
+                node.SetAndObserveDisplayNodeID(displayNode.GetID())
+            
+            displayNode.SetGlyphScale(2.0)
+            displayNode.SetSelectedColor(*color)
+            displayNode.SetColor(*color)
+            displayNode.SetVisibility(self.debugVisualization)
+            
+            return node
+        
+        elif nodeType == "MarkupsLine" and linePoints and len(linePoints) >= 2:
+            # Create line node
+            node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", nodeName)
+            
+            for point in linePoints:
+                node.AddControlPoint(vtk.vtkVector3d(point[0], point[1], point[2]))
+            
+            # Set display properties
+            displayNode = node.GetDisplayNode()
+            if not displayNode:
+                displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
+                node.SetAndObserveDisplayNodeID(displayNode.GetID())
+            
+            displayNode.SetLineWidth(2.0)
+            displayNode.SetSelectedColor(*color)
+            displayNode.SetColor(*color)
+            displayNode.SetVisibility(self.debugVisualization)
+            
+            return node
+        
+        return None
 
 
 
