@@ -141,6 +141,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # "setMRMLScene(vtkMRMLScene*)" slot.
         uiWidget.setMRMLScene(slicer.mrmlScene)
 
+        self.ui.copySourceSelector.setMRMLScene(slicer.mrmlScene)
+        self.ui.copyTargetSelector.setMRMLScene(slicer.mrmlScene)
+
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
         self.logic = BiplaneLogic()
@@ -161,6 +164,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.shot3AllButton.connect("clicked(bool)", self.onShot3AllButton)
 
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
+        self.ui.copyPointButton.connect("clicked(bool)", self.onCopyMarkerPoint)
         
         self.ui.redPushButton.connect("clicked(bool)", self.onTwoD2ThreeDRed)
         self.ui.greenPushButton.connect("clicked(bool)", self.onTwoD2ThreeDGreen)
@@ -343,6 +347,27 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
         displayNode.SetColor(0, 0, 0)
         markerModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+
+    def onCopyMarkerPoint(self):
+        sourceNode = self.ui.copySourceSelector.currentNode()
+        targetNode = self.ui.copyTargetSelector.currentNode()
+        if not sourceNode:
+            self._error("Please select a source marker node")
+            return
+        if not targetNode:
+            self._error("Please select a target marker node")
+            return
+        if sourceNode.GetNumberOfControlPoints() < 1:
+            self._error("Source marker has no control points")
+            return
+
+        index = 0
+        sourcePos = sourceNode.GetNthControlPointPosition(index)
+
+        if targetNode.GetNumberOfControlPoints() <= index:
+            targetNode.AddControlPoint(sourcePos)
+        else:
+            targetNode.SetNthControlPointPosition(index, sourcePos)
 
     def onShot1Button(self):
         bodyVolumeNode = self._getBodyVolumeNode()
