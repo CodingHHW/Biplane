@@ -188,6 +188,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
 
+        self._ensureLinearTransformNodes()
+
         threeDWidget = slicer.app.layoutManager().threeDWidget(0)
         threeDControllerWidget = threeDWidget.threeDController()
         threeDControllerWidget.setOrthographicModeEnabled(True)
@@ -197,6 +199,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         viewNode.SetBackgroundColor2(1, 1, 1)
         viewNode.SetBoxVisible(False)
         viewNode.SetAxisLabelsVisible(False)
+
+    def _ensureLinearTransformNodes(self) -> None:
+        transformNames = ["LinearTransform", "LinearTransform_1", "LinearTransform_2"]
+        for name in transformNames:
+            node = slicer.mrmlScene.GetFirstNodeByName(name)
+            if node is None:
+                node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", name)
 
     def exit(self) -> None:
         """Called each time the user opens a different module."""
@@ -321,6 +330,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # Larger dynamic range, probably CT
             displayNode.GetVolumePropertyNode().Copy(volRenLogic.GetPresetByName("CT-Chest-Contrast-Enhanced"))
 
+        try:
+            slicer.util.resetThreeDViews()
+        except Exception:
+            pass
+
     def onShowMarkerButton(self):
         markerModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode")
         markerModelNode.SetName("markers")
@@ -346,6 +360,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot1Button()
         self.onShot1ButtonAgain()
         self.onShot1ButtonShow()
+        self.onShowVolumeButton()
 
 
     def onShot1ButtonAgain(self):
@@ -421,6 +436,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot2Button()
         self.onShot2ButtonAgain()
         self.onShot2ButtonShow()
+        self.onShowVolumeButton()
 
 
     def onShot2ButtonAgain(self):
@@ -496,6 +512,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot3Button()
         self.onShot3ButtonAgain()
         self.onShot3ButtonShow()
+        self.onShowVolumeButton()
 
     def onShot3ButtonAgain(self):
         bodyVolumeNode = self._getBodyVolumeNode()
@@ -1267,6 +1284,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if p3D is None:
             self._error("两条3D光线接近平行，无法稳定计算 TargetP3D")
             return
+        self.p3DTarget = p3D
         if line_gap is not None:
             self.ui.lineGapDisplay.setText(f"{line_gap:.2f} mm")
             logging.info(f"Ray gap (closest distance): {line_gap:.4f} mm")
@@ -1298,6 +1316,55 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 color=(1, 1, 0),  # Yellow
                 nodeType="MarkupsFiducial"
             )
+
+            if hasattr(self, "yellow3DVec"):
+                yellowRayPoints = self._getExtendedLinePoints(
+                    p3D - self.yellow3DVec,
+                    p3D + self.yellow3DVec,
+                    scale=self.debugRayScale
+                )
+                self._createOrUpdateVisualizationNode(
+                    "vis_YellowRay",
+                    nodeType="MarkupsLine",
+                    color=(1, 1, 0),
+                    linePoints=yellowRayPoints
+                )
+
+                if hasattr(self, "bigMarker3DDic3") and hasattr(self, "smallMarker3DDic3"):
+                    yellowBig_p1 = np.array(self.bigMarker3DDic3[1])
+                    yellowBig_p2 = np.array(self.bigMarker3DDic3[2])
+                    yellowBig_p3 = np.array(self.bigMarker3DDic3[3])
+                    yellowSmall_p1 = np.array(self.smallMarker3DDic3[1])
+                    yellowSmall_p2 = np.array(self.smallMarker3DDic3[2])
+                    yellowSmall_p3 = np.array(self.smallMarker3DDic3[3])
+
+                    yellowBigIntersectionP3D = self.logic.line2plane_intersection(
+                        p3D - self.yellow3DVec,
+                        p3D + self.yellow3DVec,
+                        yellowBig_p1, yellowBig_p2, yellowBig_p3
+                    )
+                    yellowSmallIntersectionP3D = self.logic.line2plane_intersection(
+                        p3D - self.yellow3DVec,
+                        p3D + self.yellow3DVec,
+                        yellowSmall_p1, yellowSmall_p2, yellowSmall_p3
+                    )
+
+                    if yellowBigIntersectionP3D is not None:
+                        self._createOrUpdateVisualizationNode(
+                            "vis_YellowBigIntersection",
+                            position=yellowBigIntersectionP3D,
+                            color=(1, 1, 0),
+                            nodeType="MarkupsFiducial",
+                            glyphScale=1.0
+                        )
+                    if yellowSmallIntersectionP3D is not None:
+                        self._createOrUpdateVisualizationNode(
+                            "vis_YellowSmallIntersection",
+                            position=yellowSmallIntersectionP3D,
+                            color=(1, 1, 0),
+                            nodeType="MarkupsFiducial",
+                            glyphScale=1.0
+                        )
 
         p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
             p3D,
@@ -1506,6 +1573,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             "vis_GreenBigIntersection", "vis_GreenSmallIntersection",
             "vis_GreenBigPlane", "vis_GreenSmallPlane",
             "vis_RedBigPlane", "vis_RedSmallPlane",
+            "vis_YellowBigPlane", "vis_YellowSmallPlane",
+            "vis_YellowRay", "vis_YellowBigIntersection", "vis_YellowSmallIntersection",
             "vis_TargetP3DMidpoint"
         ]
         
@@ -1693,6 +1762,28 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     scale=self.debugPlaneScale
                 )
 
+            if hasattr(self, "bigMarker3DDic3") and hasattr(self, "smallMarker3DDic3"):
+                yellowBig_p1 = np.array(self.bigMarker3DDic3[1])
+                yellowBig_p2 = np.array(self.bigMarker3DDic3[2])
+                yellowBig_p3 = np.array(self.bigMarker3DDic3[3])
+                yellowSmall_p1 = np.array(self.smallMarker3DDic3[1])
+                yellowSmall_p2 = np.array(self.smallMarker3DDic3[2])
+                yellowSmall_p3 = np.array(self.smallMarker3DDic3[3])
+                self._createOrUpdatePlaneModel(
+                    "vis_YellowBigPlane",
+                    yellowBig_p1, yellowBig_p2, yellowBig_p3,
+                    color=(0.9, 0.8, 0.2),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+                self._createOrUpdatePlaneModel(
+                    "vis_YellowSmallPlane",
+                    yellowSmall_p1, yellowSmall_p2, yellowSmall_p3,
+                    color=(0.7, 0.6, 0.1),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+
         if refreshRays:
             if hasattr(self, "p3DBigRed") and hasattr(self, "p3DSmallRed"):
                 redRayPoints = self._getExtendedLinePoints(self.p3DBigRed, self.p3DSmallRed, scale=self.debugRayScale)
@@ -1710,6 +1801,55 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     color=(0, 1, 0),
                     linePoints=greenRayPoints
                 )
+
+            if hasattr(self, "yellow3DVec") and hasattr(self, "p3DTarget"):
+                yellowRayPoints = self._getExtendedLinePoints(
+                    self.p3DTarget - self.yellow3DVec,
+                    self.p3DTarget + self.yellow3DVec,
+                    scale=self.debugRayScale
+                )
+                self._createOrUpdateVisualizationNode(
+                    "vis_YellowRay",
+                    nodeType="MarkupsLine",
+                    color=(1, 1, 0),
+                    linePoints=yellowRayPoints
+                )
+
+                if hasattr(self, "bigMarker3DDic3") and hasattr(self, "smallMarker3DDic3"):
+                    yellowBig_p1 = np.array(self.bigMarker3DDic3[1])
+                    yellowBig_p2 = np.array(self.bigMarker3DDic3[2])
+                    yellowBig_p3 = np.array(self.bigMarker3DDic3[3])
+                    yellowSmall_p1 = np.array(self.smallMarker3DDic3[1])
+                    yellowSmall_p2 = np.array(self.smallMarker3DDic3[2])
+                    yellowSmall_p3 = np.array(self.smallMarker3DDic3[3])
+
+                    yellowBigIntersectionP3D = self.logic.line2plane_intersection(
+                        self.p3DTarget - self.yellow3DVec,
+                        self.p3DTarget + self.yellow3DVec,
+                        yellowBig_p1, yellowBig_p2, yellowBig_p3
+                    )
+                    yellowSmallIntersectionP3D = self.logic.line2plane_intersection(
+                        self.p3DTarget - self.yellow3DVec,
+                        self.p3DTarget + self.yellow3DVec,
+                        yellowSmall_p1, yellowSmall_p2, yellowSmall_p3
+                    )
+
+                    if yellowBigIntersectionP3D is not None:
+                        self._createOrUpdateVisualizationNode(
+                            "vis_YellowBigIntersection",
+                            position=yellowBigIntersectionP3D,
+                            color=(1, 1, 0),
+                            nodeType="MarkupsFiducial",
+                            glyphScale=1.0
+                        )
+                    if yellowSmallIntersectionP3D is not None:
+                        self._createOrUpdateVisualizationNode(
+                            "vis_YellowSmallIntersection",
+                            position=yellowSmallIntersectionP3D,
+                            color=(1, 1, 0),
+                            nodeType="MarkupsFiducial",
+                            glyphScale=1.0
+                        )
 
 
 
