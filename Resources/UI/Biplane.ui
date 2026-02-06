@@ -101,23 +101,9 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <item>
-             <widget class="QPushButton" name="shot1Button">
+             <widget class="QPushButton" name="shot1AllButton">
               <property name="text">
                <string>shot1</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot1ButtonAgain">
-              <property name="text">
-               <string>shot1again</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot1ButtonShow">
-              <property name="text">
-               <string>shot1show</string>
               </property>
              </widget>
             </item>
@@ -126,23 +112,9 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <item>
-             <widget class="QPushButton" name="shot2Button">
+             <widget class="QPushButton" name="shot2AllButton">
               <property name="text">
                <string>shot2</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot2ButtonAgain">
-              <property name="text">
-               <string>shot2again</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot2ButtonShow">
-              <property name="text">
-               <string>shot2show</string>
               </property>
              </widget>
             </item>
@@ -151,23 +123,9 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <item>
-             <widget class="QPushButton" name="shot3Button">
+             <widget class="QPushButton" name="shot3AllButton">
               <property name="text">
                <string>shot3</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot3ButtonAgain">
-              <property name="text">
-               <string>shot3again</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="shot3ButtonShow">
-              <property name="text">
-               <string>shot3show</string>
               </property>
              </widget>
             </item>
@@ -353,6 +311,62 @@
                 <bool>false</bool>
                </property>
               </widget>
+             </item>
+             <item>
+              <layout class="QFormLayout" name="formLayout_debugVis">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_debugPlaneScale">
+                 <property name="text">
+                  <string>Plane scale</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QDoubleSpinBox" name="debugPlaneScaleSpinBox">
+                 <property name="minimum">
+                  <double>1.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.5</double>
+                 </property>
+                 <property name="value">
+                  <double>6.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_debugRayScale">
+                 <property name="text">
+                  <string>Ray scale</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QDoubleSpinBox" name="debugRayScaleSpinBox">
+                 <property name="minimum">
+                  <double>1.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.5</double>
+                 </property>
+                 <property name="value">
+                  <double>10.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>

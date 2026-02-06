@@ -75,6 +75,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNodeGuiTag = None
         self._knifeObserverTag = None
         self.debugVisualization = False
+        self.debugPlaneScale = 6.0
+        self.debugRayScale = 10.0
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
@@ -154,17 +156,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.showVolumeButton.connect("clicked(bool)", self.onShowVolumeButton)
         self.ui.showMarkerButton.connect("clicked(bool)", self.onShowMarkerButton)
 
-        self.ui.shot1Button.connect("clicked(bool)", self.onShot1Button)
-        self.ui.shot1ButtonAgain.connect("clicked(bool)", self.onShot1ButtonAgain)
-        self.ui.shot1ButtonShow.connect("clicked(bool)", self.onShot1ButtonShow)
-
-        self.ui.shot2Button.connect("clicked(bool)", self.onShot2Button)
-        self.ui.shot2ButtonAgain.connect("clicked(bool)", self.onShot2ButtonAgain)
-        self.ui.shot2ButtonShow.connect("clicked(bool)", self.onShot2ButtonShow)
-
-        self.ui.shot3Button.connect("clicked(bool)", self.onShot3Button)
-        self.ui.shot3ButtonAgain.connect("clicked(bool)", self.onShot3ButtonAgain)
-        self.ui.shot3ButtonShow.connect("clicked(bool)", self.onShot3ButtonShow)
+        self.ui.shot1AllButton.connect("clicked(bool)", self.onShot1AllButton)
+        self.ui.shot2AllButton.connect("clicked(bool)", self.onShot2AllButton)
+        self.ui.shot3AllButton.connect("clicked(bool)", self.onShot3AllButton)
 
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
         
@@ -176,6 +170,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
 
         self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
+        self.ui.debugPlaneScaleSpinBox.connect("valueChanged(double)", self.onDebugPlaneScaleChanged)
+        self.ui.debugRayScaleSpinBox.connect("valueChanged(double)", self.onDebugRayScaleChanged)
+
+        self.debugPlaneScale = float(self.ui.debugPlaneScaleSpinBox.value)
+        self.debugRayScale = float(self.ui.debugRayScaleSpinBox.value)
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -250,16 +249,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _checkCanApply(self, caller=None, event=None) -> None:
         canRun = bool(self._parameterNode and getattr(self._parameterNode, "inputVolume", None))
-        self.ui.shot1Button.enabled = canRun
-        self.ui.shot2Button.enabled = canRun
-        self.ui.shot3Button.enabled = canRun
-        self.ui.shot1ButtonAgain.enabled = canRun
-        self.ui.shot2ButtonAgain.enabled = canRun
-        self.ui.shot3ButtonAgain.enabled = canRun
-        self.ui.shot1ButtonShow.enabled = True
-        self.ui.shot2ButtonShow.enabled = True
-        self.ui.shot3ButtonShow.enabled = True
-        self.ui.shot1Button.toolTip = _("Select input volume" if not canRun else "Capture shot")
+        self.ui.shot1AllButton.enabled = canRun
+        self.ui.shot2AllButton.enabled = canRun
+        self.ui.shot3AllButton.enabled = canRun
+        self.ui.shot1AllButton.toolTip = _("Select input volume" if not canRun else "Capture shot")
 
     def flipImage(self, image):
         tmp = sitk.GetImageFromArray(sitk.GetArrayFromImage(image))
@@ -349,6 +342,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
         self._captureViewToFile(saveBodyFile)
 
+    def onShot1AllButton(self):
+        self.onShot1Button()
+        self.onShot1ButtonAgain()
+        self.onShot1ButtonShow()
+
 
     def onShot1ButtonAgain(self):
         bodyVolumeNode = self._getBodyVolumeNode()
@@ -419,6 +417,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
         self._captureViewToFile(saveBodyFile)
 
+    def onShot2AllButton(self):
+        self.onShot2Button()
+        self.onShot2ButtonAgain()
+        self.onShot2ButtonShow()
+
 
     def onShot2ButtonAgain(self):
         bodyVolumeNode = self._getBodyVolumeNode()
@@ -488,6 +491,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         markerModelNode.SetDisplayVisibility(False)
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
         self._captureViewToFile(saveBodyFile)
+
+    def onShot3AllButton(self):
+        self.onShot3Button()
+        self.onShot3ButtonAgain()
+        self.onShot3ButtonShow()
 
     def onShot3ButtonAgain(self):
         bodyVolumeNode = self._getBodyVolumeNode()
@@ -1007,17 +1015,32 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         smallPlane_p2 = np.array(self.smallMarker3DDic2[2])
         smallPlane_p3 = np.array(self.smallMarker3DDic2[3])
 
+        if self.debugVisualization:
+            self._createOrUpdatePlaneModel(
+                "vis_GreenBigPlane",
+                bigPlane_p1, bigPlane_p2, bigPlane_p3,
+                color=(0.0, 0.7, 0.7),
+                opacity=0.2
+            )
+            self._createOrUpdatePlaneModel(
+                "vis_GreenSmallPlane",
+                smallPlane_p1, smallPlane_p2, smallPlane_p3,
+                color=(0.0, 0.4, 0.4),
+                opacity=0.2
+            )
+
         bigIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, bigPlane_p1, bigPlane_p2, bigPlane_p3)
         smallIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, smallPlane_p1, smallPlane_p2, smallPlane_p3)
 
         # Debug visualization: Red ray and intersections
         if self.debugVisualization:
-            # Red ray line (from big to small plane)
+            # Red ray line (extended)
+            redRayPoints = self._getExtendedLinePoints(self.p3DBigRed, self.p3DSmallRed)
             self._createOrUpdateVisualizationNode(
                 "vis_RedRay", 
                 nodeType="MarkupsLine",
                 color=(1, 0, 0),  # Red
-                linePoints=[self.p3DBigRed, self.p3DSmallRed]
+                linePoints=redRayPoints
             )
             
             # Intersection points
@@ -1026,7 +1049,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "vis_RedBigIntersection",
                     position=bigIntersectionP3D,
                     color=(1, 0.5, 0.5),  # Light red
-                    nodeType="MarkupsFiducial"
+                    nodeType="MarkupsFiducial",
+                    glyphScale=1.0
                 )
             
             if smallIntersectionP3D is not None:
@@ -1034,7 +1058,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "vis_RedSmallIntersection",
                     position=smallIntersectionP3D,
                     color=(1, 0.5, 0.5),  # Light red
-                    nodeType="MarkupsFiducial"
+                    nodeType="MarkupsFiducial",
+                    glyphScale=1.0
                 )
 
         # 调试显示  #########################
@@ -1141,6 +1166,30 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             lineEndP = lineNodeGreen.GetLineEndPositionWorld()
             lineP1[0], lineP1[1], lineP1[2] = lineStartP.GetX(), lineStartP.GetY(), lineStartP.GetZ()
             lineP2[0], lineP2[1], lineP2[2] = lineEndP.GetX(), lineEndP.GetY(), lineEndP.GetZ()
+
+        if self.debugVisualization:
+            redBigPlane_p1 = np.array(self.bigMarker3DDic1[1])
+            redBigPlane_p2 = np.array(self.bigMarker3DDic1[2])
+            redBigPlane_p3 = np.array(self.bigMarker3DDic1[3])
+
+            redSmallPlane_p1 = np.array(self.smallMarker3DDic1[1])
+            redSmallPlane_p2 = np.array(self.smallMarker3DDic1[2])
+            redSmallPlane_p3 = np.array(self.smallMarker3DDic1[3])
+
+            self._createOrUpdatePlaneModel(
+                "vis_RedBigPlane",
+                redBigPlane_p1, redBigPlane_p2, redBigPlane_p3,
+                color=(0.8, 0.2, 0.2),
+                opacity=0.2,
+                scale=self.debugPlaneScale
+            )
+            self._createOrUpdatePlaneModel(
+                "vis_RedSmallPlane",
+                redSmallPlane_p1, redSmallPlane_p2, redSmallPlane_p3,
+                color=(0.5, 0.1, 0.1),
+                opacity=0.2,
+                scale=self.debugPlaneScale
+            )
             
         # 计算手动添加的点到直线的最近点，将点自动移动到直线上
         p3DNearest2Line = self.logic.pointNearest2Line(p3D, lineP1, lineP2)
@@ -1151,15 +1200,51 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
         self.p3DSmallGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsSmall2, self.M2D3DRigidMatrixsSmall2, self.originSmallMarker3D_Z)
 
-        # Debug visualization: Green ray
+        # Debug visualization: Green ray and intersections with Red planes
         if self.debugVisualization:
-            # Green ray line (from big to small plane)
+            # Green ray line (extended)
+            greenRayPoints = self._getExtendedLinePoints(self.p3DBigGreen, self.p3DSmallGreen, scale=self.debugRayScale)
             self._createOrUpdateVisualizationNode(
                 "vis_GreenRay",
                 nodeType="MarkupsLine",
                 color=(0, 1, 0),  # Green
-                linePoints=[self.p3DBigGreen, self.p3DSmallGreen]
+                linePoints=greenRayPoints
             )
+
+            redBigPlane_p1 = np.array(self.bigMarker3DDic1[1])
+            redBigPlane_p2 = np.array(self.bigMarker3DDic1[2])
+            redBigPlane_p3 = np.array(self.bigMarker3DDic1[3])
+
+            redSmallPlane_p1 = np.array(self.smallMarker3DDic1[1])
+            redSmallPlane_p2 = np.array(self.smallMarker3DDic1[2])
+            redSmallPlane_p3 = np.array(self.smallMarker3DDic1[3])
+
+            greenBigIntersectionP3D = self.logic.line2plane_intersection(
+                np.array(self.p3DBigGreen), np.array(self.p3DSmallGreen),
+                redBigPlane_p1, redBigPlane_p2, redBigPlane_p3
+            )
+            greenSmallIntersectionP3D = self.logic.line2plane_intersection(
+                np.array(self.p3DBigGreen), np.array(self.p3DSmallGreen),
+                redSmallPlane_p1, redSmallPlane_p2, redSmallPlane_p3
+            )
+
+            if greenBigIntersectionP3D is not None:
+                self._createOrUpdateVisualizationNode(
+                    "vis_GreenBigIntersection",
+                    position=greenBigIntersectionP3D,
+                    color=(0.5, 1, 0.5),  # Light green
+                    nodeType="MarkupsFiducial",
+                    glyphScale=1.0
+                )
+
+            if greenSmallIntersectionP3D is not None:
+                self._createOrUpdateVisualizationNode(
+                    "vis_GreenSmallIntersection",
+                    position=greenSmallIntersectionP3D,
+                    color=(0.5, 1, 0.5),  # Light green
+                    nodeType="MarkupsFiducial",
+                    glyphScale=1.0
+                )
 
         # 调试显示  ############################
         # lineNode = slicer.mrmlScene.GetFirstNodeByName("TMPGreenLight3D")
@@ -1190,18 +1275,20 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.debugVisualization:
             # Ray lines if not already shown
             if not slicer.mrmlScene.GetFirstNodeByName("vis_RedRay"):
+                redRayPoints = self._getExtendedLinePoints(line1_p1, line1_p2, scale=self.debugRayScale)
                 self._createOrUpdateVisualizationNode(
                     "vis_RedRay",
                     nodeType="MarkupsLine",
                     color=(1, 0, 0),  # Red
-                    linePoints=[line1_p1, line1_p2]
+                    linePoints=redRayPoints
                 )
             if not slicer.mrmlScene.GetFirstNodeByName("vis_GreenRay"):
+                greenRayPoints = self._getExtendedLinePoints(line2_p1, line2_p2, scale=self.debugRayScale)
                 self._createOrUpdateVisualizationNode(
                     "vis_GreenRay",
                     nodeType="MarkupsLine",
                     color=(0, 1, 0),  # Green
-                    linePoints=[line2_p1, line2_p2]
+                    linePoints=greenRayPoints
                 )
             
             # TargetP3D midpoint
@@ -1414,9 +1501,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
         # Toggle visibility of all visualization nodes if they exist
         visNodeNames = [
-            "vis_RedRay", "vis_GreenRay", "vis_RedGreenIntersections",
-            "vis_GreenReprojected", "vis_TargetP3DRay1", "vis_TargetP3DRay2",
-            "vis_TargetP3DMidpoint", "vis_TargetP3DStep"
+            "vis_RedRay", "vis_GreenRay",
+            "vis_RedBigIntersection", "vis_RedSmallIntersection",
+            "vis_GreenBigIntersection", "vis_GreenSmallIntersection",
+            "vis_GreenBigPlane", "vis_GreenSmallPlane",
+            "vis_RedBigPlane", "vis_RedSmallPlane",
+            "vis_TargetP3DMidpoint"
         ]
         
         for nodeName in visNodeNames:
@@ -1426,8 +1516,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 if displayNode:
                     displayNode.SetVisibility(enabled)
 
-    def _createOrUpdateVisualizationNode(self, nodeName, position, color=(1, 1, 1), 
-                                        nodeType="MarkupsFiducial", linePoints=None):
+        if enabled:
+            self._refreshDebugVisualization()
+
+    def onDebugPlaneScaleChanged(self, value):
+        self.debugPlaneScale = float(value)
+        if self.debugVisualization:
+            self._refreshDebugVisualization(refreshPlanes=True, refreshRays=False)
+
+    def onDebugRayScaleChanged(self, value):
+        self.debugRayScale = float(value)
+        if self.debugVisualization:
+            self._refreshDebugVisualization(refreshPlanes=False, refreshRays=True)
+
+    def _createOrUpdateVisualizationNode(self, nodeName, position=None, color=(1, 1, 1), 
+                                        nodeType="MarkupsFiducial", linePoints=None, glyphScale=2.0):
         """
         Helper method to create or update a visualization node.
         
@@ -1450,7 +1553,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # Create fiducial node
             node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", nodeName)
             node.AddControlPoint(vtk.vtkVector3d(position[0], position[1], position[2]))
-            node.SetNthMarkupAssignedID(0, nodeName)
+            node.SetNthControlPointLabel(0, nodeName)
             
             # Set display properties
             displayNode = node.GetDisplayNode()
@@ -1458,7 +1561,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
                 node.SetAndObserveDisplayNodeID(displayNode.GetID())
             
-            displayNode.SetGlyphScale(2.0)
+            displayNode.SetGlyphScale(glyphScale)
             displayNode.SetSelectedColor(*color)
             displayNode.SetColor(*color)
             displayNode.SetVisibility(self.debugVisualization)
@@ -1486,6 +1589,127 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return node
         
         return None
+
+    def _createOrUpdatePlaneModel(self, nodeName, p1, p2, p3, color=(0.5, 0.5, 0.5), opacity=0.2, scale=6.0):
+        """Create or update a plane model from three points."""
+        existingNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
+        if existingNode:
+            slicer.mrmlScene.RemoveNode(existingNode)
+
+        p1 = np.array(p1)
+        p2 = np.array(p2)
+        p3 = np.array(p3)
+
+        center = (p1 + p2 + p3) / 3.0
+        u = p2 - p1
+        v = p3 - p1
+        u_scaled = u * scale
+        v_scaled = v * scale
+
+        origin = center - 0.5 * u_scaled - 0.5 * v_scaled
+        point1 = origin + u_scaled
+        point2 = origin + v_scaled
+
+        planeSource = vtk.vtkPlaneSource()
+        planeSource.SetOrigin(origin[0], origin[1], origin[2])
+        planeSource.SetPoint1(point1[0], point1[1], point1[2])
+        planeSource.SetPoint2(point2[0], point2[1], point2[2])
+        planeSource.SetXResolution(1)
+        planeSource.SetYResolution(1)
+        planeSource.Update()
+
+        modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", nodeName)
+        modelNode.SetAndObservePolyData(planeSource.GetOutput())
+
+        displayNode = modelNode.GetDisplayNode()
+        if not displayNode:
+            displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
+            modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+
+        displayNode.SetColor(*color)
+        displayNode.SetOpacity(opacity)
+        displayNode.SetVisibility(self.debugVisualization)
+
+        return modelNode
+
+    def _getExtendedLinePoints(self, p1, p2, scale=10.0):
+        """Return extended line endpoints so rays are easier to see."""
+        p1 = np.array(p1)
+        p2 = np.array(p2)
+        direction = p2 - p1
+        length = np.linalg.norm(direction)
+        if length == 0:
+            return [p1, p2]
+        direction /= length
+        extra = length * (scale - 1.0) * 0.5
+        return [p1 - direction * extra, p2 + direction * extra]
+
+    def _refreshDebugVisualization(self, refreshPlanes=True, refreshRays=True):
+        if not self.debugVisualization:
+            return
+
+        if refreshPlanes:
+            if hasattr(self, "bigMarker3DDic2") and hasattr(self, "smallMarker3DDic2"):
+                greenBig_p1 = np.array(self.bigMarker3DDic2[1])
+                greenBig_p2 = np.array(self.bigMarker3DDic2[2])
+                greenBig_p3 = np.array(self.bigMarker3DDic2[3])
+                greenSmall_p1 = np.array(self.smallMarker3DDic2[1])
+                greenSmall_p2 = np.array(self.smallMarker3DDic2[2])
+                greenSmall_p3 = np.array(self.smallMarker3DDic2[3])
+                self._createOrUpdatePlaneModel(
+                    "vis_GreenBigPlane",
+                    greenBig_p1, greenBig_p2, greenBig_p3,
+                    color=(0.0, 0.7, 0.7),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+                self._createOrUpdatePlaneModel(
+                    "vis_GreenSmallPlane",
+                    greenSmall_p1, greenSmall_p2, greenSmall_p3,
+                    color=(0.0, 0.4, 0.4),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+
+            if hasattr(self, "bigMarker3DDic1") and hasattr(self, "smallMarker3DDic1"):
+                redBig_p1 = np.array(self.bigMarker3DDic1[1])
+                redBig_p2 = np.array(self.bigMarker3DDic1[2])
+                redBig_p3 = np.array(self.bigMarker3DDic1[3])
+                redSmall_p1 = np.array(self.smallMarker3DDic1[1])
+                redSmall_p2 = np.array(self.smallMarker3DDic1[2])
+                redSmall_p3 = np.array(self.smallMarker3DDic1[3])
+                self._createOrUpdatePlaneModel(
+                    "vis_RedBigPlane",
+                    redBig_p1, redBig_p2, redBig_p3,
+                    color=(0.8, 0.2, 0.2),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+                self._createOrUpdatePlaneModel(
+                    "vis_RedSmallPlane",
+                    redSmall_p1, redSmall_p2, redSmall_p3,
+                    color=(0.5, 0.1, 0.1),
+                    opacity=0.2,
+                    scale=self.debugPlaneScale
+                )
+
+        if refreshRays:
+            if hasattr(self, "p3DBigRed") and hasattr(self, "p3DSmallRed"):
+                redRayPoints = self._getExtendedLinePoints(self.p3DBigRed, self.p3DSmallRed, scale=self.debugRayScale)
+                self._createOrUpdateVisualizationNode(
+                    "vis_RedRay",
+                    nodeType="MarkupsLine",
+                    color=(1, 0, 0),
+                    linePoints=redRayPoints
+                )
+            if hasattr(self, "p3DBigGreen") and hasattr(self, "p3DSmallGreen"):
+                greenRayPoints = self._getExtendedLinePoints(self.p3DBigGreen, self.p3DSmallGreen, scale=self.debugRayScale)
+                self._createOrUpdateVisualizationNode(
+                    "vis_GreenRay",
+                    nodeType="MarkupsLine",
+                    color=(0, 1, 0),
+                    linePoints=greenRayPoints
+                )
 
 
 
