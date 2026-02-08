@@ -220,6 +220,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.tracingPushButton.connect("clicked(bool)", self.onTracing)
 
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
+        self.ui.calculateReprojectionButton.connect("clicked(bool)", self.onCalculateReprojectionError)
 
         self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
         self.ui.debugPlaneScaleSpinBox.connect("valueChanged(double)", self.onDebugPlaneScaleChanged)
@@ -1932,6 +1933,39 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             
         except Exception as e:
             self._error(f"Error calculating TRE: {str(e)}", detailedText=f"{e}")
+
+    def onCalculateReprojectionError(self):
+        """Calculate reprojection error between two selected fiducial points."""
+        try:
+            point1Node = self.ui.reprojectionPoint1Selector.currentNode()
+            point2Node = self.ui.reprojectionPoint2Selector.currentNode()
+
+            if not point1Node:
+                self._error("Please select Point 1")
+                return
+            if not point2Node:
+                self._error("Please select Point 2")
+                return
+
+            if point1Node.GetNumberOfControlPoints() < 1:
+                self._error("Point 1 has no fiducial points")
+                return
+            if point2Node.GetNumberOfControlPoints() < 1:
+                self._error("Point 2 has no fiducial points")
+                return
+
+            pos1 = np.array(point1Node.GetNthControlPointPosition(0))
+            pos2 = np.array(point2Node.GetNthControlPointPosition(0))
+
+            reproj_err = np.linalg.norm(pos2[:2] - pos1[:2])
+            self.ui.reprojectionValueDisplay.setText(f"{reproj_err:.2f} px")
+
+            logging.info(f"Reprojection error calculated: {reproj_err:.4f} px")
+            logging.info(f"  Point 1: ({pos1[0]:.2f}, {pos1[1]:.2f}, {pos1[2]:.2f})")
+            logging.info(f"  Point 2: ({pos2[0]:.2f}, {pos2[1]:.2f}, {pos2[2]:.2f})")
+
+        except Exception as e:
+            self._error(f"Error calculating reprojection error: {str(e)}", detailedText=f"{e}")
 
     def onDebugVisToggle(self, enabled):
         """Toggle visibility of all debug visualization nodes"""
