@@ -93,6 +93,16 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QPushButton" name="showTestPointButton">
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #444444; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #2f2f2f; }</string>
+              </property>
+              <property name="text">
+               <string>showTestPoint</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
          </layout>
@@ -170,14 +180,28 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <widget class="QPushButton" name="markersSortButton">
-            <property name="styleSheet">
-             <string>QPushButton { background-color: #0f766e; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #0a5b55; }</string>
-            </property>
-            <property name="text">
-             <string>markersSort</string>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_blackCenter">
+            <item>
+             <widget class="QPushButton" name="blackCenterButton">
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #333333; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1f1f1f; }</string>
+              </property>
+              <property name="text">
+               <string>blackCenter</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="markersSortButton">
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #0f766e; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #0a5b55; }</string>
+              </property>
+              <property name="text">
+               <string>markersSort</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">

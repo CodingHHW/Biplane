@@ -144,7 +144,7 @@ class GenerateMarkers():
         self.big = []
         self.small = []
 
-        binaryImage = sitk.BinaryThreshold(imgITK, lowerThreshold=0, upperThreshold=3000, insideValue=0, outsideValue=1)
+        binaryImage = sitk.BinaryThreshold(imgITK, lowerThreshold=-1050, upperThreshold=-950, insideValue=1, outsideValue=0)
         # sitk.WriteImage(binaryImage, r"/Users/hehongwei/Desktop/biplane_logic.nii.gz")
         label_image = sitk.ConnectedComponent(binaryImage)
         relabel_image = sitk.RelabelComponent(label_image)

@@ -126,6 +126,52 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._error(f"无法读取 {label} 文件：{filepath}")
         return img
 
+    def _get_black_center_from_volume(self, volumeNode):
+        vtkImage = volumeNode.GetImageData() if volumeNode else None
+        if vtkImage is None:
+            return None
+        vtk_data = vtkImage.GetPointData().GetScalars() if vtkImage.GetPointData() else None
+        if vtk_data is None:
+            return None
+        dims = vtkImage.GetDimensions()
+        if dims[0] == 0 or dims[1] == 0 or dims[2] == 0:
+            return None
+        np_data = vtk_to_numpy(vtk_data).reshape(tuple(reversed(dims)))
+        slice2d = np_data[0]
+        mask = np.isclose(slice2d, -100)
+        if not np.any(mask):
+            min_val = np.min(slice2d)
+            mask = np.isclose(slice2d, min_val)
+        if not np.any(mask):
+            return None
+        ys, xs = np.where(mask)
+        if xs.size == 0:
+            return None
+        center_x = float(np.mean(xs))
+        center_y = float(np.mean(ys))
+        return (-center_x, -center_y, 0.0)
+
+    def _show_black_center_marker(self, nodeName: str, viewNodeId: str, position):
+        markupsNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
+        if markupsNode is None:
+            markupsNode = slicer.vtkMRMLMarkupsFiducialNode()
+            markupsNode.SetName(nodeName)
+            slicer.mrmlScene.AddNode(markupsNode)
+            markupsNode.CreateDefaultDisplayNodes()
+        if markupsNode.GetNumberOfControlPoints() < 1:
+            markupsNode.AddControlPoint(position)
+        else:
+            markupsNode.SetNthControlPointPosition(0, position)
+        displayNode = markupsNode.GetDisplayNode()
+        if displayNode:
+            displayNode.SetVisibility(True)
+            displayNode.SetViewNodeIDs([viewNodeId])
+            displayNode.SetVisibility3D(False)
+            displayNode.SetPointLabelsVisibility(False)
+            displayNode.SetGlyphScale(1.0)
+            displayNode.SetSelectedColor([1.0, 0.2, 0.0])
+            displayNode.SetColor(1.0, 0.2, 0.0)
+
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
         ScriptedLoadableModuleWidget.setup(self)
@@ -158,11 +204,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Buttons
         self.ui.showVolumeButton.connect("clicked(bool)", self.onShowVolumeButton)
         self.ui.showMarkerButton.connect("clicked(bool)", self.onShowMarkerButton)
+        self.ui.showTestPointButton.connect("clicked(bool)", self.onShowTestPointButton)
 
         self.ui.shot1AllButton.connect("clicked(bool)", self.onShot1AllButton)
         self.ui.shot2AllButton.connect("clicked(bool)", self.onShot2AllButton)
         self.ui.shot3AllButton.connect("clicked(bool)", self.onShot3AllButton)
 
+        self.ui.blackCenterButton.connect("clicked(bool)", self.onBlackCenterButton)
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
         self.ui.copyPointButton.connect("clicked(bool)", self.onCopyMarkerPoint)
         
@@ -340,13 +388,57 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             pass
 
     def onShowMarkerButton(self):
-        markerModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode")
-        markerModelNode.SetName("markers")
+        markerModelNode = self._getMarkersModelNode()
+        if markerModelNode is None:
+            markerModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode")
+            markerModelNode.SetName("markers")
+
         markerModelNode.SetAndObservePolyData(self.markerSource)
 
-        displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
+        displayNode = markerModelNode.GetDisplayNode()
+        if displayNode is None:
+            displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
+            markerModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
         displayNode.SetColor(0, 0, 0)
-        markerModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        displayNode.SetVisibility(True)
+        if hasattr(displayNode, "SetVisibility3D"):
+            displayNode.SetVisibility3D(True)
+        markerModelNode.SetDisplayVisibility(True)
+
+    def onShowTestPointButton(self):
+        markerModelNode = self._getMarkersModelNode()
+        if not markerModelNode:
+            self._error("需要先点击 showMarker 生成 markers")
+            return
+
+        polyData = markerModelNode.GetPolyData()
+        if polyData is None or polyData.GetNumberOfPoints() == 0:
+            self._error("markers 没有有效点数据")
+            return
+
+        center = [0.0, 0.0, 0.0]
+        polyData.GetCenter(center)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        if testPointNode is None:
+            testPointNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "testPoint")
+            testPointNode.CreateDefaultDisplayNodes()
+
+        if testPointNode.GetNumberOfControlPoints() < 1:
+            testPointNode.AddControlPoint(center)
+        else:
+            testPointNode.SetNthControlPointPosition(0, center)
+
+        displayNode = testPointNode.GetDisplayNode()
+        if displayNode:
+            displayNode.SetPointLabelsVisibility(False)
+            displayNode.SetSelectedColor(0, 0, 0)
+            displayNode.SetColor(0, 0, 0)
+            displayNode.SetVisibility(True)
+            if hasattr(displayNode, "SetVisibility3D"):
+                displayNode.SetVisibility3D(True)
+            if hasattr(displayNode, "SetVisibility2D"):
+                displayNode.SetVisibility2D(False)
 
     def onCopyMarkerPoint(self):
         sourceNode = self.ui.copySourceSelector.currentNode()
@@ -378,8 +470,29 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        testPointWasVisible = False
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                testPointWasVisible = bool(tpDisplay.GetVisibility())
+                tpDisplay.SetVisibility(False)
+
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
         self._captureViewToFile(saveBodyFile)
+
+        markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        if testPointNode and testPointWasVisible:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                tpDisplay.SetVisibility(True)
 
     def onShot1AllButton(self):
         self.onShot1Button()
@@ -396,28 +509,85 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
+        displayNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
+        displayNodes.InitTraversal()
+        displayNode = displayNodes.GetNextItemAsObject()
+
+        visibilityBackup = []
+        while displayNode:
+            if hasattr(displayNode, "GetVisibility3D"):
+                visibilityBackup.append(
+                    (displayNode, displayNode.GetVisibility(), displayNode.GetVisibility3D())
+                )
+                displayNode.SetVisibility3D(False)
+            else:
+                visibilityBackup.append((displayNode, displayNode.GetVisibility(), None))
+                displayNode.SetVisibility(False)
+            displayNode = displayNodes.GetNextItemAsObject()
+
         markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        tpDisplay = None
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(False)
+                tpDisplay.SetVisibility(False)
+
         saveMarkerFile = os.path.join(self.savePath, "shot1Markers.png")
-        self._captureViewToFile(saveMarkerFile)
+        saveTestPointFile = os.path.join(self.savePath, "shot1TestPoint.png")
+        try:
+            self._captureViewToFile(saveMarkerFile)
+
+            if markerDisplayNode:
+                if hasattr(markerDisplayNode, "SetVisibility3D"):
+                    markerDisplayNode.SetVisibility3D(False)
+                markerDisplayNode.SetVisibility(False)
+
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(True)
+                tpDisplay.SetVisibility(True)
+
+            self._captureViewToFile(saveTestPointFile)
+        finally:
+            for displayNode, visibility, visibility3D in visibilityBackup:
+                displayNode.SetVisibility(visibility)
+                if visibility3D is not None and hasattr(displayNode, "SetVisibility3D"):
+                    displayNode.SetVisibility3D(visibility3D)
 
 
     def onShot1ButtonShow(self):
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot1Markers.png")
+        saveTestPointFile = os.path.join(self.savePath, "shot1TestPoint.png")
         saveNiiFile = os.path.join(self.savePath, "shot1.nii.gz")
 
         imgBody = self._requireImage(saveBodyFile, "shot1Body")
         imgMarkers = self._requireImage(saveMarkerFile, "shot1Markers")
-        if imgBody is None or imgMarkers is None:
+        imgTestPoint = self._requireImage(saveTestPointFile, "shot1TestPoint")
+        if imgBody is None or imgMarkers is None or imgTestPoint is None:
             return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
+        imgTestPointGray = cv2.cvtColor(imgTestPoint, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
         imgMarkersGrayArr = np.array(imgMarkersGray)
+        imgTestPointGrayArr = np.array(imgTestPointGray)
         imgMarkersGrayArr = 1000 * ((imgMarkersGrayArr / 255) - 1)  # [-1000, 0]
         imgMarkersGrayArrTMP = (imgMarkersGrayArr + 1000) / 1000
+        imgTestPointArr = 100 * ((imgTestPointGrayArr / 255) - 1)  # [-100, 0]
+        imgTestPointMask = (imgTestPointArr + 100) / 100
 
         imgArr = imgBodyGrayArr * imgMarkersGrayArrTMP + imgMarkersGrayArr
+        imgArr = imgArr * imgTestPointMask + imgTestPointArr
 
         imgITK = sitk.GetImageFromArray(imgArr)
         vtkImage = self.sitk_image_to_vtk_image(imgITK)
@@ -454,8 +624,29 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        testPointWasVisible = False
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                testPointWasVisible = bool(tpDisplay.GetVisibility())
+                tpDisplay.SetVisibility(False)
+
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
         self._captureViewToFile(saveBodyFile)
+
+        markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        if testPointNode and testPointWasVisible:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                tpDisplay.SetVisibility(True)
 
     def onShot2AllButton(self):
         self.onShot2Button()
@@ -472,28 +663,85 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
+        displayNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
+        displayNodes.InitTraversal()
+        displayNode = displayNodes.GetNextItemAsObject()
+
+        visibilityBackup = []
+        while displayNode:
+            if hasattr(displayNode, "GetVisibility3D"):
+                visibilityBackup.append(
+                    (displayNode, displayNode.GetVisibility(), displayNode.GetVisibility3D())
+                )
+                displayNode.SetVisibility3D(False)
+            else:
+                visibilityBackup.append((displayNode, displayNode.GetVisibility(), None))
+                displayNode.SetVisibility(False)
+            displayNode = displayNodes.GetNextItemAsObject()
+
         markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        tpDisplay = None
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(False)
+                tpDisplay.SetVisibility(False)
+
         saveMarkerFile = os.path.join(self.savePath, "shot2Markers.png")
-        self._captureViewToFile(saveMarkerFile)
+        saveTestPointFile = os.path.join(self.savePath, "shot2TestPoint.png")
+        try:
+            self._captureViewToFile(saveMarkerFile)
+
+            if markerDisplayNode:
+                if hasattr(markerDisplayNode, "SetVisibility3D"):
+                    markerDisplayNode.SetVisibility3D(False)
+                markerDisplayNode.SetVisibility(False)
+
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(True)
+                tpDisplay.SetVisibility(True)
+
+            self._captureViewToFile(saveTestPointFile)
+        finally:
+            for displayNode, visibility, visibility3D in visibilityBackup:
+                displayNode.SetVisibility(visibility)
+                if visibility3D is not None and hasattr(displayNode, "SetVisibility3D"):
+                    displayNode.SetVisibility3D(visibility3D)
 
 
     def onShot2ButtonShow(self):
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot2Markers.png")
+        saveTestPointFile = os.path.join(self.savePath, "shot2TestPoint.png")
         saveNiiFile = os.path.join(self.savePath, "shot2.nii.gz")
 
         imgBody = self._requireImage(saveBodyFile, "shot2Body")
         imgMarkers = self._requireImage(saveMarkerFile, "shot2Markers")
-        if imgBody is None or imgMarkers is None:
+        imgTestPoint = self._requireImage(saveTestPointFile, "shot2TestPoint")
+        if imgBody is None or imgMarkers is None or imgTestPoint is None:
             return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
+        imgTestPointGray = cv2.cvtColor(imgTestPoint, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
         imgMarkersGrayArr = np.array(imgMarkersGray)
+        imgTestPointGrayArr = np.array(imgTestPointGray)
         imgMarkersGrayArr = 1000 * ((imgMarkersGrayArr / 255) - 1)  # [-1000, 0]
         imgMarkersGrayArrTMP = (imgMarkersGrayArr + 1000) / 1000
+        imgTestPointArr = 100 * ((imgTestPointGrayArr / 255) - 1)  # [-100, 0]
+        imgTestPointMask = (imgTestPointArr + 100) / 100
 
         imgArr = imgBodyGrayArr * imgMarkersGrayArrTMP + imgMarkersGrayArr
+        imgArr = imgArr * imgTestPointMask + imgTestPointArr
 
         imgITK = sitk.GetImageFromArray(imgArr)
         vtkImage = self.sitk_image_to_vtk_image(imgITK)
@@ -530,8 +778,29 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         bodyVolumeNode.SetDisplayVisibility(True)
         markerModelNode.SetDisplayVisibility(False)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        testPointWasVisible = False
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                testPointWasVisible = bool(tpDisplay.GetVisibility())
+                tpDisplay.SetVisibility(False)
+
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
         self._captureViewToFile(saveBodyFile)
+
+        markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        if testPointNode and testPointWasVisible:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                tpDisplay.SetVisibility(True)
 
     def onShot3AllButton(self):
         self.onShot3Button()
@@ -547,28 +816,85 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
+        displayNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
+        displayNodes.InitTraversal()
+        displayNode = displayNodes.GetNextItemAsObject()
+
+        visibilityBackup = []
+        while displayNode:
+            if hasattr(displayNode, "GetVisibility3D"):
+                visibilityBackup.append(
+                    (displayNode, displayNode.GetVisibility(), displayNode.GetVisibility3D())
+                )
+                displayNode.SetVisibility3D(False)
+            else:
+                visibilityBackup.append((displayNode, displayNode.GetVisibility(), None))
+                displayNode.SetVisibility(False)
+            displayNode = displayNodes.GetNextItemAsObject()
+
         markerModelNode.SetDisplayVisibility(True)
+        markerDisplayNode = markerModelNode.GetDisplayNode()
+        if markerDisplayNode:
+            if hasattr(markerDisplayNode, "SetVisibility3D"):
+                markerDisplayNode.SetVisibility3D(True)
+            markerDisplayNode.SetVisibility(True)
+
+        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        tpDisplay = None
+        if testPointNode:
+            tpDisplay = testPointNode.GetDisplayNode()
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(False)
+                tpDisplay.SetVisibility(False)
+
         saveMarkerFile = os.path.join(self.savePath, "shot3Markers.png")
-        self._captureViewToFile(saveMarkerFile)
+        saveTestPointFile = os.path.join(self.savePath, "shot3TestPoint.png")
+        try:
+            self._captureViewToFile(saveMarkerFile)
+
+            if markerDisplayNode:
+                if hasattr(markerDisplayNode, "SetVisibility3D"):
+                    markerDisplayNode.SetVisibility3D(False)
+                markerDisplayNode.SetVisibility(False)
+
+            if tpDisplay:
+                if hasattr(tpDisplay, "SetVisibility3D"):
+                    tpDisplay.SetVisibility3D(True)
+                tpDisplay.SetVisibility(True)
+
+            self._captureViewToFile(saveTestPointFile)
+        finally:
+            for displayNode, visibility, visibility3D in visibilityBackup:
+                displayNode.SetVisibility(visibility)
+                if visibility3D is not None and hasattr(displayNode, "SetVisibility3D"):
+                    displayNode.SetVisibility3D(visibility3D)
 
 
     def onShot3ButtonShow(self):
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot3Markers.png")
+        saveTestPointFile = os.path.join(self.savePath, "shot3TestPoint.png")
         saveNiiFile = os.path.join(self.savePath, "shot3.nii.gz")
 
         imgBody = self._requireImage(saveBodyFile, "shot3Body")
         imgMarkers = self._requireImage(saveMarkerFile, "shot3Markers")
-        if imgBody is None or imgMarkers is None:
+        imgTestPoint = self._requireImage(saveTestPointFile, "shot3TestPoint")
+        if imgBody is None or imgMarkers is None or imgTestPoint is None:
             return
         imgBodyGray = cv2.cvtColor(imgBody, cv2.COLOR_BGR2GRAY)
         imgMarkersGray = cv2.cvtColor(imgMarkers, cv2.COLOR_BGR2GRAY)
+        imgTestPointGray = cv2.cvtColor(imgTestPoint, cv2.COLOR_BGR2GRAY)
         imgBodyGrayArr = np.array(imgBodyGray)
         imgMarkersGrayArr = np.array(imgMarkersGray)
+        imgTestPointGrayArr = np.array(imgTestPointGray)
         imgMarkersGrayArr = 1000 * ((imgMarkersGrayArr / 255) - 1)  # [-1000, 0]
         imgMarkersGrayArrTMP = (imgMarkersGrayArr + 1000) / 1000
+        imgTestPointArr = 100 * ((imgTestPointGrayArr / 255) - 1)  # [-100, 0]
+        imgTestPointMask = (imgTestPointArr + 100) / 100
 
         imgArr = imgBodyGrayArr * imgMarkersGrayArrTMP + imgMarkersGrayArr
+        imgArr = imgArr * imgTestPointMask + imgTestPointArr
 
         imgITK = sitk.GetImageFromArray(imgArr)
         vtkImage = self.sitk_image_to_vtk_image(imgITK)
@@ -595,6 +921,26 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         layoutManager = slicer.app.layoutManager()
         sliceWidget = layoutManager.sliceWidget(sliceNode.GetLayoutName())
         sliceWidget.sliceController().fitSliceToBackground()
+
+    def onBlackCenterButton(self):
+        volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
+        volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
+        volumeShot3Node = slicer.mrmlScene.GetFirstNodeByName("shot3")
+        if not volumeShot1Node or not volumeShot2Node or not volumeShot3Node:
+            self._error("需要先生成 shot1/shot2/shot3 三个切片图像")
+            return
+
+        pos1 = self._get_black_center_from_volume(volumeShot1Node)
+        pos2 = self._get_black_center_from_volume(volumeShot2Node)
+        pos3 = self._get_black_center_from_volume(volumeShot3Node)
+
+        if pos1 is None or pos2 is None or pos3 is None:
+            self._error("未找到 testPoint 像素中心，请确认图像中存在像素值为 -100 的点")
+            return
+
+        self._show_black_center_marker("blackCenter1", "vtkMRMLSliceNodeRed", pos1)
+        self._show_black_center_marker("blackCenter2", "vtkMRMLSliceNodeGreen", pos2)
+        self._show_black_center_marker("blackCenter3", "vtkMRMLSliceNodeYellow", pos3)
 
     def onMarkersSortButton(self):
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
