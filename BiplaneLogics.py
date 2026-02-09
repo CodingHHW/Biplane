@@ -333,12 +333,22 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         return transformed_source_points
 
     def getPerspectiveTransform(self, source_points: np.array, target_points: np.array):
-        M = cv2.getPerspectiveTransform(source_points, target_points)
-        return M
+        # 使用仿射变换（6 DOF）替代透视/单应变换（8 DOF）。
+        # 正交投影下平面到图像的映射本质是仿射变换，
+        # 使用 Homography 会因过拟合引入伪透视畸变，导致 TRE 偏大。
+        src = np.array(source_points, dtype=np.float64)
+        tgt = np.array(target_points, dtype=np.float64)
+        n = src.shape[0]
+        src_h = np.hstack([src, np.ones((n, 1))])  # Nx3 齐次坐标
+        X, _, _, _ = np.linalg.lstsq(src_h, tgt, rcond=None)
+        return X.T  # 2x3 仿射矩阵
     
-    def getPerspectiveTargetPoint(self, perspective_matrix, source_points: np.array):
-        target_points = cv2.perspectiveTransform(source_points.reshape(-1, 1, 2), perspective_matrix)
-        return target_points.reshape(-1, 2)[0]
+    def getPerspectiveTargetPoint(self, affine_matrix, source_points: np.array):
+        # 应用 2x3 仿射变换矩阵
+        pt = np.array(source_points, dtype=np.float64).flatten()
+        pt_h = np.array([pt[0], pt[1], 1.0])
+        result = affine_matrix @ pt_h
+        return result
     
     def twoD2threeD(self, p2D, M2D3DPerspectiveMatrixs, M2D3DRigidMatrixs, originMarker3D_Z):
         tmpP2D = self.getPerspectiveTargetPoint(M2D3DPerspectiveMatrixs, p2D)

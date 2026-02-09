@@ -1254,18 +1254,22 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.M3D2DRigidMatrixsSmall3 = self.logic.getRigidMatrix(small_3DMarker3_source_points, originSmallMarker3D_points)
         self.M2D3DRigidMatrixsSmall3 = self.logic.getRigidMatrix(originSmallMarker3D_points, small_3DMarker3_source_points)
 
-        # *******************投影变换*******************
-        # 使用出厂设置的 marker 坐标 4个点
+        # *******************仿射变换（替代原透视变换）*******************
+        # 使用出厂设置的 marker 坐标，全部 5 个点
+        # 正交投影下平面→图像映射为仿射变换（6 DOF），
+        # 使用 5 个点进行最小二乘拟合，比 4 点透视变换更鲁棒。
         # -----------------------------------------------------------------
         originBigMarker3DDic = GenerateMarkers().bigMarker3DDic
         originSmallMarker3DDic = GenerateMarkers().smallMarker3DDic
         originBigMarker3D_4points = np.array([
+            originBigMarker3DDic[1][0:2],
             originBigMarker3DDic[2][0:2], 
             originBigMarker3DDic[3][0:2], 
             originBigMarker3DDic[4][0:2], 
             originBigMarker3DDic[5][0:2]
         ], dtype=np.float32)
         originSmallMarker3D_4points = np.array([
+            originSmallMarker3DDic[1][0:2],
             originSmallMarker3DDic[2][0:2],
             originSmallMarker3DDic[3][0:2],
             originSmallMarker3DDic[4][0:2],
@@ -1275,6 +1279,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # 2D 图像中的像素坐标
         # 这是第一个视图
         big_2DMarker1_source_4points = np.array([
+            get_key_by_value(self.bigMarkersSort1, 1)[0:2],
             get_key_by_value(self.bigMarkersSort1, 2)[0:2], 
             get_key_by_value(self.bigMarkersSort1, 3)[0:2], 
             get_key_by_value(self.bigMarkersSort1, 4)[0:2], 
@@ -1282,6 +1287,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ], dtype=np.float32)
 
         small_2DMarker1_source_4points = np.array([
+            get_key_by_value(self.smallMarkersSort1, 1)[0:2],
             get_key_by_value(self.smallMarkersSort1, 2)[0:2], 
             get_key_by_value(self.smallMarkersSort1, 3)[0:2], 
             get_key_by_value(self.smallMarkersSort1, 4)[0:2], 
@@ -1295,6 +1301,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # 这是第二个视图
         big_2DMarker2_source_4points = np.array([
+            get_key_by_value(self.bigMarkersSort2, 1)[0:2],
             get_key_by_value(self.bigMarkersSort2, 2)[0:2], 
             get_key_by_value(self.bigMarkersSort2, 3)[0:2], 
             get_key_by_value(self.bigMarkersSort2, 4)[0:2], 
@@ -1302,6 +1309,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ], dtype=np.float32)
 
         small_2DMarker2_source_4points = np.array([
+            get_key_by_value(self.smallMarkersSort2, 1)[0:2],
             get_key_by_value(self.smallMarkersSort2, 2)[0:2], 
             get_key_by_value(self.smallMarkersSort2, 3)[0:2], 
             get_key_by_value(self.smallMarkersSort2, 4)[0:2], 
@@ -1315,6 +1323,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # 这是第三个视图
         big_2DMarker3_source_4points = np.array([
+            get_key_by_value(self.bigMarkersSort3, 1)[0:2],
             get_key_by_value(self.bigMarkersSort3, 2)[0:2], 
             get_key_by_value(self.bigMarkersSort3, 3)[0:2], 
             get_key_by_value(self.bigMarkersSort3, 4)[0:2], 
@@ -1322,6 +1331,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ], dtype=np.float32)
 
         small_2DMarker3_source_4points = np.array([
+            get_key_by_value(self.smallMarkersSort3, 1)[0:2],
             get_key_by_value(self.smallMarkersSort3, 2)[0:2], 
             get_key_by_value(self.smallMarkersSort3, 3)[0:2], 
             get_key_by_value(self.smallMarkersSort3, 4)[0:2], 
