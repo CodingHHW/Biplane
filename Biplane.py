@@ -117,6 +117,35 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         cap.captureImageFromView(view, filepath)
         return os.path.exists(filepath)
 
+    def _limit_display_nodes_for_shot(self, allowed_displayable_nodes):
+        allowed_ids = {node.GetID() for node in allowed_displayable_nodes if node}
+        display_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
+        display_nodes.InitTraversal()
+        display_node = display_nodes.GetNextItemAsObject()
+
+        visibility_backup = []
+        while display_node:
+            visibility = display_node.GetVisibility()
+            visibility3d = display_node.GetVisibility3D() if hasattr(display_node, "GetVisibility3D") else None
+            visibility_backup.append((display_node, visibility, visibility3d))
+
+            displayable = display_node.GetDisplayableNode() if hasattr(display_node, "GetDisplayableNode") else None
+            if not displayable or displayable.GetID() not in allowed_ids:
+                display_node.SetVisibility(False)
+                if visibility3d is not None:
+                    display_node.SetVisibility3D(False)
+
+            display_node = display_nodes.GetNextItemAsObject()
+
+        return visibility_backup
+
+    def _restore_display_nodes(self, visibility_backup):
+        for display_node, visibility, visibility3d in visibility_backup:
+            if display_node:
+                display_node.SetVisibility(visibility)
+                if visibility3d is not None and hasattr(display_node, "SetVisibility3D"):
+                    display_node.SetVisibility3D(visibility3d)
+
     def _requireImage(self, filepath: str, label: str):
         if not os.path.exists(filepath):
             self._error(f"缺少 {label} 文件：{filepath}")
@@ -209,6 +238,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.shot1AllButton.connect("clicked(bool)", self.onShot1AllButton)
         self.ui.shot2AllButton.connect("clicked(bool)", self.onShot2AllButton)
         self.ui.shot3AllButton.connect("clicked(bool)", self.onShot3AllButton)
+
+        self.ui.markers1Button.connect("clicked(bool)", self.onMarkers1Button)
+        self.ui.markers2Button.connect("clicked(bool)", self.onMarkers2Button)
+        self.ui.markers3Button.connect("clicked(bool)", self.onMarkers3Button)
 
         self.ui.blackCenterButton.connect("clicked(bool)", self.onBlackCenterButton)
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
@@ -481,7 +514,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 tpDisplay.SetVisibility(False)
 
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
-        self._captureViewToFile(saveBodyFile)
+        visibility_backup = self._limit_display_nodes_for_shot(
+            [bodyVolumeNode, markerModelNode, testPointNode]
+        )
+        try:
+            self._captureViewToFile(saveBodyFile)
+        finally:
+            self._restore_display_nodes(visibility_backup)
 
         markerModelNode.SetDisplayVisibility(True)
         markerDisplayNode = markerModelNode.GetDisplayNode()
@@ -599,8 +638,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         writer.Update()
         writer.Write()
 
-        volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-        volumeNode.SetName("shot1")
+        volumeNode = slicer.mrmlScene.GetFirstNodeByName("shot1")
+        if volumeNode is None:
+            volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+            volumeNode.SetName("shot1")
         volumeNode.SetAndObserveImageData(vtkImage)
 
         mm = [[-1,0,0],[0,-1,0],[0,0,1]]
@@ -635,7 +676,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 tpDisplay.SetVisibility(False)
 
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
-        self._captureViewToFile(saveBodyFile)
+        visibility_backup = self._limit_display_nodes_for_shot(
+            [bodyVolumeNode, markerModelNode, testPointNode]
+        )
+        try:
+            self._captureViewToFile(saveBodyFile)
+        finally:
+            self._restore_display_nodes(visibility_backup)
 
         markerModelNode.SetDisplayVisibility(True)
         markerDisplayNode = markerModelNode.GetDisplayNode()
@@ -753,8 +800,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         writer.Update()
         writer.Write()
 
-        volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-        volumeNode.SetName("shot2")
+        volumeNode = slicer.mrmlScene.GetFirstNodeByName("shot2")
+        if volumeNode is None:
+            volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+            volumeNode.SetName("shot2")
         volumeNode.SetAndObserveImageData(vtkImage)
 
         mm = [[-1,0,0],[0,-1,0],[0,0,1]]
@@ -789,7 +838,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 tpDisplay.SetVisibility(False)
 
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
-        self._captureViewToFile(saveBodyFile)
+        visibility_backup = self._limit_display_nodes_for_shot(
+            [bodyVolumeNode, markerModelNode, testPointNode]
+        )
+        try:
+            self._captureViewToFile(saveBodyFile)
+        finally:
+            self._restore_display_nodes(visibility_backup)
 
         markerModelNode.SetDisplayVisibility(True)
         markerDisplayNode = markerModelNode.GetDisplayNode()
@@ -906,8 +961,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         writer.Update()
         writer.Write()
 
-        volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-        volumeNode.SetName("shot3")
+        volumeNode = slicer.mrmlScene.GetFirstNodeByName("shot3")
+        if volumeNode is None:
+            volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+            volumeNode.SetName("shot3")
         volumeNode.SetAndObserveImageData(vtkImage)
 
         mm = [[-1,0,0],[0,-1,0],[0,0,1]]
@@ -985,87 +1042,53 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.bigMarkersSort3 = markerSortLogic3.move2slicer(self.bigMarkersSort3)
         self.smallMarkersSort3 = markerSortLogic3.move2slicer(self.smallMarkersSort3)
 
-        # 显示点
-        markupsNode1 = slicer.mrmlScene.GetFirstNodeByName("markers1")
-        if markupsNode1 == None:
-            markupsNode1 = slicer.vtkMRMLMarkupsFiducialNode()
-            markupsNode1.SetName("markers1")
-            slicer.mrmlScene.AddNode(markupsNode1)
-            markupsNode1.CreateDefaultDisplayNodes()
-            displayNode1 = markupsNode1.GetDisplayNode()
-            displayNode1.SetVisibility(True)
-            displayNode1.SetViewNodeIDs(["vtkMRMLSliceNodeRed"])
-            displayNode1.SetVisibility3D(False)
-            displayNode1.SetGlyphScale(0.15)
-            displayNode1.SetSelectedColor([1, 0, 0])
+        def update_markups_node(node_name, view_node_id, color, big_markers, small_markers):
+            markups_node = slicer.mrmlScene.GetFirstNodeByName(node_name)
+            if markups_node is None:
+                markups_node = slicer.vtkMRMLMarkupsFiducialNode()
+                markups_node.SetName(node_name)
+                slicer.mrmlScene.AddNode(markups_node)
 
-            for p in self.bigMarkersSort1.keys():
-                n = markupsNode1.AddControlPoint(p)
-                mark = str(self.bigMarkersSort1[p])
-                markupsNode1.SetNthControlPointLabel(n, mark)
-            for p in self.smallMarkersSort1.keys():
-                n = markupsNode1.AddControlPoint(p)
-                mark = str(self.smallMarkersSort1[p])
-                markupsNode1.SetNthControlPointLabel(n, mark)
-        else:
-            for i, p in enumerate(self.bigMarkersSort1.keys()):
-                markupsNode1.SetNthControlPointPosition(i, p)
-            for i, p in enumerate(self.smallMarkersSort1.keys()):
-                markupsNode1.SetNthControlPointPosition(len(self.bigMarkersSort1.keys())+i, p)
-        
-        markupsNode2 = slicer.mrmlScene.GetFirstNodeByName("markers2")
-        if markupsNode2 == None:
-            markupsNode2 = slicer.vtkMRMLMarkupsFiducialNode()
-            markupsNode2.SetName("markers2")
-            slicer.mrmlScene.AddNode(markupsNode2)
-            markupsNode2.CreateDefaultDisplayNodes()
-            displayNode2 = markupsNode2.GetDisplayNode()
-            displayNode2.SetVisibility(True)
-            displayNode2.SetViewNodeIDs(["vtkMRMLSliceNodeGreen"])
-            displayNode2.SetVisibility3D(False)
-            displayNode2.SetGlyphScale(0.15)
-            displayNode2.SetSelectedColor([0, 1, 0])
+            display_node = markups_node.GetDisplayNode()
+            if display_node is None:
+                markups_node.CreateDefaultDisplayNodes()
+                display_node = markups_node.GetDisplayNode()
 
-            for p in self.bigMarkersSort2.keys():
-                n = markupsNode2.AddControlPoint(p)
-                mark = str(self.bigMarkersSort2[p])
-                markupsNode2.SetNthControlPointLabel(n, mark)
-            for p in self.smallMarkersSort2.keys():
-                n = markupsNode2.AddControlPoint(p)
-                mark = str(self.smallMarkersSort2[p])
-                markupsNode2.SetNthControlPointLabel(n, mark)
-        else:
-            for i, p in enumerate(self.bigMarkersSort2.keys()):
-                markupsNode2.SetNthControlPointPosition(i, p)
-            for i, p in enumerate(self.smallMarkersSort2.keys()):
-                markupsNode2.SetNthControlPointPosition(len(self.bigMarkersSort2.keys())+i, p)
-        
-        markupsNode3 = slicer.mrmlScene.GetFirstNodeByName("markers3")
-        if markupsNode3 == None:
-            markupsNode3 = slicer.vtkMRMLMarkupsFiducialNode()
-            markupsNode3.SetName("markers3")  
-            slicer.mrmlScene.AddNode(markupsNode3)
-            markupsNode3.CreateDefaultDisplayNodes()
-            displayNode3 = markupsNode3.GetDisplayNode()
-            displayNode3.SetVisibility(True)
-            displayNode3.SetViewNodeIDs(["vtkMRMLSliceNodeYellow"])
-            displayNode3.SetVisibility3D(False)
-            displayNode3.SetGlyphScale(0.15)
-            displayNode3.SetSelectedColor([0, 0, 1])
-        
-            for p in self.bigMarkersSort3.keys():
-                n = markupsNode3.AddControlPoint(p)
-                mark = str(self.bigMarkersSort3[p])
-                markupsNode3.SetNthControlPointLabel(n, mark)
-            for p in self.smallMarkersSort3.keys():
-                n = markupsNode3.AddControlPoint(p)
-                mark = str(self.smallMarkersSort3[p])
-                markupsNode3.SetNthControlPointLabel(n, mark)
-        else:
-            for i, p in enumerate(self.bigMarkersSort3.keys()):
-                markupsNode3.SetNthControlPointPosition(i, p)
-            for i, p in enumerate(self.smallMarkersSort3.keys()):
-                markupsNode3.SetNthControlPointPosition(len(self.bigMarkersSort3.keys())+i, p)
+            if display_node:
+                display_node.SetVisibility(True)
+                display_node.SetViewNodeIDs([view_node_id])
+                display_node.SetVisibility3D(False)
+                display_node.SetGlyphScale(0.15)
+                display_node.SetSelectedColor(color)
+
+            markups_node.RemoveAllControlPoints()
+            for point, label in list(big_markers.items()) + list(small_markers.items()):
+                index = markups_node.AddControlPoint(point)
+                markups_node.SetNthControlPointLabel(index, str(label))
+
+            return markups_node
+
+        update_markups_node(
+            "markers1",
+            "vtkMRMLSliceNodeRed",
+            [1, 0, 0],
+            self.bigMarkersSort1,
+            self.smallMarkersSort1,
+        )
+        update_markups_node(
+            "markers2",
+            "vtkMRMLSliceNodeGreen",
+            [0, 1, 0],
+            self.bigMarkersSort2,
+            self.smallMarkersSort2,
+        )
+        update_markups_node(
+            "markers3",
+            "vtkMRMLSliceNodeYellow",
+            [0, 0, 1],
+            self.bigMarkersSort3,
+            self.smallMarkersSort3,
+        )
 
         # 编排所有marker顺序
         self.initMarkers()  
@@ -1090,75 +1113,35 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.smallMarker3DDic3 = self.generateMarkers.getMarkerTransform(linearTransformNode3, smallMarker3DDic)
 
         # 调式显示点，判断2D图像上的点是否正确
-        markupsNode1 = slicer.vtkMRMLMarkupsFiducialNode()
-        markupsNode1.SetName("markers3D1")
-        markupsNode2 = slicer.vtkMRMLMarkupsFiducialNode()
-        markupsNode2.SetName("markers3D2")
-        markupsNode3 = slicer.vtkMRMLMarkupsFiducialNode()
-        markupsNode3.SetName("markers3D3")
+        def update_markups_3d(node_name, color, big_markers, small_markers):
+            markups_node = slicer.mrmlScene.GetFirstNodeByName(node_name)
+            if markups_node is None:
+                markups_node = slicer.vtkMRMLMarkupsFiducialNode()
+                markups_node.SetName(node_name)
+                slicer.mrmlScene.AddNode(markups_node)
 
-        slicer.mrmlScene.AddNode(markupsNode1)
-        slicer.mrmlScene.AddNode(markupsNode2)
-        slicer.mrmlScene.AddNode(markupsNode3)
+            display_node = markups_node.GetDisplayNode()
+            if display_node is None:
+                markups_node.CreateDefaultDisplayNodes()
+                display_node = markups_node.GetDisplayNode()
 
-        markupsNode1.CreateDefaultDisplayNodes()
-        markupsNode2.CreateDefaultDisplayNodes()
-        markupsNode3.CreateDefaultDisplayNodes()
+            if display_node:
+                display_node.SetVisibility(False)
+                display_node.SetVisibility3D(True)
+                display_node.SetGlyphScale(0.15)
+                display_node.SetSelectedColor(color)
 
-        displayNode1 = markupsNode1.GetDisplayNode()
-        displayNode2 = markupsNode2.GetDisplayNode()
-        displayNode3 = markupsNode3.GetDisplayNode()
+            markups_node.RemoveAllControlPoints()
+            for key, point in list(big_markers.items()) + list(small_markers.items()):
+                index = markups_node.AddControlPoint(point)
+                markups_node.SetNthControlPointLabel(index, str(key))
 
-        displayNode1.SetVisibility(False)
-        displayNode2.SetVisibility(False)
-        displayNode3.SetVisibility(False)
+            return markups_node
 
-        displayNode1.SetVisibility3D(True)
-        displayNode2.SetVisibility3D(True)
-        displayNode3.SetVisibility3D(True)
+        update_markups_3d("markers3D1", [1, 0, 0], self.bigMarker3DDic1, self.smallMarker3DDic1)
+        update_markups_3d("markers3D2", [0, 1, 0], self.bigMarker3DDic2, self.smallMarker3DDic2)
+        update_markups_3d("markers3D3", [0, 0, 1], self.bigMarker3DDic3, self.smallMarker3DDic3)
 
-        displayNode1.SetGlyphScale(0.15)
-        displayNode2.SetGlyphScale(0.15)
-        displayNode3.SetGlyphScale(0.15)
-
-        displayNode1.SetSelectedColor([1, 0, 0])
-        displayNode2.SetSelectedColor([0, 1, 0])
-        displayNode3.SetSelectedColor([0, 0, 1])
-
-        for k in self.bigMarker3DDic1.keys():
-            p = self.bigMarker3DDic1[k]
-            n = markupsNode1.AddControlPoint(p)
-            mark = str(k)
-            markupsNode1.SetNthControlPointLabel(n, mark)
-        for k in self.smallMarker3DDic1.keys():
-            p = self.smallMarker3DDic1[k]
-            n = markupsNode1.AddControlPoint(p)
-            mark = str(k)
-            markupsNode1.SetNthControlPointLabel(n, mark)
-
-        for k in self.bigMarker3DDic2.keys():
-            p = self.bigMarker3DDic2[k]
-            n = markupsNode2.AddControlPoint(p)
-            mark = str(k)
-            markupsNode2.SetNthControlPointLabel(n, mark)
-        for k in self.smallMarker3DDic2.keys():
-            p = self.smallMarker3DDic2[k]
-            n = markupsNode2.AddControlPoint(p)
-            mark = str(k)
-            markupsNode2.SetNthControlPointLabel(n, mark)
-
-        for k in self.bigMarker3DDic3.keys():
-            p = self.bigMarker3DDic3[k]
-            n = markupsNode3.AddControlPoint(p)
-            mark = str(k)
-            markupsNode3.SetNthControlPointLabel(n, mark)
-        for k in self.smallMarker3DDic3.keys():
-            p = self.smallMarker3DDic3[k]
-            n = markupsNode3.AddControlPoint(p)
-            mark = str(k)
-            markupsNode3.SetNthControlPointLabel(n, mark)
-
-        
         # 计算所有投影变换矩阵与刚体变换矩阵
         
         # 1, 先计算 3D 都 2D 的变换
@@ -1343,6 +1326,27 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.M3D2DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(originSmallMarker3D_4points, small_2DMarker3_source_4points)
         self.M2D3DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(small_2DMarker3_source_4points, originSmallMarker3D_4points)
 
+
+    def _apply_transform_to_markers(self, transform_name: str):
+        marker_model_node = self._getMarkersModelNode()
+        if marker_model_node is None:
+            self._error("未找到 markers 模型，请先点击 showMarker")
+            return
+        transform_node = slicer.mrmlScene.GetFirstNodeByName(transform_name)
+        if transform_node is None:
+            self._error(f"未找到 {transform_name} 节点")
+            return
+        marker_model_node.SetAndObserveTransformNodeID(transform_node.GetID())
+        marker_model_node.SetDisplayVisibility(True)
+
+    def onMarkers1Button(self):
+        self._apply_transform_to_markers("LinearTransform")
+
+    def onMarkers2Button(self):
+        self._apply_transform_to_markers("LinearTransform_1")
+
+    def onMarkers3Button(self):
+        self._apply_transform_to_markers("LinearTransform_2")
 
     def initLightVec(self):
         # 计算第一个视图的光线向量

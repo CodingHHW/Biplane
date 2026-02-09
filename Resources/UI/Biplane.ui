@@ -161,6 +161,16 @@ QCheckBox { color: #2b2b2b; }</string>
               </property>
              </widget>
             </item>
+             <item>
+              <widget class="QPushButton" name="markers1Button">
+               <property name="styleSheet">
+                <string>QPushButton { background-color: #5a189a; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #3c0f66; }</string>
+               </property>
+               <property name="text">
+                <string>Markers1</string>
+               </property>
+              </widget>
+             </item>
            </layout>
           </item>
           <item>
@@ -175,6 +185,16 @@ QCheckBox { color: #2b2b2b; }</string>
               </property>
              </widget>
             </item>
+             <item>
+              <widget class="QPushButton" name="markers2Button">
+               <property name="styleSheet">
+                <string>QPushButton { background-color: #1f7a8c; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #165966; }</string>
+               </property>
+               <property name="text">
+                <string>Markers2</string>
+               </property>
+              </widget>
+             </item>
            </layout>
           </item>
           <item>
@@ -189,6 +209,16 @@ QCheckBox { color: #2b2b2b; }</string>
               </property>
              </widget>
             </item>
+             <item>
+              <widget class="QPushButton" name="markers3Button">
+               <property name="styleSheet">
+                <string>QPushButton { background-color: #bc6c25; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #8c4f1b; }</string>
+               </property>
+               <property name="text">
+                <string>Markers3</string>
+               </property>
+              </widget>
+             </item>
            </layout>
           </item>
          </layout>
