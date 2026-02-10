@@ -201,6 +201,46 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetSelectedColor([1.0, 0.2, 0.0])
             displayNode.SetColor(1.0, 0.2, 0.0)
 
+    def _get_slice_view_center(self, viewNodeId: str):
+        sliceNode = slicer.mrmlScene.GetNodeByID(viewNodeId)
+        if sliceNode is None:
+            return None
+        layoutManager = slicer.app.layoutManager()
+        if layoutManager is None:
+            return None
+        sliceWidget = layoutManager.sliceWidget(sliceNode.GetLayoutName())
+        if sliceWidget is None:
+            return None
+        sliceView = sliceWidget.sliceView()
+        if sliceView is None:
+            return None
+        width = float(sliceView.width)
+        height = float(sliceView.height)
+        xy_to_ras = sliceNode.GetXYToRAS()
+        ras = [0.0, 0.0, 0.0, 1.0]
+        xy_to_ras.MultiplyPoint([width * 0.5, height * 0.5, 0.0, 1.0], ras)
+        return (ras[0], ras[1], ras[2])
+
+    def _ensure_center_fiducial(self, nodeName: str, viewNodeId: str, color):
+        markupsNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
+        if markupsNode is not None:
+            return
+        markupsNode = slicer.vtkMRMLMarkupsFiducialNode()
+        markupsNode.SetName(nodeName)
+        slicer.mrmlScene.AddNode(markupsNode)
+        markupsNode.CreateDefaultDisplayNodes()
+        center = self._get_slice_view_center(viewNodeId) or (0.0, 0.0, 0.0)
+        markupsNode.AddControlPoint(center)
+        displayNode = markupsNode.GetDisplayNode()
+        if displayNode:
+            displayNode.SetVisibility(True)
+            displayNode.SetViewNodeIDs([viewNodeId])
+            displayNode.SetVisibility3D(False)
+            displayNode.SetPointLabelsVisibility(False)
+            displayNode.SetGlyphScale(3.0)
+            displayNode.SetSelectedColor(color)
+            displayNode.SetColor(color)
+
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
         ScriptedLoadableModuleWidget.setup(self)
@@ -534,11 +574,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if tpDisplay:
                 tpDisplay.SetVisibility(True)
 
+
     def onShot1AllButton(self):
         self.onShot1Button()
         self.onShot1ButtonAgain()
         self.onShot1ButtonShow()
         self.onShowVolumeButton()
+        self._ensure_center_fiducial("PointRed", "vtkMRMLSliceNodeRed", (1.0, 0.0, 0.0))
 
 
     def onShot1ButtonAgain(self):
@@ -696,11 +738,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if tpDisplay:
                 tpDisplay.SetVisibility(True)
 
+    
     def onShot2AllButton(self):
         self.onShot2Button()
         self.onShot2ButtonAgain()
         self.onShot2ButtonShow()
         self.onShowVolumeButton()
+        self._ensure_center_fiducial("PointGreen", "vtkMRMLSliceNodeGreen", (0.0, 1.0, 0.0))
 
 
     def onShot2ButtonAgain(self):

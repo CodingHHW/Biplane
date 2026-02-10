@@ -425,9 +425,12 @@ QCheckBox { color: #2b2b2b; }</string>
            </layout>
           </item>
           <item>
-           <widget class="QGroupBox" name="groupBox_7">
+           <widget class="ctkCollapsibleGroupBox" name="groupBox_7">
             <property name="title">
              <string>Debug Visualization</string>
+            </property>
+            <property name="collapsed">
+             <bool>true</bool>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_11">
              <item>
