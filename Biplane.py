@@ -77,6 +77,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.debugVisualization = False
         self.debugPlaneScale = 6.0
         self.debugRayScale = 10.0
+        self._markersSorted = False
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
@@ -89,6 +90,23 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             logging.error(message)
             if detailedText:
                 logging.error(detailedText)
+
+    def _require_markers_sorted(self) -> bool:
+        required_attrs = [
+            "M2D3DPerspectiveMatrixsBig1",
+            "M2D3DRigidMatrixsBig1",
+            "M2D3DPerspectiveMatrixsSmall1",
+            "M2D3DRigidMatrixsSmall1",
+            "originBigMarker3D_Z",
+            "originSmallMarker3D_Z",
+            "bigMarker3DDic2",
+            "smallMarker3DDic2",
+        ]
+        missing = [name for name in required_attrs if getattr(self, name, None) is None]
+        if not self._markersSorted or missing:
+            self._error("请先点击 markersSort")
+            return False
+        return True
 
     def _getBodyVolumeNode(self):
         if self._parameterNode and getattr(self._parameterNode, "inputVolume", None):
@@ -367,6 +385,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """Called just before the scene is closed."""
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
+        self._markersSorted = False
 
     def onSceneEndClose(self, caller, event) -> None:
         """Called just after the scene is closed."""
@@ -1232,6 +1251,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.initMarkers()  
         # 并且计算 3 个平行光向量
         self.initLightVec()
+        self._markersSorted = True
 
     def initMarkers(self):
         bigMarker3DDic = self.generateMarkers.bigMarker3DDic
@@ -1476,6 +1496,22 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
         marker_model_node.SetAndObserveTransformNodeID(transform_node.GetID())
         marker_model_node.SetDisplayVisibility(True)
+        self._select_transform_in_transforms_module(transform_node)
+
+    def _select_transform_in_transforms_module(self, transform_node):
+        try:
+            module_widget = slicer.modules.transforms.widgetRepresentation()
+            if module_widget is None:
+                return
+            selector = module_widget.findChild(slicer.qMRMLNodeComboBox, "TransformNodeSelector")
+            if selector is None:
+                return
+            if hasattr(selector, "setCurrentNode"):
+                selector.setCurrentNode(transform_node)
+            elif hasattr(selector, "setCurrentNodeID"):
+                selector.setCurrentNodeID(transform_node.GetID())
+        except Exception:
+            return
 
     def onMarkers1Button(self):
         self._apply_transform_to_markers("LinearTransform")
@@ -1515,6 +1551,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.yellow3DVec = p3BigYellow - p3SmallYellow
 
     def onTwoD2ThreeDRed(self):
+        if not self._require_markers_sorted():
+            return
         markupNode = self.ui.Red2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
             self._error("请先在 Red 视图添加一个 2D 点")
