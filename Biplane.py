@@ -180,6 +180,17 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         center_y = float(np.mean(ys))
         return (-center_x, -center_y, 0.0)
 
+    def _get_volume_center(self, volumeNode):
+        if volumeNode is None:
+            return None
+        bounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        volumeNode.GetRASBounds(bounds)
+        return (
+            (bounds[0] + bounds[1]) * 0.5,
+            (bounds[2] + bounds[3]) * 0.5,
+            (bounds[4] + bounds[5]) * 0.5,
+        )
+
     def _show_black_center_marker(self, nodeName: str, viewNodeId: str, position):
         markupsNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
         if markupsNode is None:
@@ -241,6 +252,14 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetSelectedColor(color)
             displayNode.SetColor(color)
 
+    def _set_selector_current_node(self, selector, node):
+        if selector is None or node is None:
+            return
+        if hasattr(selector, "setCurrentNode"):
+            selector.setCurrentNode(node)
+        elif hasattr(selector, "setCurrentNodeID"):
+            selector.setCurrentNodeID(node.GetID())
+
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
         ScriptedLoadableModuleWidget.setup(self)
@@ -286,11 +305,14 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.blackCenterButton.connect("clicked(bool)", self.onBlackCenterButton)
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
         self.ui.copyPointButton.connect("clicked(bool)", self.onCopyMarkerPoint)
+        self.ui.copyBlackCenter1Button.connect("clicked(bool)", self.onCopyBlackCenter1)
+        self.ui.copyBlackCenter2Button.connect("clicked(bool)", self.onCopyBlackCenter2)
         
         self.ui.redPushButton.connect("clicked(bool)", self.onTwoD2ThreeDRed)
         self.ui.greenPushButton.connect("clicked(bool)", self.onTwoD2ThreeDGreen)
 
         self.ui.tracingPushButton.connect("clicked(bool)", self.onTracing)
+        self.ui.showKnifePushButton.connect("clicked(bool)", self.onShowKnifeButton)
 
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
         self.ui.calculateReprojectionButton.connect("clicked(bool)", self.onCalculateReprojectionError)
@@ -514,6 +536,40 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if hasattr(displayNode, "SetVisibility2D"):
                 displayNode.SetVisibility2D(False)
 
+    def onShowKnifeButton(self):
+        volumeNode = self._getBodyVolumeNode()
+        if not volumeNode:
+            self._error("未找到输入 Volume，请先在 Input volume 中选择")
+            return
+        center = self._get_volume_center(volumeNode)
+        if center is None:
+            self._error("无法获取 Volume 中心点")
+            return
+
+        knifeNode = slicer.mrmlScene.GetFirstNodeByName("knife")
+        if knifeNode is None:
+            knifeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "knife")
+            knifeNode.CreateDefaultDisplayNodes()
+
+        if knifeNode.GetNumberOfControlPoints() < 1:
+            knifeNode.AddControlPoint(center)
+        else:
+            knifeNode.SetNthControlPointPosition(0, center)
+
+        displayNode = knifeNode.GetDisplayNode()
+        if displayNode:
+            displayNode.SetVisibility(True)
+            displayNode.SetViewNodeIDs(["vtkMRMLViewNode1"])
+            displayNode.SetVisibility3D(True)
+            if hasattr(displayNode, "SetVisibility2D"):
+                displayNode.SetVisibility2D(False)
+            displayNode.SetPointLabelsVisibility(False)
+            displayNode.SetGlyphScale(3)
+            displayNode.SetSelectedColor(1.0, 0.93, 0.2)
+            displayNode.SetColor(1.0, 0.93, 0.2)
+
+        self._set_selector_current_node(self.ui.knifeSelector, knifeNode)
+
     def onCopyMarkerPoint(self):
         sourceNode = self.ui.copySourceSelector.currentNode()
         targetNode = self.ui.copyTargetSelector.currentNode()
@@ -534,6 +590,40 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             targetNode.AddControlPoint(sourcePos)
         else:
             targetNode.SetNthControlPointPosition(index, sourcePos)
+
+    def _copy_center_to_point(self, source_name: str, target_name: str, view_node_id: str, color):
+        source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
+        if source_node is None or source_node.GetNumberOfControlPoints() < 1:
+            self._error(f"未找到 {source_name} 的控制点")
+            return
+
+        target_node = slicer.mrmlScene.GetFirstNodeByName(target_name)
+        if target_node is None:
+            target_node = slicer.vtkMRMLMarkupsFiducialNode()
+            target_node.SetName(target_name)
+            slicer.mrmlScene.AddNode(target_node)
+            target_node.CreateDefaultDisplayNodes()
+
+        source_pos = source_node.GetNthControlPointPosition(0)
+        if target_node.GetNumberOfControlPoints() < 1:
+            target_node.AddControlPoint(source_pos)
+        else:
+            target_node.SetNthControlPointPosition(0, source_pos)
+
+        display_node = target_node.GetDisplayNode()
+        if display_node:
+            display_node.SetVisibility(True)
+            display_node.SetViewNodeIDs([view_node_id])
+            display_node.SetVisibility3D(False)
+            display_node.SetPointLabelsVisibility(False)
+            display_node.SetSelectedColor(color)
+            display_node.SetColor(color)
+
+    def onCopyBlackCenter1(self):
+        self._copy_center_to_point("blackCenter1", "PointRed", "vtkMRMLSliceNodeRed", (1.0, 0.0, 0.0))
+
+    def onCopyBlackCenter2(self):
+        self._copy_center_to_point("blackCenter2", "PointGreen", "vtkMRMLSliceNodeGreen", (0.0, 1.0, 0.0))
 
     def onShot1Button(self):
         bodyVolumeNode = self._getBodyVolumeNode()
@@ -581,6 +671,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot1ButtonShow()
         self.onShowVolumeButton()
         self._ensure_center_fiducial("PointRed", "vtkMRMLSliceNodeRed", (1.0, 0.0, 0.0))
+        point_red = slicer.mrmlScene.GetFirstNodeByName("PointRed")
+        self._set_selector_current_node(self.ui.Red2DPSelector, point_red)
 
 
     def onShot1ButtonAgain(self):
@@ -745,6 +837,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot2ButtonShow()
         self.onShowVolumeButton()
         self._ensure_center_fiducial("PointGreen", "vtkMRMLSliceNodeGreen", (0.0, 1.0, 0.0))
+        point_green = slicer.mrmlScene.GetFirstNodeByName("PointGreen")
+        self._set_selector_current_node(self.ui.Green2DPSelector, point_green)
 
 
     def onShot2ButtonAgain(self):
@@ -1851,6 +1945,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetSelectedColor([0.18, 0.545, 0.341])
         else:
             markupNodeYellow.SetNthControlPointPosition(0, [intersectionP3DYellow[0], intersectionP3DYellow[1], 0])
+
+        tre_point1 = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        tre_point2 = slicer.mrmlScene.GetFirstNodeByName("TargetP3D")
+        self._set_selector_current_node(self.ui.point1Selector, tre_point1)
+        self._set_selector_current_node(self.ui.point2Selector, tre_point2)
+
+        re_point1 = slicer.mrmlScene.GetFirstNodeByName("blackCenter2")
+        re_point2 = slicer.mrmlScene.GetFirstNodeByName("PointGreen")
+        self._set_selector_current_node(self.ui.reprojectionPoint1Selector, re_point1)
+        self._set_selector_current_node(self.ui.reprojectionPoint2Selector, re_point2)
 
 
     def onTracing(self):
