@@ -135,6 +135,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         cap.captureImageFromView(view, filepath)
         return os.path.exists(filepath)
 
+    def _open_transforms_module(self) -> None:
+        try:
+            slicer.util.selectModule("Transforms")
+        except Exception:
+            self._error("无法切换到 Transforms 模块")
+
     def _limit_display_nodes_for_shot(self, allowed_displayable_nodes):
         allowed_ids = {node.GetID() for node in allowed_displayable_nodes if node}
         display_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
@@ -319,6 +325,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.markers1Button.connect("clicked(bool)", self.onMarkers1Button)
         self.ui.markers2Button.connect("clicked(bool)", self.onMarkers2Button)
         self.ui.markers3Button.connect("clicked(bool)", self.onMarkers3Button)
+        self.ui.transformsButton.connect("clicked(bool)", self.onOpenTransforms)
 
         self.ui.blackCenterButton.connect("clicked(bool)", self.onBlackCenterButton)
         self.ui.markersSortButton.connect("clicked(bool)", self.onMarkersSortButton)
@@ -1521,6 +1528,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onMarkers3Button(self):
         self._apply_transform_to_markers("LinearTransform_2")
+
+    def onOpenTransforms(self):
+        self._open_transforms_module()
 
     def initLightVec(self):
         # 计算第一个视图的光线向量
