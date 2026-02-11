@@ -284,6 +284,82 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         elif hasattr(selector, "setCurrentNodeID"):
             selector.setCurrentNodeID(node.GetID())
 
+    def _plane_normal_from_marker_dict(self, marker_dict):
+        if not marker_dict:
+            return None
+        p1 = marker_dict.get(1)
+        p2 = marker_dict.get(2)
+        p3 = marker_dict.get(3)
+        if p1 is None or p2 is None or p3 is None:
+            return None
+        v1 = np.array(p2, dtype=float) - np.array(p1, dtype=float)
+        v2 = np.array(p3, dtype=float) - np.array(p1, dtype=float)
+        normal = np.cross(v1, v2)
+        norm = np.linalg.norm(normal)
+        if norm == 0.0:
+            return None
+        return normal / norm
+
+    def _compute_plane_angle_deg(self, marker_dict_a, marker_dict_b):
+        n1 = self._plane_normal_from_marker_dict(marker_dict_a)
+        n2 = self._plane_normal_from_marker_dict(marker_dict_b)
+        if n1 is None or n2 is None:
+            return None
+        dot = float(np.clip(np.dot(n1, n2), -1.0, 1.0))
+        return float(np.degrees(np.arccos(abs(dot))))
+
+    def _get_big_marker_plane_dict(self, index: int):
+        attr_name = f"bigMarker3DDic{index}"
+        existing = getattr(self, attr_name, None)
+        if existing:
+            return existing
+        transform_names = {
+            1: "LinearTransform",
+            2: "LinearTransform_1",
+            3: "LinearTransform_2",
+        }
+        transform_name = transform_names.get(index)
+        if not transform_name:
+            return None
+        transform_node = slicer.mrmlScene.GetFirstNodeByName(transform_name)
+        if transform_node is None:
+            return None
+        marker_dict = self.generateMarkers.getMarkerTransform(
+            transform_node,
+            self.generateMarkers.bigMarker3DDic,
+        )
+        setattr(self, attr_name, marker_dict)
+        return marker_dict
+
+    def _set_angle_display(self, label_widget, line_edit, angle_value):
+        if label_widget is not None:
+            label_widget.setVisible(True)
+        if line_edit is not None:
+            line_edit.setVisible(True)
+            if angle_value is None:
+                line_edit.setText("n/a")
+            else:
+                line_edit.setText(f"{angle_value:.2f}")
+
+    def _update_shot2_angle_display(self):
+        angle = self._compute_plane_angle_deg(
+            self._get_big_marker_plane_dict(1),
+            self._get_big_marker_plane_dict(2),
+        )
+        self._set_angle_display(self.ui.labelShot2Angle, self.ui.shot2AngleLineEdit, angle)
+
+    def _update_shot3_angle_display(self):
+        angle_m3_m1 = self._compute_plane_angle_deg(
+            self._get_big_marker_plane_dict(3),
+            self._get_big_marker_plane_dict(1),
+        )
+        angle_m3_m2 = self._compute_plane_angle_deg(
+            self._get_big_marker_plane_dict(3),
+            self._get_big_marker_plane_dict(2),
+        )
+        self._set_angle_display(self.ui.labelShot3Angle1, self.ui.shot3Angle1LineEdit, angle_m3_m1)
+        self._set_angle_display(self.ui.labelShot3Angle2, self.ui.shot3Angle2LineEdit, angle_m3_m2)
+
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
         ScriptedLoadableModuleWidget.setup(self)
@@ -348,6 +424,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.debugPlaneScale = float(self.ui.debugPlaneScaleSpinBox.value)
         self.debugRayScale = float(self.ui.debugRayScaleSpinBox.value)
+
+        angle_line_edits = [
+            self.ui.shot2AngleLineEdit,
+            self.ui.shot3Angle1LineEdit,
+            self.ui.shot3Angle2LineEdit,
+        ]
+        for line_edit in angle_line_edits:
+            if line_edit is not None:
+                line_edit.setText("")
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -865,6 +950,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._ensure_center_fiducial("PointGreen", "vtkMRMLSliceNodeGreen", (0.0, 1.0, 0.0))
         point_green = slicer.mrmlScene.GetFirstNodeByName("PointGreen")
         self._set_selector_current_node(self.ui.Green2DPSelector, point_green)
+        self._update_shot2_angle_display()
 
 
     def onShot2ButtonAgain(self):
@@ -1027,6 +1113,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.onShot3ButtonAgain()
         self.onShot3ButtonShow()
         self.onShowVolumeButton()
+        self._update_shot3_angle_display()
 
     def onShot3ButtonAgain(self):
         bodyVolumeNode = self._getBodyVolumeNode()

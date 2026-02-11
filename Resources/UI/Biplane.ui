@@ -227,6 +227,52 @@ QCheckBox { color: #2b2b2b; }</string>
             </item>
            </layout>
           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_shotAngles">
+            <item row="0" column="0">
+             <widget class="QLabel" name="labelShot2Angle">
+              <property name="text">
+              <string>Angle M1-M2 (deg):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="shot2AngleLineEdit">
+              <property name="readOnly">
+              <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="labelShot3Angle1">
+              <property name="text">
+              <string>Angle M3-M1 (deg):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="shot3Angle1LineEdit">
+              <property name="readOnly">
+              <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="labelShot3Angle2">
+              <property name="text">
+              <string>Angle M3-M2 (deg):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="shot3Angle2LineEdit">
+              <property name="readOnly">
+              <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            </layout>
+           </item>
          </layout>
         </widget>
        </item>
