@@ -79,6 +79,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.debugRayScale = 10.0
         self.projectionMode = "orthographic"
         self.perspectiveViewCalibs = {}
+        self.orthographicViewCalibs = {}
         self._markersSorted = False
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
@@ -112,6 +113,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             calibs = getattr(self, "perspectiveViewCalibs", None)
             if not isinstance(calibs, dict) or any(idx not in calibs for idx in (1, 2, 3)):
                 self._error("透视模式标定未完成，请重新点击 markersSort")
+                return False
+        if self.projectionMode == "orthographic":
+            calibs = getattr(self, "orthographicViewCalibs", None)
+            if not isinstance(calibs, dict) or any(idx not in calibs for idx in (1, 2, 3)):
+                self._error("正交模式标定未完成，请重新点击 markersSort")
                 return False
         return True
 
@@ -632,6 +638,107 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.perspectiveViewCalibs = {}
             self._error("透视模式 solvePnP 标定失败", detailedText=str(e))
             return False
+
+    def _compute_orthographic_calibrations(self) -> bool:
+        try:
+            calibs = {}
+            for idx in (1, 2, 3):
+                image_size = self._get_shot_image_size(idx)
+                if not image_size:
+                    raise ValueError(f"shot{idx} 图像尺寸不可用")
+                image_width, image_height = image_size
+                object_points, image_points = self._get_view_marker_pairs(idx)
+
+                X = np.hstack([object_points, np.ones((object_points.shape[0], 1), dtype=np.float64)])  # Nx4
+
+                best = None
+                for flip_x in (False, True):
+                    for flip_y in (False, True):
+                        img_pts_px = np.vstack([
+                            self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                            for p in image_points
+                        ])
+                        u = img_pts_px[:, 0]
+                        v = img_pts_px[:, 1]
+
+                        pu, _, _, _ = np.linalg.lstsq(X, u, rcond=None)
+                        pv, _, _, _ = np.linalg.lstsq(X, v, rcond=None)
+                        P = np.vstack([pu, pv])  # 2x4
+
+                        proj = X @ P.T
+                        rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                        if best is None or rms < best[0]:
+                            best = (rms, flip_x, flip_y, P)
+
+                if best is None:
+                    raise ValueError(f"view{idx} orthographic calib failed")
+                rms, flip_x, flip_y, P = best
+
+                A = np.array(P[:, :3], dtype=np.float64)
+                t = np.array(P[:, 3], dtype=np.float64)
+                d = np.cross(A[0, :], A[1, :])
+                dn = np.linalg.norm(d)
+                if np.isclose(dn, 0.0):
+                    raise ValueError(f"view{idx} orthographic direction is degenerate")
+                d = d / dn
+
+                logging.info(f"Ortho calib view{idx}: reproj RMS={rms:.3f}px, flip_x={flip_x}, flip_y={flip_y}")
+
+                calibs[idx] = {
+                    "P": P,
+                    "A": A,
+                    "t": t,
+                    "d": d,
+                    "w": int(image_width),
+                    "h": int(image_height),
+                    "flip_x": bool(flip_x),
+                    "flip_y": bool(flip_y),
+                }
+
+            self.orthographicViewCalibs = calibs
+            return True
+        except Exception as e:
+            self.orthographicViewCalibs = {}
+            self._error("正交模式标定失败", detailedText=str(e))
+            return False
+
+    def _ortho_pixel_to_world_ray(self, view_index: int, point2d_slicer: np.array):
+        calib = self.orthographicViewCalibs.get(view_index)
+        if calib is None:
+            raise ValueError(f"缺少 view{view_index} 的正交标定参数")
+
+        p_px = self._slicer2d_to_pixel_raw(
+            point2d_slicer,
+            calib["w"],
+            calib["h"],
+            calib["flip_x"],
+            calib["flip_y"],
+        )
+
+        A = calib["A"]
+        t = calib["t"]
+        b = np.array([p_px[0] - t[0], p_px[1] - t[1]], dtype=np.float64)
+
+        M = A @ A.T
+        if np.linalg.cond(M) > 1e12:
+            raise ValueError(f"view{view_index} orthographic matrix is ill-conditioned")
+        x0 = A.T @ np.linalg.inv(M) @ b
+        return x0, calib["d"]
+
+    def _ortho_project_world_point_to_view(self, view_index: int, point_3d: np.array):
+        calib = self.orthographicViewCalibs.get(view_index)
+        if calib is None:
+            raise ValueError(f"缺少 view{view_index} 的正交标定参数")
+        P = calib["P"]
+        X = np.array([point_3d[0], point_3d[1], point_3d[2], 1.0], dtype=np.float64)
+        uv_px = P @ X
+        return self._pixel_to_slicer2d_raw(
+            uv_px,
+            calib["w"],
+            calib["h"],
+            calib["flip_x"],
+            calib["flip_y"],
+        )
 
     def _pixel_to_world_ray(self, view_index: int, pixel_2d: np.array):
         calib = self.perspectiveViewCalibs.get(view_index)
@@ -1849,8 +1956,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if projection_mode == "perspective":
             if not self._compute_perspective_calibrations():
                 return False
+            self.orthographicViewCalibs = {}
         else:
             self.perspectiveViewCalibs = {}
+
+        if projection_mode == "orthographic":
+            if not self._compute_orthographic_calibrations():
+                return False
+        else:
+            self.orthographicViewCalibs = {}
 
         return True
 
@@ -1896,10 +2010,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._open_transforms_module()
 
     def initLightVec(self):
-        if self.projectionMode == "perspective":
+        if self.projectionMode in ("perspective", "orthographic"):
+            def get_ray(view_index: int, p2d: np.array):
+                if self.projectionMode == "perspective":
+                    return self._pixel_to_world_ray(view_index, p2d)
+                return self._ortho_pixel_to_world_ray(view_index, p2d)
+
             markerNode1 = slicer.mrmlScene.GetFirstNodeByName("markers1")
             p1 = np.array(markerNode1.GetNthControlPointPosition(0)[0:2])
-            o1, d1 = self._pixel_to_world_ray(1, p1)
+            o1, d1 = get_ray(1, p1)
             self.p3DBigRed = self.logic.rayPlaneIntersection(o1, d1, self.bigMarker3DDic1[1], self.bigMarker3DDic1[2], self.bigMarker3DDic1[3])
             self.p3DSmallRed = self.logic.rayPlaneIntersection(o1, d1, self.smallMarker3DDic1[1], self.smallMarker3DDic1[2], self.smallMarker3DDic1[3])
             if self.p3DBigRed is None or self.p3DSmallRed is None:
@@ -1909,7 +2028,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
             markerNode2 = slicer.mrmlScene.GetFirstNodeByName("markers2")
             p2 = np.array(markerNode2.GetNthControlPointPosition(0)[0:2])
-            o2, d2 = self._pixel_to_world_ray(2, p2)
+            o2, d2 = get_ray(2, p2)
             self.p3DBigGreen = self.logic.rayPlaneIntersection(o2, d2, self.bigMarker3DDic2[1], self.bigMarker3DDic2[2], self.bigMarker3DDic2[3])
             self.p3DSmallGreen = self.logic.rayPlaneIntersection(o2, d2, self.smallMarker3DDic2[1], self.smallMarker3DDic2[2], self.smallMarker3DDic2[3])
             if self.p3DBigGreen is None or self.p3DSmallGreen is None:
@@ -1919,7 +2038,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
             markerNode3 = slicer.mrmlScene.GetFirstNodeByName("markers3")
             p3 = np.array(markerNode3.GetNthControlPointPosition(0)[0:2])
-            o3, d3 = self._pixel_to_world_ray(3, p3)
+            o3, d3 = get_ray(3, p3)
             self.p3DBigYellow = self.logic.rayPlaneIntersection(o3, d3, self.bigMarker3DDic3[1], self.bigMarker3DDic3[2], self.bigMarker3DDic3[3])
             self.p3DSmallYellow = self.logic.rayPlaneIntersection(o3, d3, self.smallMarker3DDic3[1], self.smallMarker3DDic3[2], self.smallMarker3DDic3[3])
             if self.p3DBigYellow is None or self.p3DSmallYellow is None:
@@ -1971,8 +2090,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode.SetSelectedColor([0.941, 0.902, 0.549])
 
         p2D = np.array(markupNode.GetNthControlPointPosition(0)[0:2])
-        if self.projectionMode == "perspective":
-            ray_origin, ray_dir = self._pixel_to_world_ray(1, p2D)
+        if self.projectionMode in ("perspective", "orthographic"):
+            if self.projectionMode == "perspective":
+                ray_origin, ray_dir = self._pixel_to_world_ray(1, p2D)
+            else:
+                ray_origin, ray_dir = self._ortho_pixel_to_world_ray(1, p2D)
             self.p3DBigRed = self.logic.rayPlaneIntersection(
                 ray_origin,
                 ray_dir,
@@ -2080,6 +2202,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.projectionMode == "perspective":
             bigIntersectionP2DGreen = self._project_world_point_to_view(2, bigIntersectionP3D)
             smallIntersectionP2DGreen = self._project_world_point_to_view(2, smallIntersectionP3D)
+        elif self.projectionMode == "orthographic":
+            bigIntersectionP2DGreen = self._ortho_project_world_point_to_view(2, bigIntersectionP3D)
+            smallIntersectionP2DGreen = self._ortho_project_world_point_to_view(2, smallIntersectionP3D)
         else:
             bigIntersectionP2DGreen = self.logic.threeD2twoD(bigIntersectionP3D, self.M3D2DRigidMatrixsBig2, self.M3D2DPerspectiveMatrixsBig2)
             smallIntersectionP2DGreen = self.logic.threeD2twoD(smallIntersectionP3D, self.M3D2DRigidMatrixsSmall2, self.M3D2DPerspectiveMatrixsSmall2)
@@ -2203,8 +2328,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # 替换手动添加的 markupNode
         markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
         p2DNearest2Line = p3DNearest2Line[0:2]
-        if self.projectionMode == "perspective":
-            ray_origin, ray_dir = self._pixel_to_world_ray(2, p2DNearest2Line)
+        if self.projectionMode in ("perspective", "orthographic"):
+            if self.projectionMode == "perspective":
+                ray_origin, ray_dir = self._pixel_to_world_ray(2, p2DNearest2Line)
+            else:
+                ray_origin, ray_dir = self._ortho_pixel_to_world_ray(2, p2DNearest2Line)
             self.p3DBigGreen = self.logic.rayPlaneIntersection(
                 ray_origin,
                 ray_dir,
@@ -2377,6 +2505,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         if self.projectionMode == "perspective":
             p2DGreen_check = self._project_world_point_to_view(2, p3D)
+        elif self.projectionMode == "orthographic":
+            p2DGreen_check = self._ortho_project_world_point_to_view(2, p3D)
         else:
             p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
                 p3D,
@@ -2413,6 +2543,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # 计算同时显示第三个视图上的2D点
         if self.projectionMode == "perspective":
             intersectionP3DYellow = self._project_world_point_to_view(3, p3D)
+        elif self.projectionMode == "orthographic":
+            intersectionP3DYellow = self._ortho_project_world_point_to_view(3, p3D)
         else:
             intersectionP3DYellow = self.logic.threeD2twoDFor3DSpace(p3D, self.yellow3DVec, 
                                              np.array(self.bigMarker3DDic3[1]), np.array(self.bigMarker3DDic3[2]), np.array(self.bigMarker3DDic3[3]),
@@ -2469,6 +2601,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             p2DRed = self._project_world_point_to_view(1, p3D)
             p2DGreen = self._project_world_point_to_view(2, p3D)
             p2DYellow = self._project_world_point_to_view(3, p3D)
+        elif self.projectionMode == "orthographic":
+            p2DRed = self._ortho_project_world_point_to_view(1, p3D)
+            p2DGreen = self._ortho_project_world_point_to_view(2, p3D)
+            p2DYellow = self._ortho_project_world_point_to_view(3, p3D)
         else:
             p2DRed = self.logic.threeD2twoDFor3DSpace(
                 p3D,
