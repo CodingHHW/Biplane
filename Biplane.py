@@ -77,6 +77,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.debugVisualization = False
         self.debugPlaneScale = 6.0
         self.debugRayScale = 10.0
+        self.projectionMode = "orthographic"
+        self.perspectiveViewCalibs = {}
         self._markersSorted = False
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
@@ -106,6 +108,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not self._markersSorted or missing:
             self._error("请先点击 markersSort")
             return False
+        if self.projectionMode == "perspective":
+            calibs = getattr(self, "perspectiveViewCalibs", None)
+            if not isinstance(calibs, dict) or any(idx not in calibs for idx in (1, 2, 3)):
+                self._error("透视模式标定未完成，请重新点击 markersSort")
+                return False
         return True
 
     def _getBodyVolumeNode(self):
@@ -393,6 +400,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.showVolumeButton.connect("clicked(bool)", self.onShowVolumeButton)
         self.ui.showMarkerButton.connect("clicked(bool)", self.onShowMarkerButton)
         self.ui.showTestPointButton.connect("clicked(bool)", self.onShowTestPointButton)
+        self.ui.orthographicProjectionButton.connect("clicked(bool)", self.onOrthographicProjectionButton)
+        self.ui.perspectiveProjectionButton.connect("clicked(bool)", self.onPerspectiveProjectionButton)
 
         self.ui.shot1AllButton.connect("clicked(bool)", self.onShot1AllButton)
         self.ui.shot2AllButton.connect("clicked(bool)", self.onShot2AllButton)
@@ -434,6 +443,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if line_edit is not None:
                 line_edit.setText("")
 
+        self.ui.orthographicProjectionButton.setChecked(True)
+        self.ui.perspectiveProjectionButton.setChecked(False)
+        self._updateProjectionModeStatusLabel()
+        self._applyProjectionModeToView()
+
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
 
@@ -447,16 +461,215 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.initializeParameterNode()
 
         self._ensureLinearTransformNodes()
-
-        threeDWidget = slicer.app.layoutManager().threeDWidget(0)
-        threeDControllerWidget = threeDWidget.threeDController()
-        threeDControllerWidget.setOrthographicModeEnabled(True)
+        self._applyProjectionModeToView()
 
         viewNode = slicer.mrmlScene.GetNodeByID("vtkMRMLViewNode1")
         viewNode.SetBackgroundColor(1, 1, 1)
         viewNode.SetBackgroundColor2(1, 1, 1)
         viewNode.SetBoxVisible(False)
         viewNode.SetAxisLabelsVisible(False)
+
+    def _applyProjectionModeToView(self) -> None:
+        lm = slicer.app.layoutManager()
+        if not lm:
+            return
+        threeDWidget = lm.threeDWidget(0)
+        if not threeDWidget:
+            return
+        threeDControllerWidget = threeDWidget.threeDController()
+        if not threeDControllerWidget:
+            return
+        use_orthographic = self.projectionMode == "orthographic"
+        threeDControllerWidget.setOrthographicModeEnabled(use_orthographic)
+
+    def _updateProjectionModeStatusLabel(self) -> None:
+        if not hasattr(self.ui, "projectionModeStatusLabel"):
+            return
+        mode_text = "Orthographic" if self.projectionMode == "orthographic" else "Perspective"
+        self.ui.projectionModeStatusLabel.setText(f"Current mode: {mode_text}")
+
+    def _setProjectionMode(self, mode: str) -> None:
+        if mode not in ("orthographic", "perspective"):
+            return
+        self.projectionMode = mode
+        self.ui.orthographicProjectionButton.setChecked(mode == "orthographic")
+        self.ui.perspectiveProjectionButton.setChecked(mode == "perspective")
+        self._updateProjectionModeStatusLabel()
+        self._applyProjectionModeToView()
+
+        if self._markersSorted:
+            ok = self.initMarkers()
+            if not ok:
+                return
+            self.initLightVec()
+
+    def onOrthographicProjectionButton(self):
+        self._setProjectionMode("orthographic")
+
+    def onPerspectiveProjectionButton(self):
+        self._setProjectionMode("perspective")
+
+    def _get_shot_node_by_index(self, view_index: int):
+        return slicer.mrmlScene.GetFirstNodeByName(f"shot{view_index}")
+
+    def _get_shot_image_size(self, view_index: int):
+        shot_node = self._get_shot_node_by_index(view_index)
+        if not shot_node or not shot_node.GetImageData():
+            return None
+        dims = shot_node.GetImageData().GetDimensions()
+        if dims[0] <= 0 or dims[1] <= 0:
+            return None
+        return int(dims[0]), int(dims[1])
+
+    def _get_current_3d_camera_view_angle(self) -> float:
+        view = self._getThreeDView()
+        if not view:
+            return 30.0
+        render_window = view.renderWindow() if hasattr(view, "renderWindow") else None
+        if not render_window:
+            return 30.0
+        renderer = render_window.GetRenderers().GetFirstRenderer() if render_window.GetRenderers() else None
+        if not renderer:
+            return 30.0
+        camera = renderer.GetActiveCamera()
+        if not camera:
+            return 30.0
+        return float(camera.GetViewAngle())
+
+    def _get_view_marker_pairs(self, view_index: int):
+        big_2d = getattr(self, f"bigMarkersSort{view_index}")
+        small_2d = getattr(self, f"smallMarkersSort{view_index}")
+        big_3d = getattr(self, f"bigMarker3DDic{view_index}")
+        small_3d = getattr(self, f"smallMarker3DDic{view_index}")
+
+        image_points = []
+        object_points = []
+        for label in (1, 2, 3, 4, 5):
+            image_points.append(get_key_by_value(big_2d, label)[0:2])
+            object_points.append(big_3d[label])
+        for label in (1, 2, 3, 4, 5):
+            image_points.append(get_key_by_value(small_2d, label)[0:2])
+            object_points.append(small_3d[label])
+
+        return np.array(object_points, dtype=np.float64), np.array(image_points, dtype=np.float64)
+
+    def _slicer2d_to_pixel_raw(self, point2d_slicer: np.array, image_width: int, image_height: int, flip_x: bool, flip_y: bool):
+        u = -float(point2d_slicer[0])
+        v = -float(point2d_slicer[1])
+        if flip_x:
+            u = (float(image_width) - 1.0) - u
+        if flip_y:
+            v = (float(image_height) - 1.0) - v
+        return np.array([u, v], dtype=np.float64)
+
+    def _pixel_to_slicer2d_raw(self, pixel2d: np.array, image_width: int, image_height: int, flip_x: bool, flip_y: bool):
+        u = float(pixel2d[0])
+        v = float(pixel2d[1])
+        if flip_x:
+            u = (float(image_width) - 1.0) - u
+        if flip_y:
+            v = (float(image_height) - 1.0) - v
+        x = -u
+        y = -v
+        return np.array([x, y], dtype=np.float64)
+
+    def _compute_perspective_calibrations(self) -> bool:
+        try:
+            view_angle = self._get_current_3d_camera_view_angle()
+            calibs = {}
+            for idx in (1, 2, 3):
+                image_size = self._get_shot_image_size(idx)
+                if not image_size:
+                    raise ValueError(f"shot{idx} 图像尺寸不可用")
+                image_width, image_height = image_size
+                camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
+                object_points, image_points = self._get_view_marker_pairs(idx)
+
+                best = None
+                for flip_x in (False, True):
+                    for flip_y in (False, True):
+                        img_pts_px = np.vstack([
+                            self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                            for p in image_points
+                        ])
+                        rvec, tvec = self.logic.estimateCameraPosePnP(
+                            object_points,
+                            img_pts_px,
+                            camera_matrix,
+                            dist_coeffs,
+                        )
+                        proj, _ = cv2.projectPoints(
+                            object_points.reshape(-1, 1, 3),
+                            np.array(rvec, dtype=np.float64),
+                            np.array(tvec, dtype=np.float64),
+                            np.array(camera_matrix, dtype=np.float64),
+                            np.array(dist_coeffs, dtype=np.float64),
+                        )
+                        proj = proj.reshape(-1, 2)
+                        rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                        if best is None or rms < best[0]:
+                            best = (rms, flip_x, flip_y, rvec, tvec)
+
+                if best is None:
+                    raise ValueError(f"view{idx} solvePnP 标定失败")
+                rms, flip_x, flip_y, rvec, tvec = best
+                logging.info(f"PnP calib view{idx}: reproj RMS={rms:.3f}px, flip_x={flip_x}, flip_y={flip_y}, fov={view_angle:.2f}deg")
+
+                calibs[idx] = {
+                    "K": camera_matrix,
+                    "dist": dist_coeffs,
+                    "rvec": rvec,
+                    "tvec": tvec,
+                    "w": int(image_width),
+                    "h": int(image_height),
+                    "flip_x": bool(flip_x),
+                    "flip_y": bool(flip_y),
+                }
+
+            self.perspectiveViewCalibs = calibs
+            return True
+        except Exception as e:
+            self.perspectiveViewCalibs = {}
+            self._error("透视模式 solvePnP 标定失败", detailedText=str(e))
+            return False
+
+    def _pixel_to_world_ray(self, view_index: int, pixel_2d: np.array):
+        calib = self.perspectiveViewCalibs.get(view_index)
+        if calib is None:
+            raise ValueError(f"缺少 view{view_index} 的透视标定参数")
+
+        p_px = self._slicer2d_to_pixel_raw(
+            pixel_2d,
+            calib["w"],
+            calib["h"],
+            calib["flip_x"],
+            calib["flip_y"],
+        )
+        return self.logic.pixelToWorldRay(
+            p_px,
+            calib["K"],
+            calib["rvec"],
+            calib["tvec"],
+        )
+
+    def _project_world_point_to_view(self, view_index: int, point_3d: np.array):
+        calib = self.perspectiveViewCalibs.get(view_index)
+        if calib is None:
+            raise ValueError(f"缺少 view{view_index} 的透视标定参数")
+        p_px = self.logic.projectPointToImage(
+            point_3d,
+            calib["K"],
+            calib["dist"],
+            calib["rvec"],
+            calib["tvec"],
+        )
+        return self._pixel_to_slicer2d_raw(
+            p_px,
+            calib["w"],
+            calib["h"],
+            calib["flip_x"],
+            calib["flip_y"],
+        )
 
     def _ensureLinearTransformNodes(self) -> None:
         transformNames = ["LinearTransform", "LinearTransform_1", "LinearTransform_2"]
@@ -1342,7 +1555,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
         # 编排所有marker顺序
-        self.initMarkers()  
+        ok = self.initMarkers()
+        if not ok:
+            self._markersSorted = False
+            return
         # 并且计算 3 个平行光向量
         self.initLightVec()
         self._markersSorted = True
@@ -1529,11 +1745,6 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             get_key_by_value(self.smallMarkersSort1, 5)[0:2], 
         ], dtype=np.float32)
 
-        self.M3D2DPerspectiveMatrixsBig1 = self.logic.getPerspectiveTransform(originBigMarker3D_4points, big_2DMarker1_source_4points)
-        self.M2D3DPerspectiveMatrixsBig1 = self.logic.getPerspectiveTransform(big_2DMarker1_source_4points, originBigMarker3D_4points)
-        self.M3D2DPerspectiveMatrixsSmall1 = self.logic.getPerspectiveTransform(originSmallMarker3D_4points, small_2DMarker1_source_4points)
-        self.M2D3DPerspectiveMatrixsSmall1 = self.logic.getPerspectiveTransform(small_2DMarker1_source_4points, originSmallMarker3D_4points)
-
         # 这是第二个视图
         big_2DMarker2_source_4points = np.array([
             get_key_by_value(self.bigMarkersSort2, 1)[0:2],
@@ -1550,11 +1761,6 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             get_key_by_value(self.smallMarkersSort2, 4)[0:2], 
             get_key_by_value(self.smallMarkersSort2, 5)[0:2], 
         ], dtype=np.float32)
-
-        self.M3D2DPerspectiveMatrixsBig2 = self.logic.getPerspectiveTransform(originBigMarker3D_4points, big_2DMarker2_source_4points)
-        self.M2D3DPerspectiveMatrixsBig2 = self.logic.getPerspectiveTransform(big_2DMarker2_source_4points, originBigMarker3D_4points)
-        self.M3D2DPerspectiveMatrixsSmall2 = self.logic.getPerspectiveTransform(originSmallMarker3D_4points, small_2DMarker2_source_4points)
-        self.M2D3DPerspectiveMatrixsSmall2 = self.logic.getPerspectiveTransform(small_2DMarker2_source_4points, originSmallMarker3D_4points)
 
         # 这是第三个视图
         big_2DMarker3_source_4points = np.array([
@@ -1573,10 +1779,80 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             get_key_by_value(self.smallMarkersSort3, 5)[0:2], 
         ], dtype=np.float32)
 
-        self.M3D2DPerspectiveMatrixsBig3 = self.logic.getPerspectiveTransform(originBigMarker3D_4points, big_2DMarker3_source_4points)
-        self.M2D3DPerspectiveMatrixsBig3 = self.logic.getPerspectiveTransform(big_2DMarker3_source_4points, originBigMarker3D_4points)
-        self.M3D2DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(originSmallMarker3D_4points, small_2DMarker3_source_4points)
-        self.M2D3DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(small_2DMarker3_source_4points, originSmallMarker3D_4points)
+        projection_mode = self.projectionMode
+
+        try:
+            self.M3D2DPerspectiveMatrixsBig1 = self.logic.getPerspectiveTransform(
+                originBigMarker3D_4points,
+                big_2DMarker1_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsBig1 = self.logic.getPerspectiveTransform(
+                big_2DMarker1_source_4points,
+                originBigMarker3D_4points,
+                projection_mode,
+            )
+            self.M3D2DPerspectiveMatrixsSmall1 = self.logic.getPerspectiveTransform(
+                originSmallMarker3D_4points,
+                small_2DMarker1_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsSmall1 = self.logic.getPerspectiveTransform(
+                small_2DMarker1_source_4points,
+                originSmallMarker3D_4points,
+                projection_mode,
+            )
+            self.M3D2DPerspectiveMatrixsBig2 = self.logic.getPerspectiveTransform(
+                originBigMarker3D_4points,
+                big_2DMarker2_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsBig2 = self.logic.getPerspectiveTransform(
+                big_2DMarker2_source_4points,
+                originBigMarker3D_4points,
+                projection_mode,
+            )
+            self.M3D2DPerspectiveMatrixsSmall2 = self.logic.getPerspectiveTransform(
+                originSmallMarker3D_4points,
+                small_2DMarker2_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsSmall2 = self.logic.getPerspectiveTransform(
+                small_2DMarker2_source_4points,
+                originSmallMarker3D_4points,
+                projection_mode,
+            )
+            self.M3D2DPerspectiveMatrixsBig3 = self.logic.getPerspectiveTransform(
+                originBigMarker3D_4points,
+                big_2DMarker3_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsBig3 = self.logic.getPerspectiveTransform(
+                big_2DMarker3_source_4points,
+                originBigMarker3D_4points,
+                projection_mode,
+            )
+            self.M3D2DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(
+                originSmallMarker3D_4points,
+                small_2DMarker3_source_4points,
+                projection_mode,
+            )
+            self.M2D3DPerspectiveMatrixsSmall3 = self.logic.getPerspectiveTransform(
+                small_2DMarker3_source_4points,
+                originSmallMarker3D_4points,
+                projection_mode,
+            )
+        except Exception as e:
+            self._error(f"计算投影矩阵失败（模式: {projection_mode}）", detailedText=str(e))
+            return False
+
+        if projection_mode == "perspective":
+            if not self._compute_perspective_calibrations():
+                return False
+        else:
+            self.perspectiveViewCalibs = {}
+
+        return True
 
 
     def _apply_transform_to_markers(self, transform_name: str):
@@ -1620,6 +1896,38 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._open_transforms_module()
 
     def initLightVec(self):
+        if self.projectionMode == "perspective":
+            markerNode1 = slicer.mrmlScene.GetFirstNodeByName("markers1")
+            p1 = np.array(markerNode1.GetNthControlPointPosition(0)[0:2])
+            o1, d1 = self._pixel_to_world_ray(1, p1)
+            self.p3DBigRed = self.logic.rayPlaneIntersection(o1, d1, self.bigMarker3DDic1[1], self.bigMarker3DDic1[2], self.bigMarker3DDic1[3])
+            self.p3DSmallRed = self.logic.rayPlaneIntersection(o1, d1, self.smallMarker3DDic1[1], self.smallMarker3DDic1[2], self.smallMarker3DDic1[3])
+            if self.p3DBigRed is None or self.p3DSmallRed is None:
+                self._error("透视模式下 Red 视图射线与标记平面求交失败")
+                return
+            self.red3DVec = np.array(self.p3DBigRed) - np.array(self.p3DSmallRed)
+
+            markerNode2 = slicer.mrmlScene.GetFirstNodeByName("markers2")
+            p2 = np.array(markerNode2.GetNthControlPointPosition(0)[0:2])
+            o2, d2 = self._pixel_to_world_ray(2, p2)
+            self.p3DBigGreen = self.logic.rayPlaneIntersection(o2, d2, self.bigMarker3DDic2[1], self.bigMarker3DDic2[2], self.bigMarker3DDic2[3])
+            self.p3DSmallGreen = self.logic.rayPlaneIntersection(o2, d2, self.smallMarker3DDic2[1], self.smallMarker3DDic2[2], self.smallMarker3DDic2[3])
+            if self.p3DBigGreen is None or self.p3DSmallGreen is None:
+                self._error("透视模式下 Green 视图射线与标记平面求交失败")
+                return
+            self.green3DVec = np.array(self.p3DBigGreen) - np.array(self.p3DSmallGreen)
+
+            markerNode3 = slicer.mrmlScene.GetFirstNodeByName("markers3")
+            p3 = np.array(markerNode3.GetNthControlPointPosition(0)[0:2])
+            o3, d3 = self._pixel_to_world_ray(3, p3)
+            self.p3DBigYellow = self.logic.rayPlaneIntersection(o3, d3, self.bigMarker3DDic3[1], self.bigMarker3DDic3[2], self.bigMarker3DDic3[3])
+            self.p3DSmallYellow = self.logic.rayPlaneIntersection(o3, d3, self.smallMarker3DDic3[1], self.smallMarker3DDic3[2], self.smallMarker3DDic3[3])
+            if self.p3DBigYellow is None or self.p3DSmallYellow is None:
+                self._error("透视模式下 Yellow 视图射线与标记平面求交失败")
+                return
+            self.yellow3DVec = np.array(self.p3DBigYellow) - np.array(self.p3DSmallYellow)
+            return
+
         # 计算第一个视图的光线向量
         # 获取2D 平面上的一个点坐标
         markerNode1 = slicer.mrmlScene.GetFirstNodeByName("markers1")
@@ -1663,9 +1971,25 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode.SetSelectedColor([0.941, 0.902, 0.549])
 
         p2D = np.array(markupNode.GetNthControlPointPosition(0)[0:2])
-
-        self.p3DBigRed = self.logic.twoD2threeD(p2D, self.M2D3DPerspectiveMatrixsBig1, self.M2D3DRigidMatrixsBig1, self.originBigMarker3D_Z)
-        self.p3DSmallRed = self.logic.twoD2threeD(p2D, self.M2D3DPerspectiveMatrixsSmall1, self.M2D3DRigidMatrixsSmall1, self.originSmallMarker3D_Z)
+        if self.projectionMode == "perspective":
+            ray_origin, ray_dir = self._pixel_to_world_ray(1, p2D)
+            self.p3DBigRed = self.logic.rayPlaneIntersection(
+                ray_origin,
+                ray_dir,
+                self.bigMarker3DDic1[1],
+                self.bigMarker3DDic1[2],
+                self.bigMarker3DDic1[3],
+            )
+            self.p3DSmallRed = self.logic.rayPlaneIntersection(
+                ray_origin,
+                ray_dir,
+                self.smallMarker3DDic1[1],
+                self.smallMarker3DDic1[2],
+                self.smallMarker3DDic1[3],
+            )
+        else:
+            self.p3DBigRed = self.logic.twoD2threeD(p2D, self.M2D3DPerspectiveMatrixsBig1, self.M2D3DRigidMatrixsBig1, self.originBigMarker3D_Z)
+            self.p3DSmallRed = self.logic.twoD2threeD(p2D, self.M2D3DPerspectiveMatrixsSmall1, self.M2D3DRigidMatrixsSmall1, self.originSmallMarker3D_Z)
 
         # 调试显示 #########################
         # lineNode = slicer.mrmlScene.GetFirstNodeByName("TMPRedLight3D")
@@ -1707,6 +2031,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         bigIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, bigPlane_p1, bigPlane_p2, bigPlane_p3)
         smallIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, smallPlane_p1, smallPlane_p2, smallPlane_p3)
+        if bigIntersectionP3D is None or smallIntersectionP3D is None:
+            self._error("光线与 Green 视图平面求交失败")
+            return
 
         # Debug visualization: Red ray and intersections
         if self.debugVisualization:
@@ -1750,8 +2077,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # markupsNode1.SetNthControlPointLabel(n, "Small")
         ####################################
 
-        bigIntersectionP2DGreen = self.logic.threeD2twoD(bigIntersectionP3D, self.M3D2DRigidMatrixsBig2, self.M3D2DPerspectiveMatrixsBig2)
-        smallIntersectionP2DGreen = self.logic.threeD2twoD(smallIntersectionP3D, self.M3D2DRigidMatrixsSmall2, self.M3D2DPerspectiveMatrixsSmall2)
+        if self.projectionMode == "perspective":
+            bigIntersectionP2DGreen = self._project_world_point_to_view(2, bigIntersectionP3D)
+            smallIntersectionP2DGreen = self._project_world_point_to_view(2, smallIntersectionP3D)
+        else:
+            bigIntersectionP2DGreen = self.logic.threeD2twoD(bigIntersectionP3D, self.M3D2DRigidMatrixsBig2, self.M3D2DPerspectiveMatrixsBig2)
+            smallIntersectionP2DGreen = self.logic.threeD2twoD(smallIntersectionP3D, self.M3D2DRigidMatrixsSmall2, self.M3D2DPerspectiveMatrixsSmall2)
 
         # 计算在绿色窗口中与边界的交点
         greenImageNode = slicer.mrmlScene.GetFirstNodeByName("shot2")
@@ -1872,9 +2203,28 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # 替换手动添加的 markupNode
         markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
         p2DNearest2Line = p3DNearest2Line[0:2]
-
-        self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
-        self.p3DSmallGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsSmall2, self.M2D3DRigidMatrixsSmall2, self.originSmallMarker3D_Z)
+        if self.projectionMode == "perspective":
+            ray_origin, ray_dir = self._pixel_to_world_ray(2, p2DNearest2Line)
+            self.p3DBigGreen = self.logic.rayPlaneIntersection(
+                ray_origin,
+                ray_dir,
+                self.bigMarker3DDic2[1],
+                self.bigMarker3DDic2[2],
+                self.bigMarker3DDic2[3],
+            )
+            self.p3DSmallGreen = self.logic.rayPlaneIntersection(
+                ray_origin,
+                ray_dir,
+                self.smallMarker3DDic2[1],
+                self.smallMarker3DDic2[2],
+                self.smallMarker3DDic2[3],
+            )
+            if self.p3DBigGreen is None or self.p3DSmallGreen is None:
+                self._error("Green 视图透视射线与标记平面求交失败")
+                return
+        else:
+            self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
+            self.p3DSmallGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsSmall2, self.M2D3DRigidMatrixsSmall2, self.originSmallMarker3D_Z)
 
         # Debug visualization: Green ray and intersections with Red planes
         if self.debugVisualization:
@@ -2025,15 +2375,18 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                             glyphScale=1.0
                         )
 
-        p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
-            p3D,
-            self.green3DVec,
-            np.array(self.bigMarker3DDic2[1]),
-            np.array(self.bigMarker3DDic2[2]),
-            self.bigMarker3DDic2[3],
-            self.M3D2DRigidMatrixsBig2,
-            self.M3D2DPerspectiveMatrixsBig2,
-        )
+        if self.projectionMode == "perspective":
+            p2DGreen_check = self._project_world_point_to_view(2, p3D)
+        else:
+            p2DGreen_check = self.logic.threeD2twoDFor3DSpace(
+                p3D,
+                self.green3DVec,
+                np.array(self.bigMarker3DDic2[1]),
+                np.array(self.bigMarker3DDic2[2]),
+                self.bigMarker3DDic2[3],
+                self.M3D2DRigidMatrixsBig2,
+                self.M3D2DPerspectiveMatrixsBig2,
+            )
         reproj_err = np.linalg.norm(p2DGreen_check - p2DNearest2Line)
         logging.info(f"Green reprojection residual: {reproj_err:.4f} px")
 
@@ -2058,9 +2411,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             markupNode3D.SetNthControlPointPosition(0, p3D)
 
         # 计算同时显示第三个视图上的2D点
-        intersectionP3DYellow = self.logic.threeD2twoDFor3DSpace(p3D, self.yellow3DVec, 
-                                         np.array(self.bigMarker3DDic3[1]), np.array(self.bigMarker3DDic3[2]), np.array(self.bigMarker3DDic3[3]),
-                                         self.M3D2DRigidMatrixsBig3, self.M3D2DPerspectiveMatrixsBig3)
+        if self.projectionMode == "perspective":
+            intersectionP3DYellow = self._project_world_point_to_view(3, p3D)
+        else:
+            intersectionP3DYellow = self.logic.threeD2twoDFor3DSpace(p3D, self.yellow3DVec, 
+                                             np.array(self.bigMarker3DDic3[1]), np.array(self.bigMarker3DDic3[2]), np.array(self.bigMarker3DDic3[3]),
+                                             self.M3D2DRigidMatrixsBig3, self.M3D2DPerspectiveMatrixsBig3)
         
         markupNodeYellow = slicer.mrmlScene.GetFirstNodeByName("TargetP2DYellow")
         if markupNodeYellow == None:
@@ -2109,33 +2465,38 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def tracingP3D(self, caller, event):
         knifeNode = self.ui.knifeSelector.currentNode()    
         p3D = np.array(knifeNode.GetNthControlPointPosition(0))
-        p2DRed = self.logic.threeD2twoDFor3DSpace(
-            p3D,
-            self.red3DVec,
-            np.array(self.bigMarker3DDic1[1]),
-            np.array(self.bigMarker3DDic1[2]),
-            self.bigMarker3DDic1[3],
-            self.M3D2DRigidMatrixsBig1,
-            self.M3D2DPerspectiveMatrixsBig1,
-        )
-        p2DGreen = self.logic.threeD2twoDFor3DSpace(
-            p3D,
-            self.green3DVec,
-            np.array(self.bigMarker3DDic2[1]),
-            np.array(self.bigMarker3DDic2[2]),
-            self.bigMarker3DDic2[3],
-            self.M3D2DRigidMatrixsBig2,
-            self.M3D2DPerspectiveMatrixsBig2,
-        )
-        p2DYellow = self.logic.threeD2twoDFor3DSpace(
-            p3D,
-            self.yellow3DVec,
-            np.array(self.bigMarker3DDic3[1]),
-            np.array(self.bigMarker3DDic3[2]),
-            self.bigMarker3DDic3[3],
-            self.M3D2DRigidMatrixsBig3,
-            self.M3D2DPerspectiveMatrixsBig3,
-        )
+        if self.projectionMode == "perspective":
+            p2DRed = self._project_world_point_to_view(1, p3D)
+            p2DGreen = self._project_world_point_to_view(2, p3D)
+            p2DYellow = self._project_world_point_to_view(3, p3D)
+        else:
+            p2DRed = self.logic.threeD2twoDFor3DSpace(
+                p3D,
+                self.red3DVec,
+                np.array(self.bigMarker3DDic1[1]),
+                np.array(self.bigMarker3DDic1[2]),
+                self.bigMarker3DDic1[3],
+                self.M3D2DRigidMatrixsBig1,
+                self.M3D2DPerspectiveMatrixsBig1,
+            )
+            p2DGreen = self.logic.threeD2twoDFor3DSpace(
+                p3D,
+                self.green3DVec,
+                np.array(self.bigMarker3DDic2[1]),
+                np.array(self.bigMarker3DDic2[2]),
+                self.bigMarker3DDic2[3],
+                self.M3D2DRigidMatrixsBig2,
+                self.M3D2DPerspectiveMatrixsBig2,
+            )
+            p2DYellow = self.logic.threeD2twoDFor3DSpace(
+                p3D,
+                self.yellow3DVec,
+                np.array(self.bigMarker3DDic3[1]),
+                np.array(self.bigMarker3DDic3[2]),
+                self.bigMarker3DDic3[3],
+                self.M3D2DRigidMatrixsBig3,
+                self.M3D2DPerspectiveMatrixsBig3,
+            )
         
         # 显示追踪点
         markupsNode1 = slicer.mrmlScene.GetFirstNodeByName("tracingRed2D")

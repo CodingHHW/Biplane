@@ -332,23 +332,117 @@ class BiplaneLogic(ScriptedLoadableModuleLogic):
         transformed_source_points = np.dot(rotation_matrix, source_points.T).T + translation_vector
         return transformed_source_points
 
-    def getPerspectiveTransform(self, source_points: np.array, target_points: np.array):
-        # 使用仿射变换（6 DOF）替代透视/单应变换（8 DOF）。
-        # 正交投影下平面到图像的映射本质是仿射变换，
-        # 使用 Homography 会因过拟合引入伪透视畸变，导致 TRE 偏大。
+    def getPerspectiveTransform(self, source_points: np.array, target_points: np.array, projection_mode: str = "orthographic"):
         src = np.array(source_points, dtype=np.float64)
         tgt = np.array(target_points, dtype=np.float64)
+
+        if projection_mode == "perspective":
+            if src.shape[0] < 4:
+                raise ValueError("Perspective transform requires at least 4 points")
+            homography, _ = cv2.findHomography(src, tgt, method=0)
+            if homography is None:
+                raise ValueError("Failed to compute perspective homography")
+            return homography
+
         n = src.shape[0]
-        src_h = np.hstack([src, np.ones((n, 1))])  # Nx3 齐次坐标
+        src_h = np.hstack([src, np.ones((n, 1))])
         X, _, _, _ = np.linalg.lstsq(src_h, tgt, rcond=None)
-        return X.T  # 2x3 仿射矩阵
+        return X.T
     
-    def getPerspectiveTargetPoint(self, affine_matrix, source_points: np.array):
-        # 应用 2x3 仿射变换矩阵
+    def getPerspectiveTargetPoint(self, transform_matrix, source_points: np.array):
         pt = np.array(source_points, dtype=np.float64).flatten()
         pt_h = np.array([pt[0], pt[1], 1.0])
-        result = affine_matrix @ pt_h
-        return result
+        matrix = np.array(transform_matrix, dtype=np.float64)
+
+        if matrix.shape == (2, 3):
+            return matrix @ pt_h
+
+        if matrix.shape == (3, 3):
+            mapped = matrix @ pt_h
+            if np.isclose(mapped[2], 0.0):
+                raise ValueError("Invalid homography mapping: w is zero")
+            return mapped[:2] / mapped[2]
+
+        raise ValueError(f"Unsupported transform matrix shape: {matrix.shape}")
+
+    def buildCameraIntrinsics(self, image_width: int, image_height: int, vertical_fov_deg: float):
+        width = float(image_width)
+        height = float(image_height)
+        fov = float(vertical_fov_deg)
+        if width <= 0 or height <= 0:
+            raise ValueError("Invalid image size for intrinsics")
+        if fov <= 0.0 or fov >= 179.0:
+            raise ValueError("Invalid vertical FOV for intrinsics")
+
+        fy = (height * 0.5) / np.tan(np.deg2rad(fov * 0.5))
+        fx = fy
+        cx = (width - 1.0) * 0.5
+        cy = (height - 1.0) * 0.5
+
+        camera_matrix = np.array([
+            [fx, 0.0, cx],
+            [0.0, fy, cy],
+            [0.0, 0.0, 1.0],
+        ], dtype=np.float64)
+        dist_coeffs = np.zeros((5, 1), dtype=np.float64)
+        return camera_matrix, dist_coeffs
+
+    def estimateCameraPosePnP(self, object_points_3d: np.array, image_points_2d: np.array, camera_matrix: np.array, dist_coeffs: np.array):
+        obj = np.array(object_points_3d, dtype=np.float64).reshape(-1, 3)
+        img = np.array(image_points_2d, dtype=np.float64).reshape(-1, 2)
+        if obj.shape[0] < 4 or img.shape[0] < 4 or obj.shape[0] != img.shape[0]:
+            raise ValueError("solvePnP requires matching >= 4 correspondences")
+
+        success, rvec, tvec = cv2.solvePnP(
+            obj,
+            img,
+            np.array(camera_matrix, dtype=np.float64),
+            np.array(dist_coeffs, dtype=np.float64),
+            flags=cv2.SOLVEPNP_ITERATIVE,
+        )
+        if not success:
+            raise ValueError("cv2.solvePnP failed")
+        return rvec, tvec
+
+    def pixelToWorldRay(self, pixel_2d: np.array, camera_matrix: np.array, rvec: np.array, tvec: np.array):
+        pixel = np.array([pixel_2d[0], pixel_2d[1], 1.0], dtype=np.float64)
+        K = np.array(camera_matrix, dtype=np.float64)
+        K_inv = np.linalg.inv(K)
+        ray_cam = K_inv @ pixel
+        ray_cam = ray_cam / np.linalg.norm(ray_cam)
+
+        R, _ = cv2.Rodrigues(np.array(rvec, dtype=np.float64))
+        t = np.array(tvec, dtype=np.float64).reshape(3)
+
+        camera_center_world = -R.T @ t
+        ray_dir_world = R.T @ ray_cam
+        ray_dir_world = ray_dir_world / np.linalg.norm(ray_dir_world)
+        return camera_center_world, ray_dir_world
+
+    def rayPlaneIntersection(self, ray_origin: np.array, ray_dir: np.array, plane_p1: np.array, plane_p2: np.array, plane_p3: np.array):
+        origin = np.array(ray_origin, dtype=np.float64)
+        direction = np.array(ray_dir, dtype=np.float64)
+        p1 = np.array(plane_p1, dtype=np.float64)
+        p2 = np.array(plane_p2, dtype=np.float64)
+        p3 = np.array(plane_p3, dtype=np.float64)
+
+        normal = np.cross(p2 - p1, p3 - p1)
+        denom = np.dot(normal, direction)
+        if np.isclose(denom, 0.0):
+            return None
+        t = np.dot(normal, p1 - origin) / denom
+        return origin + t * direction
+
+    def projectPointToImage(self, point_3d: np.array, camera_matrix: np.array, dist_coeffs: np.array, rvec: np.array, tvec: np.array):
+        obj = np.array(point_3d, dtype=np.float64).reshape(1, 1, 3)
+        image_points, _ = cv2.projectPoints(
+            obj,
+            np.array(rvec, dtype=np.float64),
+            np.array(tvec, dtype=np.float64),
+            np.array(camera_matrix, dtype=np.float64),
+            np.array(dist_coeffs, dtype=np.float64),
+        )
+        return image_points.reshape(2)
     
     def twoD2threeD(self, p2D, M2D3DPerspectiveMatrixs, M2D3DRigidMatrixs, originMarker3D_Z):
         tmpP2D = self.getPerspectiveTargetPoint(M2D3DPerspectiveMatrixs, p2D)
