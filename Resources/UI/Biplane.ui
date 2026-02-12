@@ -67,7 +67,7 @@ QCheckBox { color: #2b2b2b; }</string>
               <item>
                <widget class="QPushButton" name="orthographicProjectionButton">
                 <property name="styleSheet">
-                 <string>QPushButton { background-color: #2d6a4f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1b4332; }</string>
+                 <string>QPushButton { background-color: #2d6a4f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1b4332; } QPushButton:checked { background-color: #1b4332; font-weight: bold; }</string>
                 </property>
                 <property name="text">
                  <string>Orthographic</string>
@@ -80,7 +80,7 @@ QCheckBox { color: #2b2b2b; }</string>
               <item>
                <widget class="QPushButton" name="perspectiveProjectionButton">
                 <property name="styleSheet">
-                 <string>QPushButton { background-color: #3a5a78; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #2b4158; }</string>
+                 <string>QPushButton { background-color: #3a5a78; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #2b4158; } QPushButton:checked { background-color: #2b4158; font-weight: bold; }</string>
                 </property>
                 <property name="text">
                  <string>Perspective</string>
@@ -97,6 +97,9 @@ QCheckBox { color: #2b2b2b; }</string>
               <property name="text">
                <string>Current mode: Orthographic</string>
               </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
              </widget>
             </item>
             <item>
@@ -269,42 +272,60 @@ QCheckBox { color: #2b2b2b; }</string>
             <item row="0" column="0">
              <widget class="QLabel" name="labelShot2Angle">
               <property name="text">
-              <string>Angle M1-M2 (deg):</string>
+              <string>Angle M1-M2 (deg)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
+             <item row="1" column="0">
              <widget class="QLineEdit" name="shot2AngleLineEdit">
               <property name="readOnly">
               <bool>true</bool>
               </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="labelShot3Angle1">
-              <property name="text">
-              <string>Angle M3-M1 (deg):</string>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+             <item row="0" column="1">
+             <widget class="QLabel" name="labelShot3Angle1">
+              <property name="text">
+              <string>Angle M3-M1 (deg)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+             <item row="1" column="1">
              <widget class="QLineEdit" name="shot3Angle1LineEdit">
               <property name="readOnly">
               <bool>true</bool>
               </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="labelShot3Angle2">
-              <property name="text">
-              <string>Angle M3-M2 (deg):</string>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
+             <item row="0" column="2">
+             <widget class="QLabel" name="labelShot3Angle2">
+              <property name="text">
+              <string>Angle M3-M2 (deg)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+             <item row="1" column="2">
              <widget class="QLineEdit" name="shot3Angle2LineEdit">
               <property name="readOnly">
               <bool>true</bool>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -317,6 +338,133 @@ QCheckBox { color: #2b2b2b; }</string>
      </widget>
     </widget>
    </item>
+     <item>
+      <widget class="QTabWidget" name="tabWidget_4">
+        <property name="minimumSize">
+         <size>
+           <width>0</width>
+           <height>0</height>
+         </size>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tab_copyPoint">
+        <attribute name="title">
+         <string>Utilities</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_copyTab">
+         <item>
+          <widget class="QGroupBox" name="groupBox_copyPoint">
+           <property name="title">
+            <string>Copy Marker Point</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_copyPoint">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_copyPointSource">
+              <item>
+               <widget class="QLabel" name="label_copySource">
+                <property name="text">
+                 <string>Source:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="qMRMLNodeComboBox" name="copySourceSelector">
+                <property name="nodeTypes">
+                 <stringlist notr="true">
+                  <string>vtkMRMLMarkupsFiducialNode</string>
+                 </stringlist>
+                </property>
+                <property name="showChildNodeTypes">
+                 <bool>false</bool>
+                </property>
+                <property name="addEnabled">
+                 <bool>false</bool>
+                </property>
+                <property name="removeEnabled">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_copyPointTarget">
+              <item>
+               <widget class="QLabel" name="label_copyTarget">
+                <property name="text">
+                 <string>Target:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="qMRMLNodeComboBox" name="copyTargetSelector">
+                <property name="nodeTypes">
+                 <stringlist notr="true">
+                  <string>vtkMRMLMarkupsFiducialNode</string>
+                 </stringlist>
+                </property>
+                <property name="showChildNodeTypes">
+                 <bool>false</bool>
+                </property>
+                <property name="addEnabled">
+                 <bool>false</bool>
+                </property>
+                <property name="removeEnabled">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QPushButton" name="copyPointButton">
+              <property name="styleSheet">
+               <string>QPushButton { background-color: #6d597a; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #5b4a66; }</string>
+              </property>
+              <property name="text">
+               <string>Copy Point</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_copyBlackCenters">
+              <item>
+               <widget class="QPushButton" name="copyBlackCenter1Button">
+                <property name="styleSheet">
+                 <string>QPushButton { background-color: #9b2226; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #7f1d20; }</string>
+                </property>
+                <property name="text">
+                 <string>CopyBlackCenter1</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="copyBlackCenter2Button">
+                <property name="styleSheet">
+                 <string>QPushButton { background-color: #2a9d8f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #21867b; }</string>
+                </property>
+                <property name="text">
+                 <string>CopyBlackCenter2</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
    <item>
     <widget class="QTabWidget" name="tabWidget_2">
       <property name="minimumSize">
@@ -860,133 +1008,6 @@ QCheckBox { color: #2b2b2b; }</string>
      </layout>
     </item>
   </layout>
-     </widget>
-    </widget>
-   </item>
-   <item>
-    <widget class="QTabWidget" name="tabWidget_4">
-      <property name="minimumSize">
-       <size>
-         <width>0</width>
-         <height>0</height>
-       </size>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     <property name="currentIndex">
-      <number>0</number>
-     </property>
-     <widget class="QWidget" name="tab_copyPoint">
-      <attribute name="title">
-       <string>Utilities</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_copyTab">
-       <item>
-        <widget class="QGroupBox" name="groupBox_copyPoint">
-         <property name="title">
-          <string>Copy Marker Point</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_copyPoint">
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_copyPointSource">
-            <item>
-             <widget class="QLabel" name="label_copySource">
-              <property name="text">
-               <string>Source:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="qMRMLNodeComboBox" name="copySourceSelector">
-              <property name="nodeTypes">
-               <stringlist notr="true">
-                <string>vtkMRMLMarkupsFiducialNode</string>
-               </stringlist>
-              </property>
-              <property name="showChildNodeTypes">
-               <bool>false</bool>
-              </property>
-              <property name="addEnabled">
-               <bool>false</bool>
-              </property>
-              <property name="removeEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_copyPointTarget">
-            <item>
-             <widget class="QLabel" name="label_copyTarget">
-              <property name="text">
-               <string>Target:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="qMRMLNodeComboBox" name="copyTargetSelector">
-              <property name="nodeTypes">
-               <stringlist notr="true">
-                <string>vtkMRMLMarkupsFiducialNode</string>
-               </stringlist>
-              </property>
-              <property name="showChildNodeTypes">
-               <bool>false</bool>
-              </property>
-              <property name="addEnabled">
-               <bool>false</bool>
-              </property>
-              <property name="removeEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QPushButton" name="copyPointButton">
-            <property name="styleSheet">
-             <string>QPushButton { background-color: #6d597a; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #5b4a66; }</string>
-            </property>
-            <property name="text">
-             <string>Copy Point</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_copyBlackCenters">
-            <item>
-             <widget class="QPushButton" name="copyBlackCenter1Button">
-              <property name="styleSheet">
-               <string>QPushButton { background-color: #9b2226; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #7f1d20; }</string>
-              </property>
-              <property name="text">
-               <string>CopyBlackCenter1</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="copyBlackCenter2Button">
-              <property name="styleSheet">
-               <string>QPushButton { background-color: #2a9d8f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #21867b; }</string>
-              </property>
-              <property name="text">
-               <string>CopyBlackCenter2</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-      </layout>
      </widget>
     </widget>
    </item>
