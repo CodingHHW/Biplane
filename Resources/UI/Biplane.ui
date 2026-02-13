@@ -65,19 +65,6 @@ QCheckBox { color: #2b2b2b; }</string>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_projectionMode">
               <item>
-               <widget class="QPushButton" name="orthographicProjectionButton">
-                <property name="styleSheet">
-                 <string>QPushButton { background-color: #2d6a4f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1b4332; } QPushButton:checked { background-color: #1b4332; font-weight: bold; }</string>
-                </property>
-                <property name="text">
-                 <string>Orthographic</string>
-                </property>
-                <property name="checkable">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
                <widget class="QPushButton" name="perspectiveProjectionButton">
                 <property name="styleSheet">
                  <string>QPushButton { background-color: #3a5a78; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #2b4158; } QPushButton:checked { background-color: #2b4158; font-weight: bold; }</string>
@@ -90,13 +77,26 @@ QCheckBox { color: #2b2b2b; }</string>
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QPushButton" name="orthographicProjectionButton">
+                <property name="styleSheet">
+                 <string>QPushButton { background-color: #2d6a4f; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #1b4332; } QPushButton:checked { background-color: #1b4332; font-weight: bold; }</string>
+                </property>
+                <property name="text">
+                 <string>Orthographic</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
             <item>
              <widget class="QLabel" name="projectionModeStatusLabel">
-              <property name="text">
-               <string>Current mode: Orthographic</string>
-              </property>
+               <property name="text">
+                <string>Current mode: Perspective</string>
+               </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
              </property>

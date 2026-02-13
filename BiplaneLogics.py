@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - runtime install path
     slicer.util.pip_install("opencv-python")
     import cv2
 import numpy as np
-import copy
+import itertools
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     WithinRange,
@@ -138,9 +138,6 @@ class GenerateMarkers():
 
 
     def getMarkerCenters(self, imgITK):
-
-        rs = []
-        cs = []
         self.big = []
         self.small = []
 
@@ -150,133 +147,79 @@ class GenerateMarkers():
         relabel_image = sitk.RelabelComponent(label_image)
         statistics_filter = sitk.LabelShapeStatisticsImageFilter()
         statistics_filter.Execute(relabel_image)
+
+        components = []
         for label in statistics_filter.GetLabels():
-            r = statistics_filter.GetBoundingBox(label)[-2]
-            c = statistics_filter.GetCentroid(label)
-            rs.append(r)
-            cs.append(c)
-        # print(rs)
-        min_r = np.min(rs)
-        max_r = np.max(rs)
-        threshold = (min_r + max_r) / 2
-        # print(min_r, max_r, threshold)
-        for i in range(len(cs)):
-            r = rs[i]
-            c = cs[i]
-            if r > threshold:
-                self.big.append(c)
-            else:
-                self.small.append(c)
-        # print("----------------big-----------------")
-        # print(self.big)
-        # print("----------------small-----------------")
-        # print(self.small)
+            centroid = statistics_filter.GetCentroid(label)
+            area = float(statistics_filter.GetPhysicalSize(label))
+            # Keep only 2D coordinates for downstream logic.
+            components.append({
+                "center": (float(centroid[0]), float(centroid[1])),
+                "area": area,
+            })
+
+        if len(components) < 10:
+            raise ValueError(f"Detected only {len(components)} marker components, expected at least 10")
+
+        # Keep the 10 largest blobs, then split by area.
+        components.sort(key=lambda x: x["area"], reverse=True)
+        top10 = components[:10]
+
+        # Big spheres are physically larger; in projection they are expected to occupy larger areas.
+        top10.sort(key=lambda x: x["area"], reverse=True)
+        big_components = top10[:5]
+        small_components = top10[5:]
+
+        self.big = [c["center"] for c in big_components]
+        self.small = [c["center"] for c in small_components]
+
+    def _sort_markers_with_template_homography(self, detected_points, template_marker_3d_dic, marker_name: str):
+        if len(detected_points) != 5:
+            raise ValueError(f"{marker_name}: expected 5 detected points, got {len(detected_points)}")
+
+        labels = sorted(template_marker_3d_dic.keys())
+        template_points = np.array(
+            [[template_marker_3d_dic[label][0], template_marker_3d_dic[label][1]] for label in labels],
+            dtype=np.float64,
+        )
+        detected = np.array([[p[0], p[1]] for p in detected_points], dtype=np.float64)
+
+        best = None  # (rms, perm)
+        for perm in itertools.permutations(range(5)):
+            target = detected[list(perm)]
+            H, _ = cv2.findHomography(template_points, target, method=0)
+            if H is None:
+                continue
+            projected = cv2.perspectiveTransform(template_points.reshape(-1, 1, 2), H).reshape(-1, 2)
+            rms = float(np.sqrt(np.mean(np.sum((projected - target) ** 2, axis=1))))
+            if best is None or rms < best[0]:
+                best = (rms, perm)
+
+        if best is None:
+            raise ValueError(f"{marker_name}: failed to find a valid homography for marker sorting")
+
+        rms, best_perm = best
+        logging.info(f"{marker_name} marker sort RMS={rms:.3f}px")
+
+        sorted_markers = {}
+        for label, det_idx in zip(labels, best_perm):
+            pt = tuple(detected[det_idx].tolist())
+            sorted_markers[pt] = label
+        return sorted_markers
 
     def bigMarkersSort(self):
-        bigMarkerDic = {}
-        bigTmp = copy.deepcopy(self.big)
-        for i in range(5):
-            p1 = self.big[i]
-            x1, y1 = p1[0], p1[1]
-            vs = []
-            for j in range(5):
-                if i == j:
-                    continue
-                p2 = self.big[j]
-                x2, y2 = p2[0], p2[1]
-                v = np.array([x2 - x1, y2 - y1])
-                vs.append(v)
-
-            for iv in range(len(vs)):
-                v1 = vs[iv]
-                for jv in range(iv + 1, len(vs)):
-                    v2 = vs[jv]
-                    angle = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-                    l1 = np.linalg.norm(v1)
-                    l2 = np.linalg.norm(v2)
-                    # print(l1, l2)
-                    # print(np.degrees(angle))
-                    if abs(np.degrees(angle) - 180) < 1:
-                        bigMarkerDic[p1] = 1
-                        bigTmp.remove(p1)
-                    if np.degrees(angle) < 1 and abs(l1 - l2) > min(l1, l2):
-                        bigMarkerDic[p1] = 5
-                        bigTmp.remove(p1)
-                    if np.degrees(angle) < 1 and abs(l1 - l2) < min(l1, l2):
-                        bigMarkerDic[p1] = 4
-                        bigTmp.remove(p1)
-
-        # print(bigMarkerDic)
-        p4 = get_key_by_value(bigMarkerDic, 4)
-        p1 = get_key_by_value(bigMarkerDic, 1)
-        v41 = np.array([p1[0] - p4[0], p1[1] - p4[1]])
-
-        pp1 = bigTmp[0]
-        pp2 = bigTmp[1]
-        vpp = np.array([pp2[0] - pp1[0], pp2[1] - pp1[1]])
-        angle = np.arccos(np.dot(v41, vpp) / (np.linalg.norm(v41) * np.linalg.norm(vpp)))
-        # print(np.degrees(angle))
-        if abs(np.degrees(angle)) < 0.5:
-            bigMarkerDic[pp1] = 3
-            bigMarkerDic[pp2] = 2
-        else:
-            bigMarkerDic[pp1] = 2
-            bigMarkerDic[pp2] = 3
-
-        return bigMarkerDic
+        return self._sort_markers_with_template_homography(
+            self.big,
+            self.bigMarker3DDic,
+            "Big",
+        )
 
     def smallMarkersSort(self):
-        smallMarkerDic = {}
-        smallTmp = copy.deepcopy(self.small)
-        for i in range(5):
-            # print("-----------------")
-            p1 = self.small[i]
-            x1, y1 = p1[0], p1[1]
-            vs = []
-            for j in range(5):
-                if i == j:
-                    continue
-                p2 = self.small[j]
-                x2, y2 = p2[0], p2[1]
-                v = np.array([x2 - x1, y2 - y1])
-                vs.append(v)
-
-            for iv in range(len(vs)):
-                v1 = vs[iv]
-                for jv in range(iv + 1, len(vs)):
-                    v2 = vs[jv]
-                    angle = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-                    l1 = np.linalg.norm(v1)
-                    l2 = np.linalg.norm(v2)
-                    # print(np.degrees(angle))
-                    if abs(np.degrees(angle) - 180) < 1:
-                        smallMarkerDic[p1] = 5
-                        smallTmp.remove(p1)
-                    if np.degrees(angle) < 1 and abs(l1 - l2) > min(l1, l2):
-                        smallMarkerDic[p1] = 1
-                        smallTmp.remove(p1)
-                    if np.degrees(angle) < 1 and abs(l1 - l2) < min(l1, l2):
-                        smallMarkerDic[p1] = 4
-                        smallTmp.remove(p1)
-
-        # print(smallMarkerDic)
-        p4 = get_key_by_value(smallMarkerDic, 4)
-        p1 = get_key_by_value(smallMarkerDic, 1)
-        v41 = np.array([p1[0] - p4[0], p1[1] - p4[1]])
-        # print(smallTmp)
-
-        pp1 = smallTmp[0]
-        pp2 = smallTmp[1]
-        vpp = np.array([pp2[0] - pp1[0], pp2[1] - pp1[1]])
-        angle = np.arccos(np.dot(v41, vpp) / (np.linalg.norm(v41) * np.linalg.norm(vpp)))
-        if abs(np.degrees(angle)) < 0.5:
-            smallMarkerDic[pp1] = 3
-            smallMarkerDic[pp2] = 2
-        else:
-            smallMarkerDic[pp1] = 2
-            smallMarkerDic[pp2] = 3
-
-        return smallMarkerDic
+        return self._sort_markers_with_template_homography(
+            self.small,
+            self.smallMarker3DDic,
+            "Small",
+        )
 
     def move2slicer(self, markersSort):
         resDic = {}

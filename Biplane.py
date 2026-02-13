@@ -1,5 +1,6 @@
 import logging
 import os
+import itertools
 from typing import Annotated, Optional
 
 import numpy as np
@@ -77,7 +78,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.debugVisualization = False
         self.debugPlaneScale = 6.0
         self.debugRayScale = 10.0
-        self.projectionMode = "orthographic"
+        self.projectionMode = "perspective"
         self.perspectiveViewCalibs = {}
         self.orthographicViewCalibs = {}
         self._markersSorted = False
@@ -112,12 +113,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.projectionMode == "perspective":
             calibs = getattr(self, "perspectiveViewCalibs", None)
             if not isinstance(calibs, dict) or any(idx not in calibs for idx in (1, 2, 3)):
-                self._error("透视模式标定未完成，请重新点击 markersSort")
+                self._error("Perspective mode calibration incomplete. Please click markersSort again")
                 return False
         if self.projectionMode == "orthographic":
             calibs = getattr(self, "orthographicViewCalibs", None)
             if not isinstance(calibs, dict) or any(idx not in calibs for idx in (1, 2, 3)):
-                self._error("正交模式标定未完成，请重新点击 markersSort")
+                self._error("Orthographic mode calibration incomplete. Please click markersSort again")
                 return False
         return True
 
@@ -152,7 +153,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         try:
             slicer.util.selectModule("Transforms")
         except Exception:
-            self._error("无法切换到 Transforms 模块")
+            self._error("Unable to switch to Transforms module")
 
     def _limit_display_nodes_for_shot(self, allowed_displayable_nodes):
         allowed_ids = {node.GetID() for node in allowed_displayable_nodes if node}
@@ -449,8 +450,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if line_edit is not None:
                 line_edit.setText("")
 
-        self.ui.orthographicProjectionButton.setChecked(True)
-        self.ui.perspectiveProjectionButton.setChecked(False)
+        self.ui.orthographicProjectionButton.setChecked(False)
+        self.ui.perspectiveProjectionButton.setChecked(True)
         self._updateProjectionModeStatusLabel()
         self._applyProjectionModeToView()
 
@@ -542,7 +543,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return 30.0
         return float(camera.GetViewAngle())
 
-    def _get_view_marker_pairs(self, view_index: int):
+    def _get_view_marker_pairs(self, view_index: int, swap_big_23: bool = False, swap_small_23: bool = False):
         big_2d = getattr(self, f"bigMarkersSort{view_index}")
         small_2d = getattr(self, f"smallMarkersSort{view_index}")
         big_3d = getattr(self, f"bigMarker3DDic{view_index}")
@@ -550,12 +551,24 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         image_points = []
         object_points = []
-        for label in (1, 2, 3, 4, 5):
-            image_points.append(get_key_by_value(big_2d, label)[0:2])
-            object_points.append(big_3d[label])
-        for label in (1, 2, 3, 4, 5):
-            image_points.append(get_key_by_value(small_2d, label)[0:2])
-            object_points.append(small_3d[label])
+
+        def _point_by_label(markers_2d: dict, label: int, marker_kind: str):
+            point = get_key_by_value(markers_2d, label)
+            if point is None:
+                raise ValueError(f"view{view_index} missing {marker_kind} marker label {label}")
+            return point[0:2]
+
+        big_object_labels = (1, 2, 3, 4, 5)
+        big_image_labels = (1, 3, 2, 4, 5) if swap_big_23 else big_object_labels
+        for object_label, image_label in zip(big_object_labels, big_image_labels):
+            image_points.append(_point_by_label(big_2d, image_label, "big"))
+            object_points.append(big_3d[object_label])
+
+        small_object_labels = (1, 2, 3, 4, 5)
+        small_image_labels = (1, 3, 2, 4, 5) if swap_small_23 else small_object_labels
+        for object_label, image_label in zip(small_object_labels, small_image_labels):
+            image_points.append(_point_by_label(small_2d, image_label, "small"))
+            object_points.append(small_3d[object_label])
 
         return np.array(object_points, dtype=np.float64), np.array(image_points, dtype=np.float64)
 
@@ -579,47 +592,244 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         y = -v
         return np.array([x, y], dtype=np.float64)
 
-    def _compute_perspective_calibrations(self) -> bool:
-        try:
-            view_angle = self._get_current_3d_camera_view_angle()
-            calibs = {}
-            for idx in (1, 2, 3):
-                image_size = self._get_shot_image_size(idx)
-                if not image_size:
-                    raise ValueError(f"shot{idx} 图像尺寸不可用")
-                image_width, image_height = image_size
-                camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
-                object_points, image_points = self._get_view_marker_pairs(idx)
+    def _get_view_transform_node(self, view_index: int):
+        transform_name_by_view = {
+            1: "LinearTransform",
+            2: "LinearTransform_1",
+            3: "LinearTransform_2",
+        }
+        transform_name = transform_name_by_view.get(view_index)
+        if transform_name is None:
+            return None
+        return slicer.mrmlScene.GetFirstNodeByName(transform_name)
 
-                best = None
-                for flip_x in (False, True):
-                    for flip_y in (False, True):
-                        img_pts_px = np.vstack([
-                            self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
-                            for p in image_points
-                        ])
-                        rvec, tvec = self.logic.estimateCameraPosePnP(
-                            object_points,
-                            img_pts_px,
-                            camera_matrix,
-                            dist_coeffs,
-                        )
-                        proj, _ = cv2.projectPoints(
+    def _sort_detected_markers_for_view(self, view_index: int, marker_sort_logic):
+        labels = (1, 2, 3, 4, 5)
+        if len(marker_sort_logic.big) != 5 or len(marker_sort_logic.small) != 5:
+            raise ValueError(
+                f"view{view_index} expects 5 big + 5 small detections, "
+                f"got big={len(marker_sort_logic.big)}, small={len(marker_sort_logic.small)}"
+            )
+
+        image_size = self._get_shot_image_size(view_index)
+        if not image_size:
+            raise ValueError(f"view{view_index} image size unavailable")
+        image_width, image_height = image_size
+
+        transform_node = self._get_view_transform_node(view_index)
+        if transform_node is None:
+            raise ValueError(f"view{view_index} transform node not found")
+
+        big_marker_3d = self.generateMarkers.getMarkerTransform(
+            transform_node,
+            self.generateMarkers.bigMarker3DDic,
+        )
+        small_marker_3d = self.generateMarkers.getMarkerTransform(
+            transform_node,
+            self.generateMarkers.smallMarker3DDic,
+        )
+
+        object_points = np.array(
+            [big_marker_3d[label] for label in labels] + [small_marker_3d[label] for label in labels],
+            dtype=np.float64,
+        )
+
+        raw_big = [tuple(map(float, p[0:2])) for p in marker_sort_logic.big]
+        raw_small = [tuple(map(float, p[0:2])) for p in marker_sort_logic.small]
+        big_slicer = [np.array([-p[0], -p[1]], dtype=np.float64) for p in raw_big]
+        small_slicer = [np.array([-p[0], -p[1]], dtype=np.float64) for p in raw_small]
+
+        view_angle = self._get_current_3d_camera_view_angle()
+        camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
+
+        perms = list(itertools.permutations(range(5)))
+        template_big_xy = np.array([big_marker_3d[label][0:2] for label in labels], dtype=np.float64)
+        template_small_xy = np.array([small_marker_3d[label][0:2] for label in labels], dtype=np.float64)
+        template_big_xy_reshape = template_big_xy.reshape(-1, 1, 2)
+        template_small_xy_reshape = template_small_xy.reshape(-1, 1, 2)
+        candidate_top_k = 6
+
+        def _rank_permutations_with_homography(template_xy, template_xy_reshape, detected_px):
+            scored = []
+            for perm in perms:
+                target = np.array([detected_px[i] for i in perm], dtype=np.float64)
+                H, _ = cv2.findHomography(template_xy, target, method=0)
+                if H is None:
+                    continue
+                projected = cv2.perspectiveTransform(template_xy_reshape, H).reshape(-1, 2)
+                rms = float(np.sqrt(np.mean(np.sum((projected - target) ** 2, axis=1))))
+                scored.append((rms, perm))
+            scored.sort(key=lambda x: x[0])
+            if not scored:
+                return []
+            return scored[:candidate_top_k]
+
+        best = None
+        second = None
+
+        for flip_x in (False, True):
+            for flip_y in (False, True):
+                big_px = [
+                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                    for p in big_slicer
+                ]
+                small_px = [
+                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                    for p in small_slicer
+                ]
+
+                big_candidates = _rank_permutations_with_homography(
+                    template_big_xy,
+                    template_big_xy_reshape,
+                    big_px,
+                )
+                small_candidates = _rank_permutations_with_homography(
+                    template_small_xy,
+                    template_small_xy_reshape,
+                    small_px,
+                )
+                if not big_candidates or not small_candidates:
+                    continue
+
+                big_perm_points = {
+                    perm: np.array([big_px[i] for i in perm], dtype=np.float64)
+                    for _, perm in big_candidates
+                }
+                small_perm_points = {
+                    perm: np.array([small_px[i] for i in perm], dtype=np.float64)
+                    for _, perm in small_candidates
+                }
+
+                for _, big_perm in big_candidates:
+                    big_points = big_perm_points[big_perm]
+                    for _, small_perm in small_candidates:
+                        img_pts_px = np.vstack([big_points, small_perm_points[small_perm]])
+                        try:
+                            success, rvec, tvec = cv2.solvePnP(
+                                object_points,
+                                img_pts_px,
+                                camera_matrix,
+                                dist_coeffs,
+                                flags=cv2.SOLVEPNP_EPNP,
+                            )
+                        except cv2.error:
+                            continue
+                        if not success:
+                            continue
+
+                        projected, _ = cv2.projectPoints(
                             object_points.reshape(-1, 1, 3),
                             np.array(rvec, dtype=np.float64),
                             np.array(tvec, dtype=np.float64),
                             np.array(camera_matrix, dtype=np.float64),
                             np.array(dist_coeffs, dtype=np.float64),
                         )
-                        proj = proj.reshape(-1, 2)
-                        rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                        projected = projected.reshape(-1, 2)
+                        rms = float(np.sqrt(np.mean(np.sum((projected - img_pts_px) ** 2, axis=1))))
+
+                        candidate = (rms, flip_x, flip_y, big_perm, small_perm)
                         if best is None or rms < best[0]:
-                            best = (rms, flip_x, flip_y, rvec, tvec)
+                            second = best
+                            best = candidate
+                        elif second is None or rms < second[0]:
+                            second = candidate
+
+        if best is None:
+            raise ValueError(f"view{view_index} failed to find a valid marker assignment")
+
+        rms, flip_x, flip_y, best_big_perm, best_small_perm = best
+        if second is None:
+            logging.info(
+                "Marker assignment view%d: RMS=%.3fpx, flip_x=%s, flip_y=%s",
+                view_index,
+                rms,
+                flip_x,
+                flip_y,
+            )
+        else:
+            second_rms = second[0]
+            logging.info(
+                "Marker assignment view%d: best RMS=%.3fpx, second=%.3fpx, gap=%.3fpx, flip_x=%s, flip_y=%s",
+                view_index,
+                rms,
+                second_rms,
+                second_rms - rms,
+                flip_x,
+                flip_y,
+            )
+
+        big_sorted = {}
+        small_sorted = {}
+        for label, detected_index in zip(labels, best_big_perm):
+            big_sorted[raw_big[detected_index]] = label
+        for label, detected_index in zip(labels, best_small_perm):
+            small_sorted[raw_small[detected_index]] = label
+        return big_sorted, small_sorted
+
+    def _compute_perspective_calibrations(self) -> bool:
+        try:
+            view_angle = self._get_current_3d_camera_view_angle()
+            max_rms_px = 5.0
+            calibs = {}
+            for idx in (1, 2, 3):
+                image_size = self._get_shot_image_size(idx)
+                if not image_size:
+                    raise ValueError(f"shot{idx} image size unavailable")
+                image_width, image_height = image_size
+                camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
+
+                best = None
+                for swap_big_23 in (False, True):
+                    for swap_small_23 in (False, True):
+                        object_points, image_points = self._get_view_marker_pairs(
+                            idx,
+                            swap_big_23=swap_big_23,
+                            swap_small_23=swap_small_23,
+                        )
+                        for flip_x in (False, True):
+                            for flip_y in (False, True):
+                                img_pts_px = np.vstack([
+                                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                                    for p in image_points
+                                ])
+                                rvec, tvec = self.logic.estimateCameraPosePnP(
+                                    object_points,
+                                    img_pts_px,
+                                    camera_matrix,
+                                    dist_coeffs,
+                                )
+                                proj, _ = cv2.projectPoints(
+                                    object_points.reshape(-1, 1, 3),
+                                    np.array(rvec, dtype=np.float64),
+                                    np.array(tvec, dtype=np.float64),
+                                    np.array(camera_matrix, dtype=np.float64),
+                                    np.array(dist_coeffs, dtype=np.float64),
+                                )
+                                proj = proj.reshape(-1, 2)
+                                rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                                if best is None or rms < best[0]:
+                                    best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec)
 
                 if best is None:
-                    raise ValueError(f"view{idx} solvePnP 标定失败")
-                rms, flip_x, flip_y, rvec, tvec = best
-                logging.info(f"PnP calib view{idx}: reproj RMS={rms:.3f}px, flip_x={flip_x}, flip_y={flip_y}, fov={view_angle:.2f}deg")
+                    raise ValueError(f"view{idx} solvePnP calibration failed")
+                rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec = best
+                if rms > max_rms_px:
+                    raise ValueError(
+                        f"view{idx} PnP reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
+                        "check marker ordering/transforms and rerun markersSort"
+                    )
+
+                logging.info(
+                    "PnP calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, "
+                    "swap_small_23=%s, fov=%.2fdeg",
+                    idx,
+                    rms,
+                    flip_x,
+                    flip_y,
+                    swap_big_23,
+                    swap_small_23,
+                    view_angle,
+                )
 
                 calibs[idx] = {
                     "K": camera_matrix,
@@ -630,49 +840,63 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "h": int(image_height),
                     "flip_x": bool(flip_x),
                     "flip_y": bool(flip_y),
+                    "swap_big_23": bool(swap_big_23),
+                    "swap_small_23": bool(swap_small_23),
                 }
 
             self.perspectiveViewCalibs = calibs
             return True
         except Exception as e:
             self.perspectiveViewCalibs = {}
-            self._error("透视模式 solvePnP 标定失败", detailedText=str(e))
+            self._error("Perspective solvePnP calibration failed", detailedText=str(e))
             return False
 
     def _compute_orthographic_calibrations(self) -> bool:
         try:
+            max_rms_px = 5.0
             calibs = {}
             for idx in (1, 2, 3):
                 image_size = self._get_shot_image_size(idx)
                 if not image_size:
-                    raise ValueError(f"shot{idx} 图像尺寸不可用")
+                    raise ValueError(f"shot{idx} image size unavailable")
                 image_width, image_height = image_size
-                object_points, image_points = self._get_view_marker_pairs(idx)
-
-                X = np.hstack([object_points, np.ones((object_points.shape[0], 1), dtype=np.float64)])  # Nx4
 
                 best = None
-                for flip_x in (False, True):
-                    for flip_y in (False, True):
-                        img_pts_px = np.vstack([
-                            self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
-                            for p in image_points
-                        ])
-                        u = img_pts_px[:, 0]
-                        v = img_pts_px[:, 1]
+                for swap_big_23 in (False, True):
+                    for swap_small_23 in (False, True):
+                        object_points, image_points = self._get_view_marker_pairs(
+                            idx,
+                            swap_big_23=swap_big_23,
+                            swap_small_23=swap_small_23,
+                        )
+                        X = np.hstack([object_points, np.ones((object_points.shape[0], 1), dtype=np.float64)])  # Nx4
 
-                        pu, _, _, _ = np.linalg.lstsq(X, u, rcond=None)
-                        pv, _, _, _ = np.linalg.lstsq(X, v, rcond=None)
-                        P = np.vstack([pu, pv])  # 2x4
+                        for flip_x in (False, True):
+                            for flip_y in (False, True):
+                                img_pts_px = np.vstack([
+                                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                                    for p in image_points
+                                ])
+                                u = img_pts_px[:, 0]
+                                v = img_pts_px[:, 1]
 
-                        proj = X @ P.T
-                        rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
-                        if best is None or rms < best[0]:
-                            best = (rms, flip_x, flip_y, P)
+                                pu, _, _, _ = np.linalg.lstsq(X, u, rcond=None)
+                                pv, _, _, _ = np.linalg.lstsq(X, v, rcond=None)
+                                P = np.vstack([pu, pv])  # 2x4
+
+                                proj = X @ P.T
+                                rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                                if best is None or rms < best[0]:
+                                    best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, P)
 
                 if best is None:
                     raise ValueError(f"view{idx} orthographic calib failed")
-                rms, flip_x, flip_y, P = best
+                rms, flip_x, flip_y, swap_big_23, swap_small_23, P = best
+                if rms > max_rms_px:
+                    raise ValueError(
+                        f"view{idx} orthographic reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
+                        "check marker ordering/transforms and rerun markersSort"
+                    )
 
                 A = np.array(P[:, :3], dtype=np.float64)
                 t = np.array(P[:, 3], dtype=np.float64)
@@ -682,7 +906,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     raise ValueError(f"view{idx} orthographic direction is degenerate")
                 d = d / dn
 
-                logging.info(f"Ortho calib view{idx}: reproj RMS={rms:.3f}px, flip_x={flip_x}, flip_y={flip_y}")
+                logging.info(
+                    "Ortho calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, swap_small_23=%s",
+                    idx,
+                    rms,
+                    flip_x,
+                    flip_y,
+                    swap_big_23,
+                    swap_small_23,
+                )
 
                 calibs[idx] = {
                     "P": P,
@@ -693,19 +925,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "h": int(image_height),
                     "flip_x": bool(flip_x),
                     "flip_y": bool(flip_y),
+                    "swap_big_23": bool(swap_big_23),
+                    "swap_small_23": bool(swap_small_23),
                 }
 
             self.orthographicViewCalibs = calibs
             return True
         except Exception as e:
             self.orthographicViewCalibs = {}
-            self._error("正交模式标定失败", detailedText=str(e))
+            self._error("Orthographic calibration failed", detailedText=str(e))
             return False
 
     def _ortho_pixel_to_world_ray(self, view_index: int, point2d_slicer: np.array):
         calib = self.orthographicViewCalibs.get(view_index)
         if calib is None:
-            raise ValueError(f"缺少 view{view_index} 的正交标定参数")
+            raise ValueError(f"Missing orthographic calibration for view{view_index}")
 
         p_px = self._slicer2d_to_pixel_raw(
             point2d_slicer,
@@ -728,7 +962,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def _ortho_project_world_point_to_view(self, view_index: int, point_3d: np.array):
         calib = self.orthographicViewCalibs.get(view_index)
         if calib is None:
-            raise ValueError(f"缺少 view{view_index} 的正交标定参数")
+            raise ValueError(f"Missing orthographic calibration for view{view_index}")
         P = calib["P"]
         X = np.array([point_3d[0], point_3d[1], point_3d[2], 1.0], dtype=np.float64)
         uv_px = P @ X
@@ -851,27 +1085,27 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return imageMirror
 
     def sitk_image_to_vtk_image(self, sitk_image):
-        # 将 SimpleITK 图像转换为 NumPy 数组
+        # �?SimpleITK 图像转换�?NumPy 数组
         # sitk_image = self.flipImage(sitk_image)
         np_array = sitk.GetArrayViewFromImage(sitk_image)
 
-        # 获取图像的尺寸
+        # 获取图像的尺�?
         size = sitk_image.GetSize()
 
-        # 创建一个 vtkImageData 对象
+        # 创建一�?vtkImageData 对象
         vtk_image = vtk.vtkImageData()
         vtk_image.SetDimensions(size[0], size[1], 1)
         vtk_image.SetSpacing(sitk_image.GetSpacing()[0], sitk_image.GetSpacing()[1], 1)
         vtk_image.SetOrigin(sitk_image.GetOrigin()[0], sitk_image.GetOrigin()[1], 0)
 
-        # 将 NumPy 数组数据分配给 vtkImageData
+        # �?NumPy 数组数据分配�?vtkImageData
         vtk_array = vtk.util.numpy_support.numpy_to_vtk(np_array.ravel(), deep=True, array_type=vtk.VTK_FLOAT)
         vtk_image.GetPointData().SetScalars(vtk_array)
 
         return vtk_image
 
     def vtk_image_to_sitk_image(self, vtk_image):
-        # 获取vtkImageData的原始数据
+        # 获取vtkImageData的原始数�?
         nshape = tuple(reversed(vtk_image.GetDimensions()))
         vtk_data = vtk_image.GetPointData().GetScalars()
         # 将vtkImageData的原始数据转换为numpy数组
@@ -896,7 +1130,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onShowVolumeButton(self):
         bodyVolumeNode = self._getBodyVolumeNode()
         if not bodyVolumeNode:
-            self._error("未找到输入 Volume，请先在 Input volume 中选择")
+            self._error("Input volume not found. Please select one in Input volume")
             return
         volRenLogic = slicer.modules.volumerendering.logic()
         displayNode = volRenLogic.CreateDefaultVolumeRenderingNodes(bodyVolumeNode)
@@ -940,7 +1174,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         polyData = markerModelNode.GetPolyData()
         if polyData is None or polyData.GetNumberOfPoints() == 0:
-            self._error("markers 没有有效点数据")
+            self._error("markers has no valid point data")
             return
 
         center = [0.0, 0.0, 0.0]
@@ -970,11 +1204,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onShowKnifeButton(self):
         volumeNode = self._getBodyVolumeNode()
         if not volumeNode:
-            self._error("未找到输入 Volume，请先在 Input volume 中选择")
+            self._error("Input volume not found. Please select one in Input volume")
             return
         center = self._get_volume_center(volumeNode)
         if center is None:
-            self._error("无法获取 Volume 中心点")
+            self._error("Failed to get volume center")
             return
 
         knifeNode = slicer.mrmlScene.GetFirstNodeByName("knife")
@@ -1025,7 +1259,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def _copy_center_to_point(self, source_name: str, target_name: str, view_node_id: str, color):
         source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
         if source_node is None or source_node.GetNumberOfControlPoints() < 1:
-            self._error(f"未找到 {source_name} 的控制点")
+            self._error(f"Control point missing in {source_name}")
             return
 
         target_node = slicer.mrmlScene.GetFirstNodeByName(target_name)
@@ -1060,7 +1294,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(True)
@@ -1110,7 +1344,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
@@ -1226,7 +1460,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(True)
@@ -1277,7 +1511,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
@@ -1393,7 +1627,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(True)
@@ -1439,7 +1673,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
-            self._error("需要先加载 Volume 并点击 showMarker 生成 markers")
+            self._error("Please load a volume and click showMarker first")
             return
 
         bodyVolumeNode.SetDisplayVisibility(False)
@@ -1564,7 +1798,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         pos3 = self._get_black_center_from_volume(volumeShot3Node)
 
         if pos1 is None or pos2 is None or pos3 is None:
-            self._error("未找到 testPoint 像素中心，请确认图像中存在像素值为 -100 的点")
+            self._error("testPoint pixel center not found. Please verify pixel value -100 exists in image")
             return
 
         self._show_black_center_marker("blackCenter1", "vtkMRMLSliceNodeRed", pos1)
@@ -1591,19 +1825,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         markerSortLogic2 = GenerateMarkers()
         markerSortLogic3 = GenerateMarkers()
 
-        markerSortLogic1.getMarkerCenters(shot1ImageITK)
-        self.bigMarkersSort1 = markerSortLogic1.bigMarkersSort()
-        self.smallMarkersSort1 = markerSortLogic1.smallMarkersSort()
+        try:
+            markerSortLogic1.getMarkerCenters(shot1ImageITK)
+            self.bigMarkersSort1, self.smallMarkersSort1 = self._sort_detected_markers_for_view(1, markerSortLogic1)
 
-        markerSortLogic2.getMarkerCenters(shot2ImageITK)
-        self.bigMarkersSort2 = markerSortLogic2.bigMarkersSort()
-        self.smallMarkersSort2 = markerSortLogic2.smallMarkersSort()
+            markerSortLogic2.getMarkerCenters(shot2ImageITK)
+            self.bigMarkersSort2, self.smallMarkersSort2 = self._sort_detected_markers_for_view(2, markerSortLogic2)
 
-        markerSortLogic3.getMarkerCenters(shot3ImageITK)
-        self.bigMarkersSort3 = markerSortLogic3.bigMarkersSort()
-        self.smallMarkersSort3 = markerSortLogic3.smallMarkersSort()
+            markerSortLogic3.getMarkerCenters(shot3ImageITK)
+            self.bigMarkersSort3, self.smallMarkersSort3 = self._sort_detected_markers_for_view(3, markerSortLogic3)
+        except Exception as e:
+            self._markersSorted = False
+            self._error("Marker detection/sorting failed", detailedText=str(e))
+            return
 
-        # 转换成 slicer 坐标系
+        # 转换�?slicer 坐标�?
         self.bigMarkersSort1 = markerSortLogic1.move2slicer(self.bigMarkersSort1)
         self.smallMarkersSort1 = markerSortLogic1.move2slicer(self.smallMarkersSort1)
 
@@ -1687,7 +1923,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.bigMarker3DDic3 = self.generateMarkers.getMarkerTransform(linearTransformNode3, bigMarker3DDic)
         self.smallMarker3DDic3 = self.generateMarkers.getMarkerTransform(linearTransformNode3, smallMarker3DDic)
 
-        # 调式显示点，判断2D图像上的点是否正确
+        # 调式显示点，判断2D图像上的点是否正�?
         def update_markups_3d(node_name, color, big_markers, small_markers):
             markups_node = slicer.mrmlScene.GetFirstNodeByName(node_name)
             if markups_node is None:
@@ -1719,9 +1955,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # 计算所有投影变换矩阵与刚体变换矩阵
         
-        # 1, 先计算 3D 都 2D 的变换
+        # 1, 先计�?3D �?2D 的变�?
 
-        # 使用出厂设置的 marker 坐标
+        # 使用出厂设置�?marker 坐标
         # -----------------------------------------------------------------
         originBigMarker3DDic = GenerateMarkers().bigMarker3DDic
         originSmallMarker3DDic = GenerateMarkers().smallMarker3DDic
@@ -1745,7 +1981,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ])
         # -----------------------------------------------------------------
         # 3D空间中的世界坐标
-        # 这是第一个视图
+        # 这是第一个视�?
         big_3DMarker1_source_points = np.array([
             self.bigMarker3DDic1[1], 
             self.bigMarker3DDic1[2], 
@@ -1767,7 +2003,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.M3D2DRigidMatrixsSmall1 = self.logic.getRigidMatrix(small_3DMarker1_source_points, originSmallMarker3D_points)
         self.M2D3DRigidMatrixsSmall1 = self.logic.getRigidMatrix(originSmallMarker3D_points, small_3DMarker1_source_points)
 
-        # 这是第二个视图
+        # 这是第二个视�?
         big_3DMarker2_source_points = np.array([
             self.bigMarker3DDic2[1], 
             self.bigMarker3DDic2[2], 
@@ -1790,7 +2026,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.M2D3DRigidMatrixsSmall2 = self.logic.getRigidMatrix(originSmallMarker3D_points, small_3DMarker2_source_points)
 
 
-        # 这是第三个视图
+        # 这是第三个视�?
         big_3DMarker3_source_points = np.array([
             self.bigMarker3DDic3[1], 
             self.bigMarker3DDic3[2], 
@@ -1812,10 +2048,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.M3D2DRigidMatrixsSmall3 = self.logic.getRigidMatrix(small_3DMarker3_source_points, originSmallMarker3D_points)
         self.M2D3DRigidMatrixsSmall3 = self.logic.getRigidMatrix(originSmallMarker3D_points, small_3DMarker3_source_points)
 
-        # *******************仿射变换（替代原透视变换）*******************
-        # 使用出厂设置的 marker 坐标，全部 5 个点
+        # *******************仿射变换（替代原透视变换�?******************
+        # 使用出厂设置�?marker 坐标，全�?5 个点
         # 正交投影下平面→图像映射为仿射变换（6 DOF），
-        # 使用 5 个点进行最小二乘拟合，比 4 点透视变换更鲁棒。
+        # 使用 5 个点进行最小二乘拟合，�?4 点透视变换更鲁棒�?
         # -----------------------------------------------------------------
         originBigMarker3DDic = GenerateMarkers().bigMarker3DDic
         originSmallMarker3DDic = GenerateMarkers().smallMarker3DDic
@@ -1835,7 +2071,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ], dtype=np.float32)
 
         # 2D 图像中的像素坐标
-        # 这是第一个视图
+        # 这是第一个视�?
         big_2DMarker1_source_4points = np.array([
             get_key_by_value(self.bigMarkersSort1, 1)[0:2],
             get_key_by_value(self.bigMarkersSort1, 2)[0:2], 
@@ -1852,7 +2088,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             get_key_by_value(self.smallMarkersSort1, 5)[0:2], 
         ], dtype=np.float32)
 
-        # 这是第二个视图
+        # 这是第二个视�?
         big_2DMarker2_source_4points = np.array([
             get_key_by_value(self.bigMarkersSort2, 1)[0:2],
             get_key_by_value(self.bigMarkersSort2, 2)[0:2], 
@@ -1869,7 +2105,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             get_key_by_value(self.smallMarkersSort2, 5)[0:2], 
         ], dtype=np.float32)
 
-        # 这是第三个视图
+        # 这是第三个视�?
         big_2DMarker3_source_4points = np.array([
             get_key_by_value(self.bigMarkersSort3, 1)[0:2],
             get_key_by_value(self.bigMarkersSort3, 2)[0:2], 
@@ -1950,7 +2186,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 projection_mode,
             )
         except Exception as e:
-            self._error(f"计算投影矩阵失败（模式: {projection_mode}）", detailedText=str(e))
+            self._error(f"Failed to compute projection matrices (mode: {projection_mode})", detailedText=str(e))
             return False
 
         if projection_mode == "perspective":
@@ -1972,11 +2208,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def _apply_transform_to_markers(self, transform_name: str):
         marker_model_node = self._getMarkersModelNode()
         if marker_model_node is None:
-            self._error("未找到 markers 模型，请先点击 showMarker")
+            self._error("markers model not found, please click showMarker first")
             return
         transform_node = slicer.mrmlScene.GetFirstNodeByName(transform_name)
         if transform_node is None:
-            self._error(f"未找到 {transform_name} 节点")
+            self._error(f"Transform node not found: {transform_name}")
             return
         marker_model_node.SetAndObserveTransformNodeID(transform_node.GetID())
         marker_model_node.SetDisplayVisibility(True)
@@ -2022,7 +2258,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.p3DBigRed = self.logic.rayPlaneIntersection(o1, d1, self.bigMarker3DDic1[1], self.bigMarker3DDic1[2], self.bigMarker3DDic1[3])
             self.p3DSmallRed = self.logic.rayPlaneIntersection(o1, d1, self.smallMarker3DDic1[1], self.smallMarker3DDic1[2], self.smallMarker3DDic1[3])
             if self.p3DBigRed is None or self.p3DSmallRed is None:
-                self._error("透视模式下 Red 视图射线与标记平面求交失败")
+                self._error("Failed to intersect Red ray with marker planes in perspective mode")
                 return
             self.red3DVec = np.array(self.p3DBigRed) - np.array(self.p3DSmallRed)
 
@@ -2032,7 +2268,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.p3DBigGreen = self.logic.rayPlaneIntersection(o2, d2, self.bigMarker3DDic2[1], self.bigMarker3DDic2[2], self.bigMarker3DDic2[3])
             self.p3DSmallGreen = self.logic.rayPlaneIntersection(o2, d2, self.smallMarker3DDic2[1], self.smallMarker3DDic2[2], self.smallMarker3DDic2[3])
             if self.p3DBigGreen is None or self.p3DSmallGreen is None:
-                self._error("透视模式下 Green 视图射线与标记平面求交失败")
+                self._error("Failed to intersect Green ray with marker planes in perspective mode")
                 return
             self.green3DVec = np.array(self.p3DBigGreen) - np.array(self.p3DSmallGreen)
 
@@ -2042,7 +2278,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.p3DBigYellow = self.logic.rayPlaneIntersection(o3, d3, self.bigMarker3DDic3[1], self.bigMarker3DDic3[2], self.bigMarker3DDic3[3])
             self.p3DSmallYellow = self.logic.rayPlaneIntersection(o3, d3, self.smallMarker3DDic3[1], self.smallMarker3DDic3[2], self.smallMarker3DDic3[3])
             if self.p3DBigYellow is None or self.p3DSmallYellow is None:
-                self._error("透视模式下 Yellow 视图射线与标记平面求交失败")
+                self._error("Failed to intersect Yellow ray with marker planes in perspective mode")
                 return
             self.yellow3DVec = np.array(self.p3DBigYellow) - np.array(self.p3DSmallYellow)
             return
@@ -2079,9 +2315,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
         markupNode = self.ui.Red2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
-            self._error("请先在 Red 视图添加一个 2D 点")
+            self._error("Please add a 2D point in Red view first")
             return
-        # 在 Red 视图上的点只显示在 Red 视图
+        # �?Red 视图上的点只显示�?Red 视图
         displayNode = markupNode.GetDisplayNode()
         displayNode.SetVisibility(True)
         displayNode.SetViewNodeIDs(["vtkMRMLSliceNodeRed"])
@@ -2126,7 +2362,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #     lineNode.SetNthControlPointPosition(1, self.p3DSmallRed)
         ###################################
 
-        # 计算光线在Green 视图marker 平面的 big 与 small 的交点
+        # 计算光线在Green 视图marker 平面�?big �?small 的交�?
         line_p1, line_p2 = np.array(self.p3DBigRed), np.array(self.p3DSmallRed)
 
         bigPlane_p1 = np.array(self.bigMarker3DDic2[1])
@@ -2154,7 +2390,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         bigIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, bigPlane_p1, bigPlane_p2, bigPlane_p3)
         smallIntersectionP3D = self.logic.line2plane_intersection(line_p1, line_p2, smallPlane_p1, smallPlane_p2, smallPlane_p3)
         if bigIntersectionP3D is None or smallIntersectionP3D is None:
-            self._error("光线与 Green 视图平面求交失败")
+            self._error("Failed to intersect ray with Green marker planes")
             return
 
         # Debug visualization: Red ray and intersections
@@ -2276,9 +2512,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onTwoD2ThreeDGreen(self):
         markupNode = self.ui.Green2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
-            self._error("请先在 Green 视图添加一个 2D 点")
+            self._error("Please add a 2D point in Green view first")
             return
-        # 在 Green 视图上的点只显示 Green 视图
+        # �?Green 视图上的点只显示 Green 视图
         displayNode = markupNode.GetDisplayNode()
         displayNode.SetVisibility(True)
         displayNode.SetViewNodeIDs(["vtkMRMLSliceNodeGreen"])
@@ -2291,7 +2527,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         lineP1 = np.array([0.0, 0.0, 0.0])
         lineP2 = np.array([0.0, 0.0, 0.0])
         if lineNodeGreen == None:
-            self._error("需要先在 Red 视图点击 redPush 生成 GreenLine2D")
+            self._error("Please click redPush in Red view first to create GreenLine2D")
             return
         else:
             lineStartP = lineNodeGreen.GetLineStartPositionWorld()
@@ -2323,9 +2559,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 scale=self.debugPlaneScale
             )
             
-        # 计算手动添加的点到直线的最近点，将点自动移动到直线上
+        # 计算手动添加的点到直线的最近点，将点自动移动到直线�?
         p3DNearest2Line = self.logic.pointNearest2Line(p3D, lineP1, lineP2)
-        # 替换手动添加的 markupNode
+        # 替换手动添加�?markupNode
         markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
         p2DNearest2Line = p3DNearest2Line[0:2]
         if self.projectionMode in ("perspective", "orthographic"):
@@ -2348,7 +2584,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self.smallMarker3DDic2[3],
             )
             if self.p3DBigGreen is None or self.p3DSmallGreen is None:
-                self._error("Green 视图透视射线与标记平面求交失败")
+                self._error("Failed to intersect Green perspective ray with marker planes")
                 return
         else:
             self.p3DBigGreen = self.logic.twoD2threeD(p2DNearest2Line, self.M2D3DPerspectiveMatrixsBig2, self.M2D3DRigidMatrixsBig2, self.originBigMarker3D_Z)
@@ -2413,13 +2649,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #     lineNode.SetNthControlPointPosition(1, self.p3DSmallGreen)
         #######################################
         
-        # 计算两条3D光线的空间交点
+        # 计算两条3D光线的空间交�?
         line1_p1, line1_p2 = np.array(self.p3DBigRed), np.array(self.p3DSmallRed)
         line2_p1, line2_p2 = np.array(self.p3DBigGreen), np.array(self.p3DSmallGreen)
 
         p3D, line_gap = self.logic.line2line_closest_midpoint3D(line1_p1, line1_p2, line2_p1, line2_p2)
         if p3D is None:
-            self._error("两条3D光线接近平行，无法稳定计算 TargetP3D")
+            self._error("Two 3D rays are nearly parallel; cannot stably compute TargetP3D")
             return
         self.p3DTarget = p3D
         if line_gap is not None:
@@ -2520,7 +2756,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         reproj_err = np.linalg.norm(p2DGreen_check - p2DNearest2Line)
         logging.info(f"Green reprojection residual: {reproj_err:.4f} px")
 
-        # 显示在 3D 空间的实际位置的点，该点是最终结果点
+        # 显示�?3D 空间的实际位置的点，该点是最终结果点
         markupNode3D = slicer.mrmlScene.GetFirstNodeByName("TargetP3D")
         if markupNode3D == None:
             markupNode3D = slicer.vtkMRMLMarkupsFiducialNode()
@@ -2540,7 +2776,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         else:
             markupNode3D.SetNthControlPointPosition(0, p3D)
 
-        # 计算同时显示第三个视图上的2D点
+        # 计算同时显示第三个视图上�?D�?
         if self.projectionMode == "perspective":
             intersectionP3DYellow = self._project_world_point_to_view(3, p3D)
         elif self.projectionMode == "orthographic":
@@ -2634,7 +2870,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self.M3D2DPerspectiveMatrixsBig3,
             )
         
-        # 显示追踪点
+        # 显示追踪�?
         markupsNode1 = slicer.mrmlScene.GetFirstNodeByName("tracingRed2D")
         if markupsNode1 == None:
             markupsNode1 = slicer.vtkMRMLMarkupsFiducialNode()
@@ -3049,6 +3285,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                             nodeType="MarkupsFiducial",
                             glyphScale=1.0
                         )
+
+
 
 
 
