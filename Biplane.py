@@ -3145,14 +3145,58 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return float(match.group(0))
 
     def _get_first_control_point_xyz(self, node_name: str):
-        """Return first control point xyz of a markups node by name, or empty values."""
+        """Return first control point xyz (world coordinates) by node name, or empty values."""
         node = slicer.mrmlScene.GetFirstNodeByName(node_name)
         if node is None or not hasattr(node, "GetNumberOfControlPoints"):
             return "", "", ""
         if node.GetNumberOfControlPoints() < 1:
             return "", "", ""
-        pos = node.GetNthControlPointPosition(0)
+        if hasattr(node, "GetNthControlPointPositionWorld"):
+            pos = node.GetNthControlPointPositionWorld(0)
+        else:
+            pos = node.GetNthControlPointPosition(0)
         return float(pos[0]), float(pos[1]), float(pos[2])
+
+    def _marker_distribution_center_for_transform(self, transform_name: str):
+        """Return marker distribution center in world space for a transform, or None."""
+        if not hasattr(self, "generateMarkers") or self.generateMarkers is None:
+            return None
+        transform_node = slicer.mrmlScene.GetFirstNodeByName(transform_name)
+        if transform_node is None:
+            return None
+        big_markers = self.generateMarkers.getMarkerTransform(
+            transform_node,
+            self.generateMarkers.bigMarker3DDic,
+        )
+        small_markers = self.generateMarkers.getMarkerTransform(
+            transform_node,
+            self.generateMarkers.smallMarker3DDic,
+        )
+        points = [np.array(p, dtype=float) for p in big_markers.values()]
+        points.extend(np.array(p, dtype=float) for p in small_markers.values())
+        if not points:
+            return None
+        return np.mean(np.vstack(points), axis=0)
+
+    def _testpoint_marker_distances_mm(self):
+        """Return distances from testPoint to marker centers of 3 transforms and their mean."""
+        testpoint_xyz = self._get_first_control_point_xyz("testPoint")
+        if "" in testpoint_xyz:
+            return "", "", "", ""
+
+        testpoint = np.array(testpoint_xyz, dtype=float)
+        transform_names = ("LinearTransform", "LinearTransform_1", "LinearTransform_2")
+        distances = []
+        for transform_name in transform_names:
+            center = self._marker_distribution_center_for_transform(transform_name)
+            if center is None:
+                distances.append("")
+            else:
+                distances.append(float(np.linalg.norm(testpoint - center)))
+
+        valid_distances = [d for d in distances if d != ""]
+        mean_distance = float(np.mean(valid_distances)) if len(valid_distances) == 3 else ""
+        return distances[0], distances[1], distances[2], mean_distance
 
     def _is_calibration_ready(self, calibs) -> bool:
         """Check whether per-view calibration dict contains 3 views."""
@@ -3206,6 +3250,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             shot3_angle1_display = self._widget_text("shot3Angle1LineEdit")
             shot3_angle2_display = self._widget_text("shot3Angle2LineEdit")
             testpoint_x, testpoint_y, testpoint_z = self._get_first_control_point_xyz("testPoint")
+            (
+                testpoint_marker_distance_t1_mm,
+                testpoint_marker_distance_t2_mm,
+                testpoint_marker_distance_t3_mm,
+                testpoint_marker_distance_mean_mm,
+            ) = self._testpoint_marker_distances_mm()
 
             input_volume_node = self._getBodyVolumeNode()
             row = {
@@ -3243,6 +3293,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "testpoint_x": testpoint_x,
                 "testpoint_y": testpoint_y,
                 "testpoint_z": testpoint_z,
+                "testpoint_marker_distance_t1_mm": testpoint_marker_distance_t1_mm,
+                "testpoint_marker_distance_t2_mm": testpoint_marker_distance_t2_mm,
+                "testpoint_marker_distance_t3_mm": testpoint_marker_distance_t3_mm,
+                "testpoint_marker_distance_mean_mm": testpoint_marker_distance_mean_mm,
                 "debug_visualization": int(bool(self.debugVisualization)),
                 "debug_plane_scale": float(self.debugPlaneScale),
                 "debug_ray_scale": float(self.debugRayScale),
