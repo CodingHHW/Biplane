@@ -1,12 +1,17 @@
+"""Biplane 模块主控文件：负责 Slicer UI 交互、截图流程、marker 排序与 2D/3D 几何运算调度。"""
 import logging
+import csv
 import os
 import itertools
+import re
+from datetime import datetime
 from typing import Annotated, Optional
 
 import numpy as np
 import vtk
 import SimpleITK as sitk
 import slicer
+import qt
 # Ensure OpenCV is available; install on demand for Slicer environment
 try:
     import cv2
@@ -33,11 +38,10 @@ from BiplaneLogics import *
 
 
 class Biplane(ScriptedLoadableModule):
-    """Uses ScriptedLoadableModule base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
+    """模块入口类：负责 Slicer 模块元信息注册。"""
 
     def __init__(self, parent):
+        """初始化模块标题、分类、帮助文本与致谢信息。"""
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("Biplane")  # TODO: make this more human readable by adding spaces
         # TODO: set categories (folders where the module shows up in the module selector)
@@ -63,12 +67,10 @@ and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR0132
 
 
 class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
-    """Uses ScriptedLoadableModuleWidget base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
+    """主界面与交互控制类：包含拍摄、marker 排序、标定、重建与可视化流程。"""
 
     def __init__(self, parent=None) -> None:
-        """Called when the user opens the module the first time and the widget is initialized."""
+        """初始化 Widget 状态、标定缓存、调试参数与输出目录。"""
         ScriptedLoadableModuleWidget.__init__(self, parent)
         VTKObservationMixin.__init__(self)  # needed for parameter node observation
         self.logic = None
@@ -82,12 +84,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.perspectiveViewCalibs = {}
         self.orthographicViewCalibs = {}
         self._markersSorted = False
+        self._angleObservedTransformNodes = []
         basePath = getattr(getattr(slicer, "app", None), "temporaryPath", os.path.expanduser("~/Desktop"))
         self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
+        self.csvFilePath = os.path.join(self.savePath, "experiment_results.csv")
 
     def _error(self, message: str, detailedText: Optional[str] = None) -> None:
+        """统一错误处理入口：优先使用 Slicer 弹窗，弹窗失败时写入日志。"""
         try:
             slicer.util.errorDisplay(message, detailedText=detailedText)
         except Exception:
@@ -96,6 +101,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 logging.error(detailedText)
 
     def _require_markers_sorted(self) -> bool:
+        """前置条件校验：确保 marker 排序、三视角标定数据及投影模式参数已完整准备。"""
         required_attrs = [
             "M2D3DPerspectiveMatrixsBig1",
             "M2D3DRigidMatrixsBig1",
@@ -123,14 +129,17 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return True
 
     def _getBodyVolumeNode(self):
+        """获取 `_getBodyVolumeNode` 相关对象或计算结果。"""
         if self._parameterNode and getattr(self._parameterNode, "inputVolume", None):
             return self._parameterNode.inputVolume
         return slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
 
     def _getMarkersModelNode(self):
+        """获取 `_getMarkersModelNode` 相关对象或计算结果。"""
         return slicer.mrmlScene.GetFirstNodeByName("markers")
 
     def _getThreeDView(self):
+        """获取 `_getThreeDView` 相关对象或计算结果。"""
         lm = slicer.app.layoutManager()
         if not lm:
             return None
@@ -140,6 +149,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return threeDWidget.threeDView()
 
     def _captureViewToFile(self, filepath: str) -> bool:
+        """从当前 3D 视图截取图像并写入指定文件，返回是否截图成功。"""
         view = self._getThreeDView()
         if not view:
             self._error("3D 视图不可用，无法截图")
@@ -150,12 +160,14 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return os.path.exists(filepath)
 
     def _open_transforms_module(self) -> None:
+        """尝试跳转到 Transforms 模块，若切换失败则给出错误提示。"""
         try:
             slicer.util.selectModule("Transforms")
         except Exception:
             self._error("Unable to switch to Transforms module")
 
     def _limit_display_nodes_for_shot(self, allowed_displayable_nodes):
+        """拍摄前临时限制可见节点，仅保留允许列表中的对象可见，并返回恢复用备份。"""
         allowed_ids = {node.GetID() for node in allowed_displayable_nodes if node}
         display_nodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLDisplayNode")
         display_nodes.InitTraversal()
@@ -178,6 +190,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return visibility_backup
 
     def _restore_display_nodes(self, visibility_backup):
+        """按备份还原拍摄前各显示节点的 2D/3D 可见性状态。"""
         for display_node, visibility, visibility3d in visibility_backup:
             if display_node:
                 display_node.SetVisibility(visibility)
@@ -185,6 +198,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     display_node.SetVisibility3D(visibility3d)
 
     def _requireImage(self, filepath: str, label: str):
+        """读取截图文件并校验有效性；文件缺失或解码失败时返回 None 并提示。"""
         if not os.path.exists(filepath):
             self._error(f"缺少 {label} 文件：{filepath}")
             return None
@@ -194,6 +208,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return img
 
     def _get_black_center_from_volume(self, volumeNode):
+        """获取 `_get_black_center_from_volume` 相关对象或计算结果。"""
         vtkImage = volumeNode.GetImageData() if volumeNode else None
         if vtkImage is None:
             return None
@@ -219,6 +234,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return (-center_x, -center_y, 0.0)
 
     def _get_volume_center(self, volumeNode):
+        """获取 `_get_volume_center` 相关对象或计算结果。"""
         if volumeNode is None:
             return None
         bounds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -230,6 +246,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
     def _show_black_center_marker(self, nodeName: str, viewNodeId: str, position):
+        """在指定切片视图中创建或更新黑点中心标记点，并配置显示样式。"""
         markupsNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
         if markupsNode is None:
             markupsNode = slicer.vtkMRMLMarkupsFiducialNode()
@@ -251,6 +268,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetColor(1.0, 0.2, 0.0)
 
     def _get_slice_view_center(self, viewNodeId: str):
+        """获取 `_get_slice_view_center` 相关对象或计算结果。"""
         sliceNode = slicer.mrmlScene.GetNodeByID(viewNodeId)
         if sliceNode is None:
             return None
@@ -271,6 +289,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return (ras[0], ras[1], ras[2])
 
     def _ensure_center_fiducial(self, nodeName: str, viewNodeId: str, color):
+        """确保 `_ensure_center_fiducial` 所需的节点或状态已准备就绪。"""
         markupsNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
         if markupsNode is not None:
             return
@@ -291,6 +310,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetColor(color)
 
     def _set_selector_current_node(self, selector, node):
+        """设置 `_set_selector_current_node` 相关状态或界面显示。"""
         if selector is None or node is None:
             return
         if hasattr(selector, "setCurrentNode"):
@@ -299,6 +319,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             selector.setCurrentNodeID(node.GetID())
 
     def _plane_normal_from_marker_dict(self, marker_dict):
+        """从 marker 字典中提取 1/2/3 号点计算平面法向量，结果归一化后返回。"""
         if not marker_dict:
             return None
         p1 = marker_dict.get(1)
@@ -315,6 +336,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return normal / norm
 
     def _compute_plane_angle_deg(self, marker_dict_a, marker_dict_b):
+        """计算 `_compute_plane_angle_deg` 相关的几何或标定结果。"""
         n1 = self._plane_normal_from_marker_dict(marker_dict_a)
         n2 = self._plane_normal_from_marker_dict(marker_dict_b)
         if n1 is None or n2 is None:
@@ -323,10 +345,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return float(np.degrees(np.arccos(abs(dot))))
 
     def _get_big_marker_plane_dict(self, index: int):
-        attr_name = f"bigMarker3DDic{index}"
-        existing = getattr(self, attr_name, None)
-        if existing:
-            return existing
+        """获取 `_get_big_marker_plane_dict` 相关对象或计算结果。"""
         transform_names = {
             1: "LinearTransform",
             2: "LinearTransform_1",
@@ -342,10 +361,33 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             transform_node,
             self.generateMarkers.bigMarker3DDic,
         )
-        setattr(self, attr_name, marker_dict)
         return marker_dict
 
+    def _on_marker_transform_modified(self, caller=None, event=None):
+        """Transform changed: refresh plane-angle displays when marker setup is ready."""
+        if not self._markersSorted:
+            return
+        self._update_shot2_angle_display()
+        self._update_shot3_angle_display()
+
+    def _observe_transform_nodes_for_angles(self) -> None:
+        """Attach observers to LinearTransform nodes for live angle refresh."""
+        for node in self._angleObservedTransformNodes:
+            try:
+                self.removeObserver(node, vtk.vtkCommand.ModifiedEvent, self._on_marker_transform_modified)
+            except Exception:
+                pass
+        self._angleObservedTransformNodes = []
+
+        for name in ("LinearTransform", "LinearTransform_1", "LinearTransform_2"):
+            node = slicer.mrmlScene.GetFirstNodeByName(name)
+            if node is None:
+                continue
+            self.addObserver(node, vtk.vtkCommand.ModifiedEvent, self._on_marker_transform_modified)
+            self._angleObservedTransformNodes.append(node)
+
     def _set_angle_display(self, label_widget, line_edit, angle_value):
+        """设置 `_set_angle_display` 相关状态或界面显示。"""
         if label_widget is not None:
             label_widget.setVisible(True)
         if line_edit is not None:
@@ -356,6 +398,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 line_edit.setText(f"{angle_value:.2f}")
 
     def _update_shot2_angle_display(self):
+        """更新 `_update_shot2_angle_display` 对应的界面或内部状态。"""
         angle = self._compute_plane_angle_deg(
             self._get_big_marker_plane_dict(1),
             self._get_big_marker_plane_dict(2),
@@ -363,6 +406,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_angle_display(self.ui.labelShot2Angle, self.ui.shot2AngleLineEdit, angle)
 
     def _update_shot3_angle_display(self):
+        """更新 `_update_shot3_angle_display` 对应的界面或内部状态。"""
         angle_m3_m1 = self._compute_plane_angle_deg(
             self._get_big_marker_plane_dict(3),
             self._get_big_marker_plane_dict(1),
@@ -375,7 +419,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_angle_display(self.ui.labelShot3Angle2, self.ui.shot3Angle2LineEdit, angle_m3_m2)
 
     def setup(self) -> None:
-        """Called when the user opens the module the first time and the widget is initialized."""
+        """构建界面、绑定事件、初始化逻辑对象与参数节点观察。"""
         ScriptedLoadableModuleWidget.setup(self)
 
         # Load widget from .ui file (created by Qt Designer).
@@ -433,6 +477,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
         self.ui.calculateReprojectionButton.connect("clicked(bool)", self.onCalculateReprojectionError)
+        self.ui.browseCsvPathButton.connect("clicked(bool)", self.onBrowseCsvPath)
+        self.ui.saveResultsCsvButton.connect("clicked(bool)", self.onSaveResultsCsv)
 
         self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
         self.ui.debugPlaneScaleSpinBox.connect("valueChanged(double)", self.onDebugPlaneScaleChanged)
@@ -450,6 +496,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if line_edit is not None:
                 line_edit.setText("")
 
+        if hasattr(self.ui, "csvSavePathLineEdit") and self.ui.csvSavePathLineEdit is not None:
+            self.ui.csvSavePathLineEdit.setText(self.csvFilePath)
+
         self.ui.orthographicProjectionButton.setChecked(False)
         self.ui.perspectiveProjectionButton.setChecked(True)
         self._updateProjectionModeStatusLabel()
@@ -459,11 +508,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.initializeParameterNode()
 
     def cleanup(self) -> None:
-        """Called when the application closes and the module widget is destroyed."""
+        """模块销毁阶段回调：移除本 Widget 注册的所有事件观察器。"""
         self.removeObservers()
 
     def enter(self) -> None:
-        """Called each time the user opens this module."""
+        """模块进入回调：确保参数节点与变换节点就绪，同步视图投影与显示风格。"""
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
 
@@ -477,6 +526,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         viewNode.SetAxisLabelsVisible(False)
 
     def _applyProjectionModeToView(self) -> None:
+        """将 `_applyProjectionModeToView` 相关配置应用到当前场景。"""
         lm = slicer.app.layoutManager()
         if not lm:
             return
@@ -490,12 +540,14 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         threeDControllerWidget.setOrthographicModeEnabled(use_orthographic)
 
     def _updateProjectionModeStatusLabel(self) -> None:
+        """更新 `_updateProjectionModeStatusLabel` 对应的界面或内部状态。"""
         if not hasattr(self.ui, "projectionModeStatusLabel"):
             return
         mode_text = "Orthographic" if self.projectionMode == "orthographic" else "Perspective"
         self.ui.projectionModeStatusLabel.setText(f"Current mode: {mode_text}")
 
     def _setProjectionMode(self, mode: str) -> None:
+        """设置 `_setProjectionMode` 相关状态或界面显示。"""
         if mode not in ("orthographic", "perspective"):
             return
         self.projectionMode = mode
@@ -511,15 +563,19 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.initLightVec()
 
     def onOrthographicProjectionButton(self):
+        """界面回调：执行 `onOrthographicProjectionButton` 对应的交互处理流程。"""
         self._setProjectionMode("orthographic")
 
     def onPerspectiveProjectionButton(self):
+        """界面回调：执行 `onPerspectiveProjectionButton` 对应的交互处理流程。"""
         self._setProjectionMode("perspective")
 
     def _get_shot_node_by_index(self, view_index: int):
+        """获取 `_get_shot_node_by_index` 相关对象或计算结果。"""
         return slicer.mrmlScene.GetFirstNodeByName(f"shot{view_index}")
 
     def _get_shot_image_size(self, view_index: int):
+        """获取 `_get_shot_image_size` 相关对象或计算结果。"""
         shot_node = self._get_shot_node_by_index(view_index)
         if not shot_node or not shot_node.GetImageData():
             return None
@@ -529,6 +585,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return int(dims[0]), int(dims[1])
 
     def _get_current_3d_camera_view_angle(self) -> float:
+        """获取 `_get_current_3d_camera_view_angle` 相关对象或计算结果。"""
         view = self._getThreeDView()
         if not view:
             return 30.0
@@ -544,6 +601,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return float(camera.GetViewAngle())
 
     def _get_view_marker_pairs(self, view_index: int, swap_big_23: bool = False, swap_small_23: bool = False):
+        """获取 `_get_view_marker_pairs` 相关对象或计算结果。"""
         big_2d = getattr(self, f"bigMarkersSort{view_index}")
         small_2d = getattr(self, f"smallMarkersSort{view_index}")
         big_3d = getattr(self, f"bigMarker3DDic{view_index}")
@@ -573,6 +631,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return np.array(object_points, dtype=np.float64), np.array(image_points, dtype=np.float64)
 
     def _slicer2d_to_pixel_raw(self, point2d_slicer: np.array, image_width: int, image_height: int, flip_x: bool, flip_y: bool):
+        """执行 `_slicer2d_to_pixel_raw` 所对应的坐标系转换或投影运算。"""
         u = -float(point2d_slicer[0])
         v = -float(point2d_slicer[1])
         if flip_x:
@@ -582,6 +641,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return np.array([u, v], dtype=np.float64)
 
     def _pixel_to_slicer2d_raw(self, pixel2d: np.array, image_width: int, image_height: int, flip_x: bool, flip_y: bool):
+        """执行 `_pixel_to_slicer2d_raw` 所对应的坐标系转换或投影运算。"""
         u = float(pixel2d[0])
         v = float(pixel2d[1])
         if flip_x:
@@ -593,6 +653,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return np.array([x, y], dtype=np.float64)
 
     def _get_view_transform_node(self, view_index: int):
+        """获取 `_get_view_transform_node` 相关对象或计算结果。"""
         transform_name_by_view = {
             1: "LinearTransform",
             2: "LinearTransform_1",
@@ -604,6 +665,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return slicer.mrmlScene.GetFirstNodeByName(transform_name)
 
     def _sort_detected_markers_for_view(self, view_index: int, marker_sort_logic):
+        """对单视角 marker 检测点进行编号排序，综合单应与 PnP 重投影误差选择最优映射。"""
         labels = (1, 2, 3, 4, 5)
         if len(marker_sort_logic.big) != 5 or len(marker_sort_logic.small) != 5:
             raise ValueError(
@@ -767,6 +829,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return big_sorted, small_sorted
 
     def _compute_perspective_calibrations(self) -> bool:
+        """计算三个视角的透视标定参数（K/dist/rvec/tvec 及翻转、编号交换状态）。"""
         try:
             view_angle = self._get_current_3d_camera_view_angle()
             max_rms_px = 5.0
@@ -852,6 +915,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return False
 
     def _compute_orthographic_calibrations(self) -> bool:
+        """计算三个视角的正交标定参数（2x4 投影模型、平面方向向量与异常阈值校验）。"""
         try:
             max_rms_px = 5.0
             calibs = {}
@@ -937,6 +1001,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return False
 
     def _ortho_pixel_to_world_ray(self, view_index: int, point2d_slicer: np.array):
+        """执行 `_ortho_pixel_to_world_ray` 所对应的坐标系转换或投影运算。"""
         calib = self.orthographicViewCalibs.get(view_index)
         if calib is None:
             raise ValueError(f"Missing orthographic calibration for view{view_index}")
@@ -960,6 +1025,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return x0, calib["d"]
 
     def _ortho_project_world_point_to_view(self, view_index: int, point_3d: np.array):
+        """执行 `_ortho_project_world_point_to_view` 所对应的坐标系转换或投影运算。"""
         calib = self.orthographicViewCalibs.get(view_index)
         if calib is None:
             raise ValueError(f"Missing orthographic calibration for view{view_index}")
@@ -975,6 +1041,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
     def _pixel_to_world_ray(self, view_index: int, pixel_2d: np.array):
+        """执行 `_pixel_to_world_ray` 所对应的坐标系转换或投影运算。"""
         calib = self.perspectiveViewCalibs.get(view_index)
         if calib is None:
             raise ValueError(f"缺少 view{view_index} 的透视标定参数")
@@ -994,6 +1061,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
     def _project_world_point_to_view(self, view_index: int, point_3d: np.array):
+        """在透视模式下，使用视角标定参数将 3D 世界点投影为对应 2D 点。"""
         calib = self.perspectiveViewCalibs.get(view_index)
         if calib is None:
             raise ValueError(f"缺少 view{view_index} 的透视标定参数")
@@ -1013,14 +1081,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
     def _ensureLinearTransformNodes(self) -> None:
+        """确保 `_ensureLinearTransformNodes` 所需的节点或状态已准备就绪。"""
         transformNames = ["LinearTransform", "LinearTransform_1", "LinearTransform_2"]
         for name in transformNames:
             node = slicer.mrmlScene.GetFirstNodeByName(name)
             if node is None:
                 node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", name)
+        self._observe_transform_nodes_for_angles()
 
     def exit(self) -> None:
-        """Called each time the user opens a different module."""
+        """模块离开回调：断开参数节点与 GUI 的联结并移除修改监听。"""
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         if self._parameterNode:
             self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
@@ -1028,19 +1098,25 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
 
     def onSceneStartClose(self, caller, event) -> None:
-        """Called just before the scene is closed."""
+        """界面回调：执行 `onSceneStartClose` 对应的交互处理流程。"""
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
         self._markersSorted = False
+        for node in self._angleObservedTransformNodes:
+            try:
+                self.removeObserver(node, vtk.vtkCommand.ModifiedEvent, self._on_marker_transform_modified)
+            except Exception:
+                pass
+        self._angleObservedTransformNodes = []
 
     def onSceneEndClose(self, caller, event) -> None:
-        """Called just after the scene is closed."""
+        """界面回调：执行 `onSceneEndClose` 对应的交互处理流程。"""
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         if self.parent.isEntered:
             self.initializeParameterNode()
 
     def initializeParameterNode(self) -> None:
-        """Ensure parameter node exists and observed."""
+        """初始化参数节点并在无输入时选中默认体数据。"""
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
 
@@ -1053,10 +1129,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self._parameterNode.inputVolume = firstVolumeNode
 
     def setParameterNode(self, inputParameterNode: Optional[BiplaneParameterNode]) -> None:
-        """
-        Set and observe parameter node.
-        Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
-        """
+        """设置当前参数节点并建立 GUI 双向同步与修改观察。"""
 
         if self._parameterNode:
             self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
@@ -1070,6 +1143,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._checkCanApply()
 
     def _checkCanApply(self, caller=None, event=None) -> None:
+        """根据输入体数据是否已选择，动态更新 shot 按钮可用状态与提示文案。"""
         canRun = bool(self._parameterNode and getattr(self._parameterNode, "inputVolume", None))
         self.ui.shot1AllButton.enabled = canRun
         self.ui.shot2AllButton.enabled = canRun
@@ -1077,6 +1151,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.shot1AllButton.toolTip = _("Select input volume" if not canRun else "Capture shot")
 
     def flipImage(self, image):
+        """执行图像镜像变换并保留几何信息。"""
         tmp = sitk.GetImageFromArray(sitk.GetArrayFromImage(image))
         flipFilter = sitk.FlipImageFilter()
         flipFilter.SetFlipAxes([True, True, False])
@@ -1087,6 +1162,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def sitk_image_to_vtk_image(self, sitk_image):
         # �?SimpleITK 图像转换�?NumPy 数组
         # sitk_image = self.flipImage(sitk_image)
+        """将 SimpleITK 图像数据与空间信息转换为 vtkImageData，便于 Slicer/VTK 管线继续使用。"""
         np_array = sitk.GetArrayViewFromImage(sitk_image)
 
         # 获取图像的尺�?
@@ -1106,6 +1182,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def vtk_image_to_sitk_image(self, vtk_image):
         # 获取vtkImageData的原始数�?
+        """将 vtkImageData 像素数组还原为 SimpleITK 图像，用于后续 ITK 处理流程。"""
         nshape = tuple(reversed(vtk_image.GetDimensions()))
         vtk_data = vtk_image.GetPointData().GetScalars()
         # 将vtkImageData的原始数据转换为numpy数组
@@ -1119,6 +1196,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return sitk_image
     
     def numpy_to_vtk_image(self, array):
+        """将 NumPy 数组封装为单层 vtkImageData，便于加载成体数据节点。"""
         img = vtk.vtkImageData()
         img.SetDimensions(array.shape[1], array.shape[0], 1)
         img.SetSpacing(1,1,1)
@@ -1128,6 +1206,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return img
 
     def onShowVolumeButton(self):
+        """界面回调：执行 `onShowVolumeButton` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         if not bodyVolumeNode:
             self._error("Input volume not found. Please select one in Input volume")
@@ -1149,6 +1228,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             pass
 
     def onShowMarkerButton(self):
+        """界面回调：执行 `onShowMarkerButton` 对应的交互处理流程。"""
         markerModelNode = self._getMarkersModelNode()
         if markerModelNode is None:
             markerModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode")
@@ -1167,6 +1247,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         markerModelNode.SetDisplayVisibility(True)
 
     def onShowTestPointButton(self):
+        """界面回调：执行 `onShowTestPointButton` 对应的交互处理流程。"""
         markerModelNode = self._getMarkersModelNode()
         if not markerModelNode:
             self._error("需要先点击 showMarker 生成 markers")
@@ -1202,6 +1283,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 displayNode.SetVisibility2D(False)
 
     def onShowKnifeButton(self):
+        """界面回调：执行 `onShowKnifeButton` 对应的交互处理流程。"""
         volumeNode = self._getBodyVolumeNode()
         if not volumeNode:
             self._error("Input volume not found. Please select one in Input volume")
@@ -1236,6 +1318,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_selector_current_node(self.ui.knifeSelector, knifeNode)
 
     def onCopyMarkerPoint(self):
+        """界面回调：执行 `onCopyMarkerPoint` 对应的交互处理流程。"""
         sourceNode = self.ui.copySourceSelector.currentNode()
         targetNode = self.ui.copyTargetSelector.currentNode()
         if not sourceNode:
@@ -1257,6 +1340,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             targetNode.SetNthControlPointPosition(index, sourcePos)
 
     def _copy_center_to_point(self, source_name: str, target_name: str, view_node_id: str, color):
+        """将源节点首个控制点复制到目标节点，并按视图设定显示颜色与可见性。"""
         source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
         if source_node is None or source_node.GetNumberOfControlPoints() < 1:
             self._error(f"Control point missing in {source_name}")
@@ -1285,12 +1369,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             display_node.SetColor(color)
 
     def onCopyBlackCenter1(self):
+        """界面回调：执行 `onCopyBlackCenter1` 对应的交互处理流程。"""
         self._copy_center_to_point("blackCenter1", "PointRed", "vtkMRMLSliceNodeRed", (1.0, 0.0, 0.0))
 
     def onCopyBlackCenter2(self):
+        """界面回调：执行 `onCopyBlackCenter2` 对应的交互处理流程。"""
         self._copy_center_to_point("blackCenter2", "PointGreen", "vtkMRMLSliceNodeGreen", (0.0, 1.0, 0.0))
 
     def onShot1Button(self):
+        """界面回调：执行 `onShot1Button` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1331,6 +1418,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot1AllButton(self):
+        """界面回调：执行 `onShot1AllButton` 对应的交互处理流程。"""
         self.onShot1Button()
         self.onShot1ButtonAgain()
         self.onShot1ButtonShow()
@@ -1341,6 +1429,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot1ButtonAgain(self):
+        """界面回调：执行 `onShot1ButtonAgain` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1404,6 +1493,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot1ButtonShow(self):
+        """界面回调：执行 `onShot1ButtonShow` 对应的交互处理流程。"""
         saveBodyFile = os.path.join(self.savePath, "shot1Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot1Markers.png")
         saveTestPointFile = os.path.join(self.savePath, "shot1TestPoint.png")
@@ -1457,6 +1547,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onShot2Button(self):
+        """界面回调：执行 `onShot2Button` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1497,6 +1588,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     
     def onShot2AllButton(self):
+        """界面回调：执行 `onShot2AllButton` 对应的交互处理流程。"""
         self.onShot2Button()
         self.onShot2ButtonAgain()
         self.onShot2ButtonShow()
@@ -1508,6 +1600,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot2ButtonAgain(self):
+        """界面回调：执行 `onShot2ButtonAgain` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1571,6 +1664,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot2ButtonShow(self):
+        """界面回调：执行 `onShot2ButtonShow` 对应的交互处理流程。"""
         saveBodyFile = os.path.join(self.savePath, "shot2Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot2Markers.png")
         saveTestPointFile = os.path.join(self.savePath, "shot2TestPoint.png")
@@ -1624,6 +1718,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onShot3Button(self):
+        """界面回调：执行 `onShot3Button` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1663,6 +1758,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 tpDisplay.SetVisibility(True)
 
     def onShot3AllButton(self):
+        """界面回调：执行 `onShot3AllButton` 对应的交互处理流程。"""
         self.onShot3Button()
         self.onShot3ButtonAgain()
         self.onShot3ButtonShow()
@@ -1670,6 +1766,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._update_shot3_angle_display()
 
     def onShot3ButtonAgain(self):
+        """界面回调：执行 `onShot3ButtonAgain` 对应的交互处理流程。"""
         bodyVolumeNode = self._getBodyVolumeNode()
         markerModelNode = self._getMarkersModelNode()
         if not bodyVolumeNode or not markerModelNode:
@@ -1733,6 +1830,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot3ButtonShow(self):
+        """界面回调：执行 `onShot3ButtonShow` 对应的交互处理流程。"""
         saveBodyFile = os.path.join(self.savePath, "shot3Body.png")
         saveMarkerFile = os.path.join(self.savePath, "shot3Markers.png")
         saveTestPointFile = os.path.join(self.savePath, "shot3TestPoint.png")
@@ -1786,6 +1884,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onBlackCenterButton(self):
+        """界面回调：执行 `onBlackCenterButton` 对应的交互处理流程。"""
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
         volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
         volumeShot3Node = slicer.mrmlScene.GetFirstNodeByName("shot3")
@@ -1806,6 +1905,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._show_black_center_marker("blackCenter3", "vtkMRMLSliceNodeYellow", pos3)
 
     def onMarkersSortButton(self):
+        """对 shot1/2/3 执行 marker 提取与编号排序，同步生成显示节点并触发标定初始化。"""
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
         volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
         volumeShot3Node = slicer.mrmlScene.GetFirstNodeByName("shot3")
@@ -1907,6 +2007,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._markersSorted = True
 
     def initMarkers(self):
+        """根据三视角 marker 匹配结果构建 2D/3D 映射矩阵、刚体变换和投影标定数据。"""
         bigMarker3DDic = self.generateMarkers.bigMarker3DDic
         smallMarker3DDic = self.generateMarkers.smallMarker3DDic
 
@@ -2206,6 +2307,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def _apply_transform_to_markers(self, transform_name: str):
+        """将 `_apply_transform_to_markers` 相关配置应用到当前场景。"""
         marker_model_node = self._getMarkersModelNode()
         if marker_model_node is None:
             self._error("markers model not found, please click showMarker first")
@@ -2219,6 +2321,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._select_transform_in_transforms_module(transform_node)
 
     def _select_transform_in_transforms_module(self, transform_node):
+        """在 Transforms 模块界面中选中指定变换节点，方便用户直接调整参数。"""
         try:
             module_widget = slicer.modules.transforms.widgetRepresentation()
             if module_widget is None:
@@ -2234,18 +2337,23 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
     def onMarkers1Button(self):
+        """界面回调：执行 `onMarkers1Button` 对应的交互处理流程。"""
         self._apply_transform_to_markers("LinearTransform")
 
     def onMarkers2Button(self):
+        """界面回调：执行 `onMarkers2Button` 对应的交互处理流程。"""
         self._apply_transform_to_markers("LinearTransform_1")
 
     def onMarkers3Button(self):
+        """界面回调：执行 `onMarkers3Button` 对应的交互处理流程。"""
         self._apply_transform_to_markers("LinearTransform_2")
 
     def onOpenTransforms(self):
+        """界面回调：执行 `onOpenTransforms` 对应的交互处理流程。"""
         self._open_transforms_module()
 
     def initLightVec(self):
+        """初始化 Red/Green/Yellow 三视角的光线方向向量，为后续求交与重建提供几何基础。"""
         if self.projectionMode in ("perspective", "orthographic"):
             def get_ray(view_index: int, p2d: np.array):
                 if self.projectionMode == "perspective":
@@ -2311,6 +2419,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.yellow3DVec = p3BigYellow - p3SmallYellow
 
     def onTwoD2ThreeDRed(self):
+        """处理 Red 视图 2D 点位：构造射线与 Green marker 平面求交，并在 Green 视图生成约束线。"""
         if not self._require_markers_sorted():
             return
         markupNode = self.ui.Red2DPSelector.currentNode()
@@ -2510,6 +2619,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onTwoD2ThreeDGreen(self):
+        """处理 Green 视图 2D 点位：合并约束线与平面求交，重建目标 3D 点并投影到 Yellow 视图。"""
         markupNode = self.ui.Green2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
             self._error("Please add a 2D point in Green view first")
@@ -2817,6 +2927,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onTracing(self):
+        """启动刀尖跟踪：注册控制点修改事件，让 3D 点在三个 2D 视图同步刷新。"""
         knifeNode = self.ui.knifeSelector.currentNode()
         if not knifeNode or knifeNode.GetNumberOfControlPoints() < 1:
             self._error("请先选择 knife 点并至少添加一个控制点")
@@ -2831,6 +2942,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
 
     def tracingP3D(self, caller, event):
+        """跟踪回调：将当前 knife 3D 点实时投影到 Red/Green/Yellow 视图。"""
         knifeNode = self.ui.knifeSelector.currentNode()    
         p3D = np.array(knifeNode.GetNthControlPointPosition(0))
         if self.projectionMode == "perspective":
@@ -2924,7 +3036,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onCalculateTRE(self):
-        """Calculate Target Registration Error (TRE) between two selected fiducial points."""
+        """计算两个选中点之间的 TRE（三维欧式距离），并写入 UI 与日志。"""
         try:
             # Get the selected nodes
             point1Node = self.ui.point1Selector.currentNode()
@@ -2965,7 +3077,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._error(f"Error calculating TRE: {str(e)}", detailedText=f"{e}")
 
     def onCalculateReprojectionError(self):
-        """Calculate reprojection error between two selected fiducial points."""
+        """计算两个选中 2D 点的重投影误差（像素距离），并写入 UI 与日志。"""
         try:
             point1Node = self.ui.reprojectionPoint1Selector.currentNode()
             point2Node = self.ui.reprojectionPoint2Selector.currentNode()
@@ -2997,8 +3109,163 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         except Exception as e:
             self._error(f"Error calculating reprojection error: {str(e)}", detailedText=f"{e}")
 
+    def _widget_text(self, widget_name: str) -> str:
+        """Read text-like content from a UI widget safely."""
+        widget = getattr(self.ui, widget_name, None)
+        if widget is None:
+            return ""
+        value = ""
+        if hasattr(widget, "text"):
+            value = widget.text
+            if callable(value):
+                value = value()
+        elif hasattr(widget, "currentText"):
+            value = widget.currentText
+            if callable(value):
+                value = value()
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    def _selector_current_node_name(self, selector_name: str) -> str:
+        """Return current node name from a qMRMLNodeComboBox-like widget."""
+        selector = getattr(self.ui, selector_name, None)
+        if selector is None or not hasattr(selector, "currentNode"):
+            return ""
+        node = selector.currentNode()
+        return node.GetName() if node else ""
+
+    def _extract_first_float(self, text_value):
+        """Extract first float from text like '12.34 mm'; return empty string if absent."""
+        if text_value is None:
+            return ""
+        match = re.search(r"-?\d+(?:\.\d+)?", str(text_value))
+        if not match:
+            return ""
+        return float(match.group(0))
+
+    def _get_first_control_point_xyz(self, node_name: str):
+        """Return first control point xyz of a markups node by name, or empty values."""
+        node = slicer.mrmlScene.GetFirstNodeByName(node_name)
+        if node is None or not hasattr(node, "GetNumberOfControlPoints"):
+            return "", "", ""
+        if node.GetNumberOfControlPoints() < 1:
+            return "", "", ""
+        pos = node.GetNthControlPointPosition(0)
+        return float(pos[0]), float(pos[1]), float(pos[2])
+
+    def _is_calibration_ready(self, calibs) -> bool:
+        """Check whether per-view calibration dict contains 3 views."""
+        return isinstance(calibs, dict) and all(view_idx in calibs for view_idx in (1, 2, 3))
+
+    def _set_csv_file_path(self, path_text: str) -> None:
+        """Normalize and apply CSV output path from UI or file dialog."""
+        if not path_text:
+            return
+        normalized = os.path.normpath(str(path_text).strip())
+        if not normalized:
+            return
+        if not normalized.lower().endswith(".csv"):
+            normalized = f"{normalized}.csv"
+        self.csvFilePath = normalized
+        if hasattr(self.ui, "csvSavePathLineEdit") and self.ui.csvSavePathLineEdit is not None:
+            self.ui.csvSavePathLineEdit.setText(self.csvFilePath)
+
+    def onBrowseCsvPath(self):
+        """Open file dialog to choose CSV output path."""
+        current_path = getattr(self, "csvFilePath", os.path.join(self.savePath, "experiment_results.csv"))
+        selected_path = qt.QFileDialog.getSaveFileName(
+            slicer.util.mainWindow(),
+            "Select CSV Save Path",
+            current_path,
+            "CSV Files (*.csv)",
+        )
+        if not selected_path:
+            return
+        self._set_csv_file_path(selected_path)
+
+    def onSaveResultsCsv(self):
+        """Append current test outputs and key runtime status fields into CSV."""
+        try:
+            if self._markersSorted:
+                self._update_shot2_angle_display()
+                self._update_shot3_angle_display()
+
+            manual_csv_path = self._widget_text("csvSavePathLineEdit")
+            if manual_csv_path:
+                self._set_csv_file_path(manual_csv_path)
+            csv_path = getattr(self, "csvFilePath", os.path.join(self.savePath, "experiment_results.csv"))
+            csv_dir = os.path.dirname(csv_path)
+            if csv_dir:
+                os.makedirs(csv_dir, exist_ok=True)
+
+            tre_display = self._widget_text("treValueDisplay")
+            reproj_display = self._widget_text("reprojectionValueDisplay")
+            line_gap_display = self._widget_text("lineGapDisplay")
+            shot2_angle_display = self._widget_text("shot2AngleLineEdit")
+            shot3_angle1_display = self._widget_text("shot3Angle1LineEdit")
+            shot3_angle2_display = self._widget_text("shot3Angle2LineEdit")
+            testpoint_x, testpoint_y, testpoint_z = self._get_first_control_point_xyz("testPoint")
+
+            input_volume_node = self._getBodyVolumeNode()
+            row = {
+                "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "csv_output_path": csv_path,
+                "input_volume": input_volume_node.GetName() if input_volume_node else "",
+                "projection_mode": self.projectionMode,
+                "projection_mode_status": self._widget_text("projectionModeStatusLabel"),
+                "markers_sorted": int(bool(self._markersSorted)),
+                "perspective_calibration_ready": int(
+                    self._is_calibration_ready(getattr(self, "perspectiveViewCalibs", None))
+                ),
+                "orthographic_calibration_ready": int(
+                    self._is_calibration_ready(getattr(self, "orthographicViewCalibs", None))
+                ),
+                "shot1_available": int(self._get_shot_node_by_index(1) is not None),
+                "shot2_available": int(self._get_shot_node_by_index(2) is not None),
+                "shot3_available": int(self._get_shot_node_by_index(3) is not None),
+                "shot2_angle_deg": self._extract_first_float(shot2_angle_display),
+                "shot3_angle_m3_m1_deg": self._extract_first_float(shot3_angle1_display),
+                "shot3_angle_m3_m2_deg": self._extract_first_float(shot3_angle2_display),
+                "tre_value_mm": self._extract_first_float(tre_display),
+                "reprojection_error_px": self._extract_first_float(reproj_display),
+                "ray_gap_mm": self._extract_first_float(line_gap_display),
+                "tre_display": tre_display,
+                "reprojection_display": reproj_display,
+                "ray_gap_display": line_gap_display,
+                "point1_selector": self._selector_current_node_name("point1Selector"),
+                "point2_selector": self._selector_current_node_name("point2Selector"),
+                "reprojection_point1_selector": self._selector_current_node_name("reprojectionPoint1Selector"),
+                "reprojection_point2_selector": self._selector_current_node_name("reprojectionPoint2Selector"),
+                "red_2d_selector": self._selector_current_node_name("Red2DPSelector"),
+                "green_2d_selector": self._selector_current_node_name("Green2DPSelector"),
+                "knife_selector": self._selector_current_node_name("knifeSelector"),
+                "testpoint_x": testpoint_x,
+                "testpoint_y": testpoint_y,
+                "testpoint_z": testpoint_z,
+                "debug_visualization": int(bool(self.debugVisualization)),
+                "debug_plane_scale": float(self.debugPlaneScale),
+                "debug_ray_scale": float(self.debugRayScale),
+            }
+
+            field_names = list(row.keys())
+            write_header = (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0
+            with open(csv_path, "a", newline="", encoding="utf-8-sig") as csv_file:
+                writer = csv.DictWriter(csv_file, fieldnames=field_names)
+                if write_header:
+                    writer.writeheader()
+                writer.writerow(row)
+
+            logging.info(f"Current test/status row appended to CSV: {csv_path}")
+            try:
+                slicer.util.infoDisplay(f"Results appended to CSV:\n{csv_path}")
+            except Exception:
+                pass
+        except Exception as e:
+            self._error(f"Error saving current results to CSV: {str(e)}", detailedText=f"{e}")
+
     def onDebugVisToggle(self, enabled):
-        """Toggle visibility of all debug visualization nodes"""
+        """界面回调：执行 `onDebugVisToggle` 对应的交互处理流程。"""
         self.debugVisualization = enabled
         
         # Toggle visibility of all visualization nodes if they exist
@@ -3024,30 +3291,20 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._refreshDebugVisualization()
 
     def onDebugPlaneScaleChanged(self, value):
+        """界面回调：执行 `onDebugPlaneScaleChanged` 对应的交互处理流程。"""
         self.debugPlaneScale = float(value)
         if self.debugVisualization:
             self._refreshDebugVisualization(refreshPlanes=True, refreshRays=False)
 
     def onDebugRayScaleChanged(self, value):
+        """界面回调：执行 `onDebugRayScaleChanged` 对应的交互处理流程。"""
         self.debugRayScale = float(value)
         if self.debugVisualization:
             self._refreshDebugVisualization(refreshPlanes=False, refreshRays=True)
 
     def _createOrUpdateVisualizationNode(self, nodeName, position=None, color=(1, 1, 1), 
                                         nodeType="MarkupsFiducial", linePoints=None, glyphScale=2.0):
-        """
-        Helper method to create or update a visualization node.
-        
-        Args:
-            nodeName: Unique name for the visualization node
-            position: 3D point (for fiducial) or None (for line)
-            color: RGB tuple (0-1 range)
-            nodeType: Type of node ("MarkupsFiducial" or "MarkupsLine")
-            linePoints: List of two 3D points if creating a line
-        
-        Returns:
-            Created or existing node
-        """
+        """通用可视化辅助函数：按名称创建或更新点/线调试节点并配置显示属性。"""
         # Remove existing node if present
         existingNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
         if existingNode:
@@ -3095,7 +3352,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return None
 
     def _createOrUpdatePlaneModel(self, nodeName, p1, p2, p3, color=(0.5, 0.5, 0.5), opacity=0.2, scale=6.0):
-        """Create or update a plane model from three points."""
+        """用三点构建平面模型，并按调试参数设置颜色、透明度与可见性。"""
         existingNode = slicer.mrmlScene.GetFirstNodeByName(nodeName)
         if existingNode:
             slicer.mrmlScene.RemoveNode(existingNode)
@@ -3137,7 +3394,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return modelNode
 
     def _getExtendedLinePoints(self, p1, p2, scale=10.0):
-        """Return extended line endpoints so rays are easier to see."""
+        """获取 `_getExtendedLinePoints` 相关对象或计算结果。"""
         p1 = np.array(p1)
         p2 = np.array(p2)
         direction = p2 - p1
@@ -3149,6 +3406,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return [p1 - direction * extra, p2 + direction * extra]
 
     def _refreshDebugVisualization(self, refreshPlanes=True, refreshRays=True):
+        """在调试模式下刷新所有平面、射线和交点的可视化节点。"""
         if not self.debugVisualization:
             return
 
