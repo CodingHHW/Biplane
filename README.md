@@ -105,7 +105,7 @@ Biplane/
 
 ### 默认输出
 
-默认输出目录通常位于：
+默认截图与中间影像输出目录通常位于：
 
 - `<Slicer temporaryPath>/Biplane/`
 
@@ -116,9 +116,15 @@ Biplane/
 - `shot1TestPoint.png`, `shot2TestPoint.png`, `shot3TestPoint.png`
 - `shot1.nii.gz`, `shot2.nii.gz`, `shot3.nii.gz`
 
-实验日志通常记录到：
+默认 CSV 实验日志记录到：
 
-- `experiment_results.csv`
+- `experiment/experiment_results.csv`
+
+说明：
+
+- 截图与 `shot*.nii.gz` 默认仍写入 `<Slicer temporaryPath>/Biplane/`
+- `Save Current Results to CSV` 默认写入仓库目录下的 `experiment/experiment_results.csv`
+- 如有需要，也可以在 UI 里手动改写 CSV 保存路径
 
 ### CSV 记录内容
 
@@ -132,6 +138,28 @@ CSV 会追加记录以下信息：
 - 选点器状态：多个 2D / 3D selector 与 knife selector
 - `testpoint` 三维坐标与 marker 距离
 - 调试参数：`debug_visualization`、`debug_plane_scale`、`debug_ray_scale`
+- marker 排序诊断：
+  - `marker_sort_view{1..3}_rms_px`
+  - `marker_sort_view{1..3}_second_rms_px`
+  - `marker_sort_view{1..3}_rms_gap_px`
+  - `marker_sort_view{1..3}_flip_x`、`marker_sort_view{1..3}_flip_y`
+- 标定诊断：
+  - `perspective_calibration_view{1..3}_reproj_rms_px`
+  - `orthographic_calibration_view{1..3}_reproj_rms_px`
+  - 每个 mode / view 对应的 `flip_x`、`flip_y`、`swap_big_23`、`swap_small_23`
+- 视图与自动点状态：
+  - `camera_view_angle_deg`
+  - `view_orthographic_enabled`
+  - `red_uses_blackcenter_auto_point`
+  - `green_uses_blackcenter_auto_point`
+  - `uses_blackcenter_auto_point_any`
+- 关键步骤耗时：
+  - `timing_shot1_all_ms`、`timing_shot2_all_ms`、`timing_shot3_all_ms`
+  - `timing_black_center_ms`
+  - `timing_markers_sort_ms`、`timing_init_markers_ms`
+  - `timing_perspective_calibration_ms`、`timing_orthographic_calibration_ms`
+  - `timing_red_push_ms`、`timing_green_push_ms`
+  - `timing_tre_calc_ms`、`timing_reprojection_calc_ms`
 
 ---
 
@@ -159,6 +187,13 @@ Notebook 会清洗 CSV 并输出：
 - `experiment_results_cleaned.csv`
 - `analysis_summary.csv`
 - 多张图像到 `Analysis/Analysis/figures/`
+
+Notebook 现在还会额外汇总这些诊断日志字段的覆盖率与描述统计：
+
+- marker sorting RMS
+- calibration reprojection RMS
+- blackCenter 自动点使用情况
+- 关键步骤耗时
 
 Figure 4 相关的新图包括：
 
@@ -345,6 +380,37 @@ Besides the Slicer module itself, this repository includes an analysis workflow 
 
 - [experiment_results_analysis.ipynb](Analysis/experiment_results_analysis.ipynb)
 - [projection_workflow_analysis.py](Analysis/projection_workflow_analysis.py)
+
+### Logging Metadata
+
+The default CSV log path is now:
+
+- `experiment/experiment_results.csv`
+
+When you save a CSV record, the module also exports the current 3 marker transform nodes into:
+
+- `experiment/transform_snapshots/<experiment_record_id>/`
+
+Each CSV row stores the matching `experiment_record_id`, per-transform save flags, and the exact transform file paths so that a logged experiment can be replayed later.
+
+Besides the main error metrics, the CSV now also stores:
+
+- `experiment_record_id`
+- `marker_transform_snapshot_dir`
+- `marker_transform_{1..3}_name`
+- `marker_transform_{1..3}_path`
+- `marker_transform_{1..3}_saved`
+- `marker_transform_snapshot_count`
+- `marker_transform_snapshot_ready`
+- per-view marker-sorting RMS / second-best RMS / RMS gap
+- per-view calibration reprojection RMS for both `Perspective` and `Orthographic`
+- `flip_x`, `flip_y`, `swap_big_23`, `swap_small_23`
+- `camera_view_angle_deg` and orthographic-view status
+- `blackCenter` auto-point usage flags
+- step timings such as `timing_markers_sort_ms`, `timing_red_push_ms`, and calibration timings
+- any metric-style field from a step that was not run is written as `NA` instead of an empty cell
+
+The analysis notebook now summarizes the coverage and descriptive statistics of these diagnostic fields and writes cleaned outputs to `Analysis/Analysis/`.
 
 ### Updated Perspective vs Orthographic Analysis
 

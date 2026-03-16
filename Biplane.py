@@ -4,6 +4,7 @@ import csv
 import os
 import itertools
 import re
+import time
 from datetime import datetime
 from typing import Annotated, Optional
 
@@ -89,7 +90,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.savePath = os.path.join(basePath, "Biplane")
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
-        self.csvFilePath = os.path.join(self.savePath, "experiment_results.csv")
+        self.projectPath = os.path.dirname(os.path.abspath(__file__))
+        self.experimentPath = os.path.join(self.projectPath, "experiment")
+        os.makedirs(self.experimentPath, exist_ok=True)
+        self.csvFilePath = os.path.join(self.experimentPath, "experiment_results.csv")
+        self.markerSortMetrics = {}
+        self.stepTimingsMs = {}
 
     def _error(self, message: str, detailedText: Optional[str] = None) -> None:
         """统一错误处理入口：优先使用 Slicer 弹窗，弹窗失败时写入日志。"""
@@ -820,6 +826,16 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 flip_y,
             )
 
+        second_rms = second[0] if second is not None else ""
+        rms_gap = (second_rms - rms) if second is not None else ""
+        self.markerSortMetrics[view_index] = {
+            "rms_px": float(rms),
+            "second_rms_px": float(second_rms) if second_rms != "" else "",
+            "rms_gap_px": float(rms_gap) if rms_gap != "" else "",
+            "flip_x": int(bool(flip_x)),
+            "flip_y": int(bool(flip_y)),
+        }
+
         big_sorted = {}
         small_sorted = {}
         for label, detected_index in zip(labels, best_big_perm):
@@ -830,6 +846,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _compute_perspective_calibrations(self) -> bool:
         """计算三个视角的透视标定参数（K/dist/rvec/tvec 及翻转、编号交换状态）。"""
+        start_time = time.perf_counter()
         try:
             view_angle = self._get_current_3d_camera_view_angle()
             max_rms_px = 5.0
@@ -905,6 +922,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "flip_y": bool(flip_y),
                     "swap_big_23": bool(swap_big_23),
                     "swap_small_23": bool(swap_small_23),
+                    "reproj_rms_px": float(rms),
+                    "view_angle_deg": float(view_angle),
                 }
 
             self.perspectiveViewCalibs = calibs
@@ -913,11 +932,18 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.perspectiveViewCalibs = {}
             self._error("Perspective solvePnP calibration failed", detailedText=str(e))
             return False
+        finally:
+            self.stepTimingsMs["perspective_calibration_ms"] = round(
+                (time.perf_counter() - start_time) * 1000.0,
+                3,
+            )
 
     def _compute_orthographic_calibrations(self) -> bool:
         """计算三个视角的正交标定参数（2x4 投影模型、平面方向向量与异常阈值校验）。"""
+        start_time = time.perf_counter()
         try:
             max_rms_px = 5.0
+            view_angle = self._get_current_3d_camera_view_angle()
             calibs = {}
             for idx in (1, 2, 3):
                 image_size = self._get_shot_image_size(idx)
@@ -991,6 +1017,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     "flip_y": bool(flip_y),
                     "swap_big_23": bool(swap_big_23),
                     "swap_small_23": bool(swap_small_23),
+                    "reproj_rms_px": float(rms),
+                    "view_angle_deg": float(view_angle),
                 }
 
             self.orthographicViewCalibs = calibs
@@ -999,6 +1027,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.orthographicViewCalibs = {}
             self._error("Orthographic calibration failed", detailedText=str(e))
             return False
+        finally:
+            self.stepTimingsMs["orthographic_calibration_ms"] = round(
+                (time.perf_counter() - start_time) * 1000.0,
+                3,
+            )
 
     def _ortho_pixel_to_world_ray(self, view_index: int, point2d_slicer: np.array):
         """执行 `_ortho_pixel_to_world_ray` 所对应的坐标系转换或投影运算。"""
@@ -1418,6 +1451,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onShot1AllButton(self):
+        """Timed wrapper for the full shot1 acquisition workflow."""
+        return self._run_timed_step("shot1_all_ms", self._onShot1AllButton_impl)
+
+    def _onShot1AllButton_impl(self):
         """界面回调：执行 `onShot1AllButton` 对应的交互处理流程。"""
         self.onShot1Button()
         self.onShot1ButtonAgain()
@@ -1588,6 +1625,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     
     def onShot2AllButton(self):
+        """Timed wrapper for the full shot2 acquisition workflow."""
+        return self._run_timed_step("shot2_all_ms", self._onShot2AllButton_impl)
+
+    def _onShot2AllButton_impl(self):
         """界面回调：执行 `onShot2AllButton` 对应的交互处理流程。"""
         self.onShot2Button()
         self.onShot2ButtonAgain()
@@ -1758,6 +1799,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 tpDisplay.SetVisibility(True)
 
     def onShot3AllButton(self):
+        """Timed wrapper for the full shot3 acquisition workflow."""
+        return self._run_timed_step("shot3_all_ms", self._onShot3AllButton_impl)
+
+    def _onShot3AllButton_impl(self):
         """界面回调：执行 `onShot3AllButton` 对应的交互处理流程。"""
         self.onShot3Button()
         self.onShot3ButtonAgain()
@@ -1884,6 +1929,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sliceWidget.sliceController().fitSliceToBackground()
 
     def onBlackCenterButton(self):
+        """Timed wrapper for black-center extraction."""
+        return self._run_timed_step("black_center_ms", self._onBlackCenterButton_impl)
+
+    def _onBlackCenterButton_impl(self):
         """界面回调：执行 `onBlackCenterButton` 对应的交互处理流程。"""
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
         volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
@@ -1905,7 +1954,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._show_black_center_marker("blackCenter3", "vtkMRMLSliceNodeYellow", pos3)
 
     def onMarkersSortButton(self):
+        """Timed wrapper for marker sorting and calibration initialization."""
+        return self._run_timed_step("markers_sort_ms", self._onMarkersSortButton_impl)
+
+    def _onMarkersSortButton_impl(self):
         """对 shot1/2/3 执行 marker 提取与编号排序，同步生成显示节点并触发标定初始化。"""
+        self.markerSortMetrics = {}
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
         volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
         volumeShot3Node = slicer.mrmlScene.GetFirstNodeByName("shot3")
@@ -2007,6 +2061,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._markersSorted = True
 
     def initMarkers(self):
+        """Timed wrapper for marker initialization and calibration refresh."""
+        return self._run_timed_step("init_markers_ms", self._initMarkers_impl)
+
+    def _initMarkers_impl(self):
         """根据三视角 marker 匹配结果构建 2D/3D 映射矩阵、刚体变换和投影标定数据。"""
         bigMarker3DDic = self.generateMarkers.bigMarker3DDic
         smallMarker3DDic = self.generateMarkers.smallMarker3DDic
@@ -2419,6 +2477,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.yellow3DVec = p3BigYellow - p3SmallYellow
 
     def onTwoD2ThreeDRed(self):
+        """Timed wrapper for the Red-view 2D to 3D step."""
+        return self._run_timed_step("red_push_ms", self._onTwoD2ThreeDRed_impl)
+
+    def _onTwoD2ThreeDRed_impl(self):
         """处理 Red 视图 2D 点位：构造射线与 Green marker 平面求交，并在 Green 视图生成约束线。"""
         if not self._require_markers_sorted():
             return
@@ -2619,6 +2681,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onTwoD2ThreeDGreen(self):
+        """Timed wrapper for the Green-view 2D to 3D step."""
+        return self._run_timed_step("green_push_ms", self._onTwoD2ThreeDGreen_impl)
+
+    def _onTwoD2ThreeDGreen_impl(self):
         """处理 Green 视图 2D 点位：合并约束线与平面求交，重建目标 3D 点并投影到 Yellow 视图。"""
         markupNode = self.ui.Green2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
@@ -3036,6 +3102,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onCalculateTRE(self):
+        """Timed wrapper for TRE computation."""
+        return self._run_timed_step("tre_calc_ms", self._onCalculateTRE_impl)
+
+    def _onCalculateTRE_impl(self):
         """计算两个选中点之间的 TRE（三维欧式距离），并写入 UI 与日志。"""
         try:
             # Get the selected nodes
@@ -3077,6 +3147,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._error(f"Error calculating TRE: {str(e)}", detailedText=f"{e}")
 
     def onCalculateReprojectionError(self):
+        """Timed wrapper for reprojection-error computation."""
+        return self._run_timed_step("reprojection_calc_ms", self._onCalculateReprojectionError_impl)
+
+    def _onCalculateReprojectionError_impl(self):
         """计算两个选中 2D 点的重投影误差（像素距离），并写入 UI 与日志。"""
         try:
             point1Node = self.ui.reprojectionPoint1Selector.currentNode()
@@ -3157,6 +3231,135 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             pos = node.GetNthControlPointPosition(0)
         return float(pos[0]), float(pos[1]), float(pos[2])
 
+    def _run_timed_step(self, step_name: str, callback, *args, **kwargs):
+        """Run callback and store elapsed wall time in milliseconds."""
+        start_time = time.perf_counter()
+        try:
+            return callback(*args, **kwargs)
+        finally:
+            self.stepTimingsMs[step_name] = round((time.perf_counter() - start_time) * 1000.0, 3)
+
+    def _marker_sort_metric(self, view_index: int, key: str):
+        """Return cached marker-sorting metric for a given view, or empty string."""
+        metrics = self.markerSortMetrics.get(view_index, {})
+        return metrics.get(key, "")
+
+    def _csv_value_or_na(self, value):
+        """Return CSV-friendly NA sentinel for missing metric values."""
+        if value is None:
+            return "NA"
+        if isinstance(value, str) and value == "":
+            return "NA"
+        return value
+
+    def _safe_filename_component(self, value: str) -> str:
+        """Convert arbitrary text to a filesystem-friendly filename component."""
+        sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value).strip())
+        sanitized = sanitized.strip("._-")
+        return sanitized or "item"
+
+    def _export_marker_transform_snapshots(self, csv_path: str, record_id: str):
+        """Save the 3 marker transform nodes next to the CSV for experiment reproducibility."""
+        transform_names = ("LinearTransform", "LinearTransform_1", "LinearTransform_2")
+        csv_dir = os.path.dirname(csv_path) or getattr(self, "experimentPath", self.savePath)
+        export_root = os.path.join(csv_dir, "transform_snapshots")
+        export_dir = os.path.join(export_root, record_id)
+        os.makedirs(export_dir, exist_ok=True)
+
+        export_info = {
+            "experiment_record_id": record_id,
+            "marker_transform_snapshot_dir": export_dir,
+        }
+        saved_count = 0
+        for idx, transform_name in enumerate(transform_names, start=1):
+            prefix = f"marker_transform_{idx}"
+            export_info[f"{prefix}_name"] = transform_name
+            export_info[f"{prefix}_path"] = "NA"
+            export_info[f"{prefix}_saved"] = 0
+
+            transform_node = slicer.mrmlScene.GetFirstNodeByName(transform_name)
+            if transform_node is None:
+                continue
+
+            filename = (
+                f"{record_id}_{idx}_{self._safe_filename_component(transform_name)}.h5"
+            )
+            output_path = os.path.join(export_dir, filename)
+            try:
+                save_ok = bool(slicer.util.saveNode(transform_node, output_path))
+            except Exception:
+                logging.exception("Failed to save transform snapshot: %s", transform_name)
+                save_ok = False
+
+            if not save_ok:
+                continue
+
+            export_info[f"{prefix}_path"] = output_path
+            export_info[f"{prefix}_saved"] = 1
+            saved_count += 1
+
+        export_info["marker_transform_snapshot_count"] = saved_count
+        export_info["marker_transform_snapshot_ready"] = int(saved_count == len(transform_names))
+        if saved_count == 0:
+            try:
+                if not os.listdir(export_dir):
+                    os.rmdir(export_dir)
+            except OSError:
+                pass
+            export_info["marker_transform_snapshot_dir"] = "NA"
+        return export_info
+
+    def _append_csv_row_with_schema_upgrade(self, csv_path: str, row: dict) -> None:
+        """Append a row to CSV and upgrade the file header if new columns were introduced."""
+        field_names = list(row.keys())
+        if os.path.exists(csv_path) and os.path.getsize(csv_path) > 0:
+            with open(csv_path, "r", newline="", encoding="utf-8-sig") as csv_file:
+                reader = csv.DictReader(csv_file)
+                existing_field_names = reader.fieldnames or []
+                if existing_field_names != field_names:
+                    existing_rows = list(reader)
+                    merged_field_names = list(field_names)
+                    for field_name in existing_field_names:
+                        if field_name not in merged_field_names:
+                            merged_field_names.append(field_name)
+                    for existing_row in existing_rows:
+                        for field_name in merged_field_names:
+                            existing_row.setdefault(field_name, "NA")
+                    for field_name in merged_field_names:
+                        row.setdefault(field_name, "NA")
+                    with open(csv_path, "w", newline="", encoding="utf-8-sig") as rewrite_file:
+                        writer = csv.DictWriter(rewrite_file, fieldnames=merged_field_names)
+                        writer.writeheader()
+                        writer.writerows(existing_rows)
+                    field_names = merged_field_names
+                else:
+                    for field_name in field_names:
+                        row.setdefault(field_name, "NA")
+
+        write_header = (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0
+        with open(csv_path, "a", newline="", encoding="utf-8-sig") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
+            if write_header:
+                writer.writeheader()
+            writer.writerow(row)
+
+    def _selector_matches_named_node(self, selector_name: str, target_node_name: str, tolerance: float = 1e-6) -> bool:
+        """Check whether selector current node first control point matches the target node."""
+        selector = getattr(self.ui, selector_name, None)
+        if selector is None or not hasattr(selector, "currentNode"):
+            return False
+        selected_node = selector.currentNode()
+        target_node = slicer.mrmlScene.GetFirstNodeByName(target_node_name)
+        if selected_node is None or target_node is None:
+            return False
+        if not hasattr(selected_node, "GetNumberOfControlPoints") or not hasattr(target_node, "GetNumberOfControlPoints"):
+            return False
+        if selected_node.GetNumberOfControlPoints() < 1 or target_node.GetNumberOfControlPoints() < 1:
+            return False
+        selected_pos = np.array(selected_node.GetNthControlPointPosition(0), dtype=float)
+        target_pos = np.array(target_node.GetNthControlPointPosition(0), dtype=float)
+        return bool(np.linalg.norm(selected_pos - target_pos) <= tolerance)
+
     def _marker_distribution_center_for_transform(self, transform_name: str):
         """Return marker distribution center in world space for a transform, or None."""
         if not hasattr(self, "generateMarkers") or self.generateMarkers is None:
@@ -3217,7 +3420,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onBrowseCsvPath(self):
         """Open file dialog to choose CSV output path."""
-        current_path = getattr(self, "csvFilePath", os.path.join(self.savePath, "experiment_results.csv"))
+        current_path = getattr(
+            self,
+            "csvFilePath",
+            os.path.join(getattr(self, "experimentPath", self.savePath), "experiment_results.csv"),
+        )
         selected_path = qt.QFileDialog.getSaveFileName(
             slicer.util.mainWindow(),
             "Select CSV Save Path",
@@ -3238,10 +3445,17 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             manual_csv_path = self._widget_text("csvSavePathLineEdit")
             if manual_csv_path:
                 self._set_csv_file_path(manual_csv_path)
-            csv_path = getattr(self, "csvFilePath", os.path.join(self.savePath, "experiment_results.csv"))
+            csv_path = getattr(
+                self,
+                "csvFilePath",
+                os.path.join(getattr(self, "experimentPath", self.savePath), "experiment_results.csv"),
+            )
             csv_dir = os.path.dirname(csv_path)
             if csv_dir:
                 os.makedirs(csv_dir, exist_ok=True)
+            capture_time = datetime.now().astimezone()
+            record_id = capture_time.strftime("%Y%m%d_%H%M%S_%f")
+            transform_snapshot_info = self._export_marker_transform_snapshots(csv_path, record_id)
 
             tre_display = self._widget_text("treValueDisplay")
             reproj_display = self._widget_text("reprojectionValueDisplay")
@@ -3258,8 +3472,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ) = self._testpoint_marker_distances_mm()
 
             input_volume_node = self._getBodyVolumeNode()
+            camera_view_angle_deg = self._get_current_3d_camera_view_angle()
+            red_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Red2DPSelector", "blackCenter1"))
+            green_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Green2DPSelector", "blackCenter2"))
             row = {
-                "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "timestamp": capture_time.isoformat(timespec="seconds"),
+                "experiment_record_id": record_id,
                 "csv_output_path": csv_path,
                 "input_volume": input_volume_node.GetName() if input_volume_node else "",
                 "projection_mode": self.projectionMode,
@@ -3290,6 +3508,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "red_2d_selector": self._selector_current_node_name("Red2DPSelector"),
                 "green_2d_selector": self._selector_current_node_name("Green2DPSelector"),
                 "knife_selector": self._selector_current_node_name("knifeSelector"),
+                "camera_view_angle_deg": float(camera_view_angle_deg) if camera_view_angle_deg is not None else "",
+                "view_orthographic_enabled": int(self.projectionMode == "orthographic"),
+                "red_uses_blackcenter_auto_point": red_uses_blackcenter_auto_point,
+                "green_uses_blackcenter_auto_point": green_uses_blackcenter_auto_point,
+                "uses_blackcenter_auto_point_any": int(
+                    bool(red_uses_blackcenter_auto_point or green_uses_blackcenter_auto_point)
+                ),
                 "testpoint_x": testpoint_x,
                 "testpoint_y": testpoint_y,
                 "testpoint_z": testpoint_z,
@@ -3301,14 +3526,86 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "debug_plane_scale": float(self.debugPlaneScale),
                 "debug_ray_scale": float(self.debugRayScale),
             }
+            row.update(transform_snapshot_info)
 
-            field_names = list(row.keys())
-            write_header = (not os.path.exists(csv_path)) or os.path.getsize(csv_path) == 0
-            with open(csv_path, "a", newline="", encoding="utf-8-sig") as csv_file:
-                writer = csv.DictWriter(csv_file, fieldnames=field_names)
-                if write_header:
-                    writer.writeheader()
-                writer.writerow(row)
+            for view_idx in (1, 2, 3):
+                row[f"marker_sort_view{view_idx}_rms_px"] = self._marker_sort_metric(view_idx, "rms_px")
+                row[f"marker_sort_view{view_idx}_second_rms_px"] = self._marker_sort_metric(view_idx, "second_rms_px")
+                row[f"marker_sort_view{view_idx}_rms_gap_px"] = self._marker_sort_metric(view_idx, "rms_gap_px")
+                row[f"marker_sort_view{view_idx}_flip_x"] = self._marker_sort_metric(view_idx, "flip_x")
+                row[f"marker_sort_view{view_idx}_flip_y"] = self._marker_sort_metric(view_idx, "flip_y")
+
+            calibration_sets = {
+                "perspective": getattr(self, "perspectiveViewCalibs", {}),
+                "orthographic": getattr(self, "orthographicViewCalibs", {}),
+            }
+            for mode_name, calibs in calibration_sets.items():
+                calibs = calibs if isinstance(calibs, dict) else {}
+                for view_idx in (1, 2, 3):
+                    calib = calibs.get(view_idx, {})
+                    row[f"{mode_name}_calibration_view{view_idx}_reproj_rms_px"] = calib.get("reproj_rms_px", "")
+                    row[f"{mode_name}_calibration_view{view_idx}_flip_x"] = (
+                        int(bool(calib["flip_x"])) if "flip_x" in calib else ""
+                    )
+                    row[f"{mode_name}_calibration_view{view_idx}_flip_y"] = (
+                        int(bool(calib["flip_y"])) if "flip_y" in calib else ""
+                    )
+                    row[f"{mode_name}_calibration_view{view_idx}_swap_big_23"] = (
+                        int(bool(calib["swap_big_23"])) if "swap_big_23" in calib else ""
+                    )
+                    row[f"{mode_name}_calibration_view{view_idx}_swap_small_23"] = (
+                        int(bool(calib["swap_small_23"])) if "swap_small_23" in calib else ""
+                    )
+                    row[f"{mode_name}_calibration_view{view_idx}_view_angle_deg"] = calib.get("view_angle_deg", "")
+
+            timing_keys = (
+                "shot1_all_ms",
+                "shot2_all_ms",
+                "shot3_all_ms",
+                "black_center_ms",
+                "markers_sort_ms",
+                "init_markers_ms",
+                "perspective_calibration_ms",
+                "orthographic_calibration_ms",
+                "red_push_ms",
+                "green_push_ms",
+                "tre_calc_ms",
+                "reprojection_calc_ms",
+            )
+            for timing_key in timing_keys:
+                row[f"timing_{timing_key}"] = self.stepTimingsMs.get(timing_key, "")
+
+            text_fields = {
+                "timestamp",
+                "experiment_record_id",
+                "csv_output_path",
+                "input_volume",
+                "projection_mode",
+                "projection_mode_status",
+                "tre_display",
+                "reprojection_display",
+                "ray_gap_display",
+                "point1_selector",
+                "point2_selector",
+                "reprojection_point1_selector",
+                "reprojection_point2_selector",
+                "red_2d_selector",
+                "green_2d_selector",
+                "knife_selector",
+                "marker_transform_snapshot_dir",
+                "marker_transform_1_name",
+                "marker_transform_1_path",
+                "marker_transform_2_name",
+                "marker_transform_2_path",
+                "marker_transform_3_name",
+                "marker_transform_3_path",
+            }
+            for field_name, field_value in list(row.items()):
+                if field_name in text_fields:
+                    continue
+                row[field_name] = self._csv_value_or_na(field_value)
+
+            self._append_csv_row_with_schema_upgrade(csv_path, row)
 
             logging.info(f"Current test/status row appended to CSV: {csv_path}")
             try:
