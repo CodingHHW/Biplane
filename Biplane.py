@@ -94,6 +94,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.experimentPath = os.path.join(self.projectPath, "experiment")
         os.makedirs(self.experimentPath, exist_ok=True)
         self.csvFilePath = os.path.join(self.experimentPath, "experiment_results.csv")
+        self.importCsvFilePath = self.csvFilePath
+        self.importedExperimentRows = []
+        self.importedExperimentFieldNames = []
+        self.importedExperimentRowIndex = -1
+        self.importedExperimentRestoreStatus = "Transforms: n/a"
         self.markerSortMetrics = {}
         self.stepTimingsMs = {}
 
@@ -485,6 +490,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.calculateReprojectionButton.connect("clicked(bool)", self.onCalculateReprojectionError)
         self.ui.browseCsvPathButton.connect("clicked(bool)", self.onBrowseCsvPath)
         self.ui.saveResultsCsvButton.connect("clicked(bool)", self.onSaveResultsCsv)
+        self.ui.browseImportCsvPathButton.connect("clicked(bool)", self.onBrowseImportCsvPath)
+        self.ui.loadImportCsvButton.connect("clicked(bool)", self.onLoadImportCsv)
+        self.ui.importCsvPrevRowButton.connect("clicked(bool)", self.onImportCsvPreviousRow)
+        self.ui.importCsvNextRowButton.connect("clicked(bool)", self.onImportCsvNextRow)
 
         self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
         self.ui.debugPlaneScaleSpinBox.connect("valueChanged(double)", self.onDebugPlaneScaleChanged)
@@ -504,6 +513,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         if hasattr(self.ui, "csvSavePathLineEdit") and self.ui.csvSavePathLineEdit is not None:
             self.ui.csvSavePathLineEdit.setText(self.csvFilePath)
+        if hasattr(self.ui, "importCsvPathLineEdit") and self.ui.importCsvPathLineEdit is not None:
+            self.ui.importCsvPathLineEdit.setText(self.importCsvFilePath)
+        self._update_import_csv_status()
 
         self.ui.orthographicProjectionButton.setChecked(False)
         self.ui.perspectiveProjectionButton.setChecked(True)
@@ -1293,27 +1305,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         center = [0.0, 0.0, 0.0]
         polyData.GetCenter(center)
-
-        testPointNode = slicer.mrmlScene.GetFirstNodeByName("testPoint")
-        if testPointNode is None:
-            testPointNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "testPoint")
-            testPointNode.CreateDefaultDisplayNodes()
-
-        if testPointNode.GetNumberOfControlPoints() < 1:
-            testPointNode.AddControlPoint(center)
-        else:
-            testPointNode.SetNthControlPointPosition(0, center)
-
-        displayNode = testPointNode.GetDisplayNode()
-        if displayNode:
-            displayNode.SetPointLabelsVisibility(False)
-            displayNode.SetSelectedColor(0, 0, 0)
-            displayNode.SetColor(0, 0, 0)
-            displayNode.SetVisibility(True)
-            if hasattr(displayNode, "SetVisibility3D"):
-                displayNode.SetVisibility3D(True)
-            if hasattr(displayNode, "SetVisibility2D"):
-                displayNode.SetVisibility2D(False)
+        self._set_testpoint_position(center)
 
     def onShowKnifeButton(self):
         """界面回调：执行 `onShowKnifeButton` 对应的交互处理流程。"""
@@ -3231,6 +3223,36 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             pos = node.GetNthControlPointPosition(0)
         return float(pos[0]), float(pos[1]), float(pos[2])
 
+    def _ensure_testpoint_node(self):
+        """Return the scene testPoint node, creating it if needed."""
+        testpoint_node = slicer.mrmlScene.GetFirstNodeByName("testPoint")
+        if testpoint_node is None:
+            testpoint_node = slicer.mrmlScene.AddNewNodeByClass(
+                "vtkMRMLMarkupsFiducialNode",
+                "testPoint",
+            )
+            testpoint_node.CreateDefaultDisplayNodes()
+        display_node = testpoint_node.GetDisplayNode()
+        if display_node:
+            display_node.SetPointLabelsVisibility(False)
+            display_node.SetSelectedColor(0, 0, 0)
+            display_node.SetColor(0, 0, 0)
+            display_node.SetVisibility(True)
+            if hasattr(display_node, "SetVisibility3D"):
+                display_node.SetVisibility3D(True)
+            if hasattr(display_node, "SetVisibility2D"):
+                display_node.SetVisibility2D(False)
+        return testpoint_node
+
+    def _set_testpoint_position(self, position):
+        """Set the scene testPoint node to the provided world-space position."""
+        testpoint_node = self._ensure_testpoint_node()
+        if testpoint_node.GetNumberOfControlPoints() < 1:
+            testpoint_node.AddControlPoint(position)
+        else:
+            testpoint_node.SetNthControlPointPosition(0, position)
+        return testpoint_node
+
     def _run_timed_step(self, step_name: str, callback, *args, **kwargs):
         """Run callback and store elapsed wall time in milliseconds."""
         start_time = time.perf_counter()
@@ -3417,6 +3439,196 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.csvFilePath = normalized
         if hasattr(self.ui, "csvSavePathLineEdit") and self.ui.csvSavePathLineEdit is not None:
             self.ui.csvSavePathLineEdit.setText(self.csvFilePath)
+
+    def _set_import_csv_file_path(self, path_text: str) -> None:
+        """Normalize and apply imported CSV path from UI or file dialog."""
+        if not path_text:
+            return
+        normalized = os.path.normpath(str(path_text).strip())
+        self.importCsvFilePath = normalized
+        if hasattr(self.ui, "importCsvPathLineEdit") and self.ui.importCsvPathLineEdit is not None:
+            self.ui.importCsvPathLineEdit.setText(self.importCsvFilePath)
+
+    def _update_import_csv_status(self) -> None:
+        """Refresh import-row status label and row navigation button states."""
+        total_rows = len(self.importedExperimentRows)
+        selected_row = self.importedExperimentRowIndex + 1 if 0 <= self.importedExperimentRowIndex < total_rows else 0
+        status_text = f"Rows: {total_rows} | Selected: {selected_row}"
+        if getattr(self, "importedExperimentRestoreStatus", ""):
+            status_text = f"{status_text} | {self.importedExperimentRestoreStatus}"
+        if hasattr(self.ui, "importCsvStatusLabel") and self.ui.importCsvStatusLabel is not None:
+            self.ui.importCsvStatusLabel.setText(status_text)
+
+        prev_enabled = total_rows > 0 and self.importedExperimentRowIndex > 0
+        next_enabled = total_rows > 0 and self.importedExperimentRowIndex < total_rows - 1
+        if hasattr(self.ui, "importCsvPrevRowButton") and self.ui.importCsvPrevRowButton is not None:
+            self.ui.importCsvPrevRowButton.setEnabled(prev_enabled)
+        if hasattr(self.ui, "importCsvNextRowButton") and self.ui.importCsvNextRowButton is not None:
+            self.ui.importCsvNextRowButton.setEnabled(next_enabled)
+
+    def _parse_imported_testpoint_xyz(self, row: dict):
+        """Return imported testPoint xyz as floats, or None if the row is invalid."""
+        coords = []
+        for field_name in ("testpoint_x", "testpoint_y", "testpoint_z"):
+            raw_value = row.get(field_name, "")
+            text_value = self._normalize_optional_csv_value(raw_value)
+            if text_value is None:
+                return None
+            try:
+                coords.append(float(text_value))
+            except ValueError:
+                return None
+        return tuple(coords)
+
+    def _normalize_optional_csv_value(self, value):
+        """Normalize optional CSV cell content and map empty/NA values to None."""
+        if value is None:
+            return None
+        text_value = str(value).strip()
+        if not text_value or text_value.upper() == "NA":
+            return None
+        return text_value
+
+    def _restore_transform_snapshots_from_row(self, row_index: int):
+        """Restore the 3 saved marker transform snapshots for the selected row."""
+        if row_index < 0 or row_index >= len(self.importedExperimentRows):
+            return False, "Transforms: n/a"
+
+        row = self.importedExperimentRows[row_index]
+        transform_specs = []
+        missing_paths = []
+        for idx, target_name in enumerate(("LinearTransform", "LinearTransform_1", "LinearTransform_2"), start=1):
+            path_value = self._normalize_optional_csv_value(row.get(f"marker_transform_{idx}_path", ""))
+            if path_value is None:
+                missing_paths.append(idx)
+                continue
+            transform_specs.append((idx, target_name, os.path.normpath(path_value)))
+
+        if missing_paths:
+            return False, "Transforms: unavailable"
+
+        missing_files = [str(idx) for idx, _, path in transform_specs if not os.path.exists(path)]
+        if missing_files:
+            return False, f"Transforms: missing files ({','.join(missing_files)}/3)"
+
+        self._ensureLinearTransformNodes()
+        loaded_nodes = []
+        try:
+            for _, _, transform_path in transform_specs:
+                loaded_node = slicer.util.loadTransform(transform_path)
+                if isinstance(loaded_node, (list, tuple)):
+                    loaded_node = loaded_node[0] if loaded_node else None
+                if loaded_node is None:
+                    raise RuntimeError(f"Failed to load transform file: {transform_path}")
+                loaded_nodes.append(loaded_node)
+
+            for (_, target_name, _), loaded_node in zip(transform_specs, loaded_nodes):
+                target_node = slicer.mrmlScene.GetFirstNodeByName(target_name)
+                if target_node is None:
+                    raise RuntimeError(f"Scene transform node not found: {target_name}")
+                transform_matrix = vtk.vtkMatrix4x4()
+                loaded_node.GetMatrixTransformToParent(transform_matrix)
+                target_node.SetAndObserveMatrixTransformToParent(transform_matrix)
+            self._observe_transform_nodes_for_angles()
+            if self._markersSorted:
+                self._update_shot2_angle_display()
+                self._update_shot3_angle_display()
+            return True, "Transforms: 3/3 restored"
+        except Exception as exc:
+            logging.exception("Failed to restore transform snapshots from imported CSV row")
+            return False, f"Transforms: restore failed"
+        finally:
+            for loaded_node in loaded_nodes:
+                try:
+                    slicer.mrmlScene.RemoveNode(loaded_node)
+                except Exception:
+                    pass
+
+    def _apply_imported_row_to_testpoint(self, row_index: int) -> bool:
+        """Apply imported row testPoint coordinates into the current scene."""
+        if row_index < 0 or row_index >= len(self.importedExperimentRows):
+            return False
+        coords = self._parse_imported_testpoint_xyz(self.importedExperimentRows[row_index])
+        if coords is None:
+            self._error("Selected CSV row does not contain a valid testPoint position")
+            return False
+        self._set_testpoint_position(coords)
+        return True
+
+    def _select_imported_experiment_row(self, row_index: int) -> None:
+        """Select an imported CSV row and apply its testPoint to the scene."""
+        total_rows = len(self.importedExperimentRows)
+        if total_rows == 0:
+            self.importedExperimentRowIndex = -1
+            self.importedExperimentRestoreStatus = "Transforms: n/a"
+            self._update_import_csv_status()
+            return
+        row_index = max(0, min(row_index, total_rows - 1))
+        self.importedExperimentRowIndex = row_index
+        self._apply_imported_row_to_testpoint(row_index)
+        _, restore_status = self._restore_transform_snapshots_from_row(row_index)
+        self.importedExperimentRestoreStatus = restore_status
+        self._update_import_csv_status()
+
+    def onBrowseImportCsvPath(self):
+        """Open file dialog to choose an experiment CSV for import."""
+        current_path = getattr(self, "importCsvFilePath", self.csvFilePath)
+        selected_path = qt.QFileDialog.getOpenFileName(
+            slicer.util.mainWindow(),
+            "Select Experiment CSV to Import",
+            current_path,
+            "CSV Files (*.csv)",
+        )
+        if not selected_path:
+            return
+        self._set_import_csv_file_path(selected_path)
+
+    def onLoadImportCsv(self):
+        """Load experiment rows from the selected CSV file."""
+        csv_path = self._widget_text("importCsvPathLineEdit") or getattr(self, "importCsvFilePath", "")
+        if not csv_path:
+            self._error("Please select an experiment CSV file first")
+            return
+        csv_path = os.path.normpath(csv_path)
+        if not os.path.exists(csv_path):
+            self._error(f"CSV file not found: {csv_path}")
+            return
+
+        try:
+            with open(csv_path, "r", newline="", encoding="utf-8-sig") as csv_file:
+                reader = csv.DictReader(csv_file)
+                self.importedExperimentFieldNames = reader.fieldnames or []
+                self.importedExperimentRows = [
+                    row
+                    for row in reader
+                    if any(str(value).strip() for value in row.values() if value is not None)
+                ]
+        except Exception as exc:
+            self._error(f"Failed to load experiment CSV: {exc}")
+            return
+
+        self._set_import_csv_file_path(csv_path)
+        if not self.importedExperimentRows:
+            self.importedExperimentRowIndex = -1
+            self.importedExperimentRestoreStatus = "Transforms: n/a"
+            self._update_import_csv_status()
+            self._error("Selected CSV file does not contain any data rows")
+            return
+        self._select_imported_experiment_row(0)
+
+    def onImportCsvPreviousRow(self):
+        """Select the previous imported CSV row."""
+        if not self.importedExperimentRows:
+            self._error("Please load an experiment CSV first")
+            return
+        self._select_imported_experiment_row(self.importedExperimentRowIndex - 1)
+
+    def onImportCsvNextRow(self):
+        """Select the next imported CSV row."""
+        if not self.importedExperimentRows:
+            self._error("Please load an experiment CSV first")
+            return
+        self._select_imported_experiment_row(self.importedExperimentRowIndex + 1)
 
     def onBrowseCsvPath(self):
         """Open file dialog to choose CSV output path."""
