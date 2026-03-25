@@ -34,3 +34,8 @@ Testing/build/
 *.h5
 *.vp
 
+# Keep transform snapshots under version control
+!experiment/transform_snapshots/
+!experiment/transform_snapshots/**/
+!experiment/transform_snapshots/**/*.h5
+
