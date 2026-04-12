@@ -4,6 +4,9 @@ set(MODULE_NAME Biplane)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
+  BiplaneLogics.py
+  BiplaneLib/__init__.py
+  BiplaneLib/dependencies.py
   )
 
 set(MODULE_PYTHON_RESOURCES

@@ -10,15 +10,12 @@ from typing import Annotated, Optional
 
 import numpy as np
 import vtk
-import SimpleITK as sitk
 import slicer
 import qt
-# Ensure OpenCV is available; install on demand for Slicer environment
-try:
-    import cv2
-except ImportError:  # pragma: no cover - runtime install path
-    slicer.util.pip_install("opencv-python")
-    import cv2
+from BiplaneLib.dependencies import import_slicer_dependency
+
+sitk = import_slicer_dependency("SimpleITK", "SimpleITK", install_on_missing=True)
+cv2 = import_slicer_dependency("cv2", "opencv-python", install_on_missing=True)
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
