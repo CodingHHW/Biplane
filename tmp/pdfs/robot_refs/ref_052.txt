@@ -1,0 +1,957 @@
+                                                                      Medical Image Analysis 26 (2015) 108–119
+
+
+
+                                                                  Contents lists available at ScienceDirect
+
+
+                                                                  Medical Image Analysis
+                                                          journal homepage: www.elsevier.com/locate/media
+
+
+
+
+Fully automated 2D–3D registration and veriﬁcation
+Andreas Varnavas a,∗, Tom Carrell a,b, Graeme Penney a
+a
+  Department of Biomedical Engineering, Division of Imaging Sciences and Biomedical Engineering, King’s College London, King’s Health Partners, St. Thomas’
+Hospital, London, UK
+b
+  Department of Vascular Surgery, Guy’s and St Thomas’ NHS Foundation Trust, King’s Health Partners, London, UK
+
+
+
+
+a r t i c l e          i n f o                            a b s t r a c t
+
+Article history:                                          Clinical application of 2D–3D registration technology often requires a signiﬁcant amount of human interac-
+Received 22 September 2014                                tion during initialisation and result veriﬁcation. This is one of the main barriers to more widespread clinical
+Revised 17 July 2015
+                                                          use of this technology. We propose novel techniques for automated initial pose estimation of the 3D data and
+Accepted 20 August 2015
+                                                          veriﬁcation of the registration result, and show how these techniques can be combined to enable fully au-
+Available online 2 September 2015
+                                                          tomated 2D–3D registration, particularly in the case of a vertebra based system. The initialisation method is
+Keywords:                                                 based on preoperative computation of 2D templates over a wide range of 3D poses. These templates are used
+2D–3D Registration                                        to apply the Generalised Hough Transform to the intraoperative 2D image and the sought 3D pose is selected
+Registration veriﬁcation                                  with the combined use of the generated accumulator arrays and a Gradient Difference Similarity Measure.
+Hough transform                                           On the veriﬁcation side, two algorithms are proposed: one using normalised features based on the similarity
+                                                          value and the other based on the pose agreement between multiple vertebra based registrations.
+                                                          The proposed methods are employed here for CT to ﬂuoroscopy registration and are trained and tested with
+                                                          data from 31 clinical procedures with 417 low dose, i.e. low quality, high noise interventional ﬂuoroscopy im-
+                                                          ages. When similarity value based veriﬁcation is used, the fully automated system achieves a 95.73% correct
+                                                          registration rate, whereas a no registration result is produced for the remaining 4.27% of cases (i.e. incorrect
+                                                          registration rate is 0%). The system also automatically detects input images outside its operating range.
+                                                                                                                                          © 2015 Elsevier B.V. All rights reserved.
+
+
+
+
+1. Introduction                                                                                to the clinicians. For routine clinical use it is highly desirable for both
+                                                                                               these processes to require little, or preferably no, user interaction.
+    2D–3D registration can provide critical guidance in a wide                                     Although a large number of 2D–3D registration algorithms have
+range of clinical procedures such as Image Guided Radiotherapy,                                been proposed (Markelj et al. (2012)), very little attention has been
+Minimally Invasive Surgery, Interventional Radiology and Image                                 paid to reducing their required level of user interaction. Concern-
+Guided Endoscopy (Markelj et al. (2012)). However, as discussed by                             ing initial pose estimation, the typical referenced approach is use
+Chintalapani and Chinnadurai (2012): although many 2D–3D regis-                                of manually selected anatomical landmarks (Hamadeh et al. (1998);
+tration algorithms have been published, their use in actual clinical                           Penney et al. (2011); Weese et al. (1997)). Gong et al. (2013) pro-
+settings is very limited due to “their complexity, context sensitivity                         pose the use of a tool which is virtually inserted in the preoperative
+and user interactivity”. This paper addresses this last factor “user in-                       CT scan and is placed in a similar pose close to the patient intra-
+teractivity” and proposes methods to enable fully automatic registra-                          operatively. A similar concept is proposed by Varnavas et al. (2013)
+tion. In a typical registration algorithm user interaction is required                         where a virtual ﬁducial marker, present in the intra-operative scene,
+for:                                                                                           is semi-automatically inserted in the preoperative CT. In both meth-
+                                                                                               ods the tool or the marker needs to be identiﬁed manually in the 2D
+      1. initial pose estimation (before registration), and                                    images by a user. Other methods propose the use of ﬁducial mark-
+      2. result veriﬁcation (after registration)                                               ers placed intraoperatively to relate between different images (Otake
+   The aim of initial pose estimation is to provide the registration                           et al. (2012a)) or use of previous registrations as future initial esti-
+algorithm with a starting position within its capture range. The aim of                        mates in applications where the C-arm is not expected to move much
+result veriﬁcation is to ensure that only correct results are presented                        (Gendrin et al. (2012)).
+                                                                                                   To avoid the need for manual interaction, a number of methods
+                                                                                               have been proposed which aim to expand the capture range of 2D–
+  ∗
+      Corresponding author.                                                                    3D registration so no information is needed by a user for initialisa-
+      E-mail address: andreas.varnavas@kcl.ac.uk (A. Varnavas).                                tion. van der Bom et al. (2010) propose the use of a spectrum based
+
+http://dx.doi.org/10.1016/j.media.2015.08.005
+1361-8415/© 2015 Elsevier B.V. All rights reserved.
+                                                          A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                                     109
+
+
+
+
+                                                                                           Fig. 2. Overview of the entire automated pipeline for vertebra based CT to ﬂuoroscopy
+                                                                                           registration.
+
+
+Fig. 1. Example ﬂuoroscopy images from complex aortic aneurysm procedures. Note
+how similar vertebrae appear in (a) and how vertebral features can have low contrast
+                                                                                           to man-made objects under normal lighting conditions (see Fig. 1(b)
+(b) and high noise (c). Note also the regular presence of interventional instruments       and (c)). To overcome these challenges we propose the use of the GHT
+partially occluding the vertebrae.                                                         with patient, vertebra and pose speciﬁc templates rendered from the
+                                                                                           CT scans of the patients. This is the ﬁrst time that such an approach is
+                                                                                           used for pose estimation and speciﬁc vertebra identiﬁcation in med-
+similarity measure for this purpose and report a success rate of 68.6%
+                                                                                           ical imaging.
+for starting positions less than 21 mm. This however would be unac-
+ceptable for many clinical systems. Otake et al. (2012b) propose the
+use of a 2 Degrees of Freedom (DoF) search parallel to the ﬂuoroscopy                      2. Methods
+plane, prior to a covariance matrix adaptation evolution optimiser, to
+achieve an 100 mm × 180 mm in-plane capture range in 4.7 s. These                              Fig. 2 provides an overview of the entire fully automated 2D–3D
+characteristics make the method practical for clinical use but only                        registration pipeline. The methods are presented in the context of a
+in cases when a good estimate for patient out-of-plane translation                         system that performs vertebra based, rigid registration between in-
+and C-arm orientation is available. In a later work, Otake et al. (2013)                   traoperative ﬂuoroscopy and preoperative CT data. Boxes labelled A
+extend this method with the use of a full 6 DoF global multi-start                         and B in Fig. 2 depict the two areas of algorithm development pro-
+strategy in order to improve robustness against initialisation errors                      posed in this paper: initial pose estimation (A) and result veriﬁcation
+and anatomical deformation. The extended method still requires ro-                         (B). These are fully described in Sections 2.1 and 2.2 respectively.
+tations to be known within 10° and computation times vary between
+6.3 s and 54 s depending on initialisation accuracy.                                       2.1. Initial pose estimation
+    Concerning result veriﬁcation, most reported work in the lit-
+erature uses ﬁducial markers attached on phantoms or cadavers                                  The proposed initial pose estimation method is based upon the
+(Gendrin et al. (2011)). For clinical application, the use of accurate (i.e.               use of the GHT to perform a global search over a desired registra-
+bone implanted) ﬁducial markers purely for validation would not be                         tion capture range. Our motivation for using the GHT as opposed to a
+ethically acceptable. Typically, with patient images, result veriﬁcation                   more standard intensity based similarity measure is to reduce com-
+is achieved by visual inspection (Hamadeh et al. (1998); Livyatan et al.                   putational complexity. We refer to Appendix A for a high level com-
+(2003); Penney et al. (2011)). However, this manual process requires                       parison concerning the complexities of the two approaches.
+expertise and affects clinical workﬂow.                                                        As shown in Fig. 2 the initial pose estimation takes as input a ﬂu-
+    We propose novel algorithms to enable fully automated 2D–3D                            oroscopy image, a CT image (including sub-images containing single
+registration, without requiring specialised hardware (e.g. tracking                        vertebrae) and a set of R-tables, which are precomputed for each ver-
+devices or high end ﬂuoroscopy sets). The proposed registration                            tebra from renderings of the CT data. Each R-table represents a differ-
+pipeline relates to a vertebra based, CT to ﬂuoroscopy, rigid regis-                       ent pose position, and the range of poses is selected to encompass the
+tration system. Initialisation is based on the use of the Generalised                      required capture range. After applying the GHT on the ﬂuoroscopy
+Hough Transform (GHT) (Ballard (1981)), which is applied on the 2D                         image with respect to each R-table, the poses are evaluated using
+ﬂuoroscopy to perform a full 6 DoF global search for a number of con-                      the produced accumulator arrays and a Gradient Difference Similarity
+sidered vertebrae. A very wide capture (operating) range is employed                       Measure (GDSM) (Penney et al. (2001)), resulting in a pose estimate
+(see Section 3) so no information about the translation or the orien-                      for each vertebra. We initially describe the preoperative processing
+tation of the ﬂuoroscopy set is required. The produced pose estimate                       and then the intraoperative algorithm.
+for each vertebra is used as input to a 2D–3D registration algorithm
+(Penney et al. (2011)). The resultant registrations are automatically                      2.1.1. Preoperative R-table computation
+veriﬁed using two algorithms: the ﬁrst uses similarity value features                          Fig. 3 shows the preoperative workﬂow. Input is the CT image,
+and is an adaptation of the algorithm proposed by Varnavas et al.                          from which N subvolumes each containing a single vertebra are ex-
+(2013). The second uses geometric features and is based on the pose                        tracted. This is achieved by picking a single point in the centre of
+agreement between at least two vertebra based registrations.                               each vertebra and deﬁning a mean subvolume size. M Digitally Re-
+    The proposed registration pipeline is evaluated using data from 31                     constructed Radiographs (DRRs) are produced for each of the N ver-
+complex aortic aneurysm procedures. The registrations were based                           tebrae, picturing each vertebra under M corresponding rigid transfor-
+on six (lower thoracic and lumbar) vertebrae. As seen in Fig. 1, ver-                      mations. These transformations deﬁne the capture (operating) range
+tebrae are highly similar objects and our aim is to robustly distin-                       of the algorithm, and so need to span the range of movements of the
+guish between them. This is a major difference between our method                          ﬂuoroscopy set plus estimates for variations in patient position. Edge
+for initial pose estimation and the traditional use of Hough-like vot-                     points are extracted from the DRRs using Phase Congruency (Kovesi
+ing schemes in the literature, which typically aim to detect multiple                      (2003)) and are used to construct the GHT R-Tables (Ballard (1981)).
+objects of a generic type. Another major difference is the low fea-                        Each R-Table contains vectors from each edge point to the centre of
+ture, high noise nature of vertebrae in ﬂuoroscopy when compared                           the corresponding DRR. The vectors are grouped with respect to each
+110                                                       A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119
+
+
+                                                                                           arrays were then ranked based on the following normalised metric
+                                                                                                I1
+                                                                                           V = 6                                                                             (1)
+                                                                                                     i=2 Ii
+
+                                                                                               For most ﬂuoroscopy images the 3D pose associated with the
+                                                                                           highest rank (largest value of V) is within the capture range of the
+                                                                                           subsequent 2D–3D registration algorithm. However the method is
+                                                                                           not as robust as using a specialised 2D–3D similarity measure. There-
+                                                                                           fore, to improve accumulator array selection we adapt the method as
+                                                                                           follows: the accumulator arrays are ranked according to metric V, and
+                                                                                           the poses associated with the top K = 100 ranked arrays are used to
+                                                                                           produce a DRR2 . Each DRR is then compared to the ﬂuoroscopy image
+                                                                                           using the Gradient Difference Similarity Measure (GDSM) (Penney
+Fig. 3. Preoperative construction of vertebra based R-Tables, used in the GHT/GDSM
+                                                                                           et al. (2001)). The pose producing the maximum similarity value is
+Initial Pose Estimation.
+                                                                                           chosen as the initial pose for the 2D–3D registration algorithm. Using
+                                                                                           this method the GHT, which requires much less computation than the
+                                                                                           intensity-based similarity measure, is used to ﬁlter a large number
+                                                                                           (M) of possible poses to identify a small number (K) of highly likely
+                                                                                           poses. Then the more robust similarity measure determines the best
+                                                                                           pose from the K candidate poses.
+                                                                                               As shown in Fig. 2 (overview of entire 2D–3D registration pipeline)
+                                                                                           the output from the initial pose estimation is a single best pose for
+                                                                                           each of the N vertebrae. These are then used as a starting position for
+                                                                                           a 2D–3D registration algorithm which outputs N updated (registered)
+                                                                                           pose positions, one for each vertebra. These pose positions each need
+                                                                                           to be checked for registration accuracy, which is the subject of the
+                                                                                           second main area of algorithm development proposed in this paper,
+Fig. 4. GHT/GDSM Initial Pose Estimation: the pipeline of processes for computing an       result veriﬁcation, and is described in Section 2.2.
+initial estimate of the 3D pose.                                                               Let us brieﬂy mention here a few details about the 2D–3D reg-
+                                                                                           istration algorithm used (Penney et al. (2011)). This algorithm ﬁrst
+                                                                                           uses a global search over a speciﬁed range of rigid transformations
+point’s quantised local orientation. For this quantisation bins which                      which deﬁnes its capture range (represented by the dotted lines in
+are ϕ = 30◦ wide are used.                                                                Fig. 6). The position found by the global search is then further opti-
+                                                                                           mised with the use of a hill climbing search strategy. Both searches
+                                                                                           use the same Gradient Difference Similarity Measure presented in
+2.1.2. Intraoperative pose aware vertebra detection                                        Penney et al. (2001).
+    Fig. 4 shows the intraoperative pipeline. Let us note that the
+pipeline is shown for just a single vertebra; therefore, this pipeline                     2.2. Result veriﬁcation
+needs to be carried out N times to obtain an initial pose for each
+vertebra. The pipeline begins by applying the GHT to the ﬂuoroscopy                            Result veriﬁcation is critical for any registration algorithm which
+image using the M preoperatively produced R-tables. Edge points are                        is less than 100% robust. Our proposed registration pipeline (Fig. 2)
+extracted from the ﬂuoroscopy image again using Phase Congruency                           is guaranteed to produce incorrect registrations for all of the N verte-
+(Kovesi (2003)).                                                                           brae not visible in the ﬂuoroscopy image. Even when corresponding
+    The GHT output is M accumulator arrays, one for each R-table. In                       vertebrae are present misregistrations still occur (1.8% reported by
+the traditional use of the GHT, a single R-table is used to produce a                      Penney et al. (2011)). This section presents three methods to detect
+single accumulator array, which is a two dimensional voting space of                       and remove misregistrations to enable automatic selection of a cor-
+the size of the ﬂuoroscopy image. Each edge point in the R-table casts                     rect registration as output from the registration pipeline.
+a vote for each edge point in the ﬂuoroscopy image with the same lo-                           The ﬁrst method is based on similarity value features and has been
+cal orientation. The vote increases a counter in the accumulator array                     presented in earlier work (Varnavas et al. (2013)). For completeness,
+at a location indicated by the coordinates of the edge point in the im-                    an overview is presented in Section 2.2.1. The second method is based
+age and the vector corresponding to the edge point in the R-table. The                     on features describing the geometric difference between different
+accumulator array is then thresholded to provide potential locations                       vertebra based registrations and is presented in Section 2.2.2. Both
+for the target object.                                                                     methods produce two features. Registrations to a set of training data
+    Our accumulator based selection algorithm aims to locate the                           (with manually veriﬁed registrations) are used to populate a feature
+single best location from multiple (M) accumulator arrays. Simply                          space and deﬁne a classiﬁcation rule separating correct and incorrect
+ﬁnding the global maximum would not work as this would bias the                            registrations. The third method, presented in Section 2.2.3, combines
+results towards arrays produced with R-tables from DRRs which con-                         the two classiﬁcation rules of the previous methods in a way that de-
+tained more edge features. Our solution is to normalise the maxi-                          tection of incorrect registrations is enhanced. This method can also
+mum of each accumulator array, I1 using the values of the next ﬁve                         be incorporated into the registration pipeline in a computationally
+local maxima1 , Ii , i = 2, . . . , 6. A neighbourhood around each chosen                  eﬃcient way.
+Ii value was excluded from subsequent searches, to ensure that se-                             Often more than one vertebra will be successfully registered to
+lected local maxima are at least a minimum distance apart. The M                           a ﬂuoroscopy image. In such situations the successfully registered
+
+                                                                                              2
+                                                                                                The value of K = 100 produces a set of top ranked poses where at least one of them
+ 1
+   The values of the normalising maxima are typically of the same order, so the for-       is within the capture range of the subsequent 2D–3D registration algorithm approxi-
+mula is not sensitive to the exact number of maxima used.                                  mately 99% of the time. See Section 4.1.1 for further details.
+                                                   A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                                 111
+
+
+vertebra closest to the centre of the image is chosen, and the pose                 found, Pi = (θx , θy , θz , X, Y, Z )i , i = 1, . . . , N, the minimum rotational
+of this vertebra is the overall pipeline output (ﬁnal pose).                        difference is deﬁned as:
+                                                                                                                                                      
+                                                                                    mRDi = min max θx − θx , θy − θy , θz − θz  ,
+                                                                                                                    i     j        i       j   i    j
+2.2.1. Similarity value based veriﬁcation                                                         j
+    The ﬁrst veriﬁcation method uses two features produced from the                  j = 1, . . . , N, j = i                                                    (3)
+GDSM. These features are produced by applying the GDSM to an area
+of interest in the ﬂuoroscopy image, automatically calculated by pro-                   The second feature is a measure of minimum translational dif-
+jecting a bounding box of the candidate vertebra from CT into the                   ference between the candidate vertebra pose and the poses of all
+ﬂuoroscopy.                                                                         other vertebrae. Translation is measured using a reprojection dis-
+    The ﬁrst feature is the value of the GDSM (registration value) at               tance dreproj (Pi , Pj , x) which is the minimum distance between 3D po-
+the registration position. The registration value provides a good indi-             sition x and a back projection line which is calculated as follows: we
+cation of a successful registration, but it is affected by a number of              ﬁrst project x into 2D using the projection matrix corresponding to
+factors. Varnavas et al. (2013) describes methods to reduce the effect              the candidate vertebra pose Pi , to get x2D , and then back project from
+that variations in the image resolution and the gradient value distri-              x2D using the projection matrix corresponding to the pose Pj of a dif-
+bution have on the registration value.                                              ferent vertebra.
+    However, the registration value on its own does not enable good                     The minimum translational difference mTD feature is calculated
+separation between correct and incorrect registrations. This is be-                 using the mean reprojection distance of 8 points, xk , k = 1, . . . , 8,
+cause the registration value can be greatly affected by the presence                which form a bounding box around the vertebra the pose of which
+of interventional instruments in the area of interest. Conversely, due              is to be veriﬁed. The vertebra position is compared with all the other
+to the similar shape of vertebrae, a reasonably high registration value             vertebrae poses and the minimum distance is calculated:
+can be obtained when an incorrect vertebra is matched. To account
+                                                                                                                                      
+                                                                                                          1
+                                                                                                                8                  
+for these factors a second, normalisation value is calculated as follows:           mT Di = min              drepro j Pi , Pj , xik
+the registration process is repeated to the same ﬂuoroscopy area of                               j       8
+                                                                                                            k=1
+interest, but using different (therefore probably incorrect) CT verte-
+                                                                                     j = 1, . . . , N, j = i                                                    (4)
+brae. For the experiments carried out in this paper the T = 4 closest
+vertebrae to the candidate vertebra were used. The initial pose for                     A necessary condition for these pose agreement features to be
+these registrations is computed by adapting the initial pose which                  able to detect correct registrations is that at least two of the N ver-
+was used for the registration under veriﬁcation, to account for the                 tebrae should have been registered correctly. Randomly coinciding
+translation between the candidate and new CT vertebra. The normal-                  wrong registrations will create False Positives. The probability of such
+isation value is set to the best (i.e. largest) GDSM value from register-           cases is expected to be small given the size of the six dimensional
+ing the T closest vertebrae. The second veriﬁcation feature named as                space of extrinsic parameters.
+similarity ratio is deﬁned as:                                                          The classiﬁcation rule using the two features is computed using a
+                                                                                    linear SVM applied jointly on both features. Let us note here that in
+                      registration value
+similarity ratio =                                                        (2)       contrast to the similarity value based features, the pose agreement
+                     normalisation value                                            based features are bounded by the classiﬁcation rule and the coor-
+    The classiﬁcation rule is computed combining the use of a Sup-                  dinate axis for the subspace of correct registrations. This means that
+port Vector Machine (SVM) (Cortes and Vapnic (1995)), which is ap-                  both features must be close to zero to return a correct registration
+plied jointly on both features, and scalar thresholds, which are based              result. Therefore, in contrast to Section 2.2.1, no additional single fea-
+on each feature individually. A linear SVM is ﬁrst trained to produce               ture based rules were employed.
+a straight line separating correct from incorrect registrations. Let us
+note here that large similarity value features represent correct reg-               2.2.3. Combined veriﬁcation scheme
+istrations. Therefore, under a linear separating rule, if any one fea-                  The two veriﬁcation methods proposed in the previous sec-
+ture is very large, a correct registration result can be returned, even if          tions are to a large degree independent and they can therefore be
+the value of the other feature is very small. Since we are particularly             combined to enhance the classiﬁcation results. As mentioned in
+interested in rejecting incorrect registrations (i.e. minimising False              Section 2.2.1 we are particularly interested in minimising the False
+Positives), single feature classiﬁcation rules were additionally pro-               Positive Rate, as it is of primary importance to avoid showing wrong
+duced, to enforce that both features must be suﬃciently large to                    registrations to clinicians. For this reason we propose a combined ver-
+return a correct registration result. These rules were deﬁned us-                   iﬁcation scheme which classiﬁes a registration as correct if it is clas-
+ing a standard method for non-parametric outlier rejection: when                    siﬁed as such by both methods of Sections 2.2.1 and 2.2.2. If a reg-
+a feature takes a value lower than the lower quartile minus the                     istration is classiﬁed as incorrect by at least one of the previous two
+inter-quartile range then the corresponding registration is classiﬁed               methods, the combined veriﬁcation scheme classiﬁes the registration
+as incorrect. Therefore, a registration result should pass the two sin-             as incorrect.
+gle feature rules and the SVM one to be classiﬁed as correct.                           This classiﬁcation scheme, apart from enhancing the detection of
+                                                                                    incorrect registrations, can be incorporated in the proposed registra-
+2.2.2. Inter-vertebrae pose agreement based veriﬁcation                             tion pipeline in a computationally eﬃcient way. The similarity value
+    The second method for automatic result veriﬁcation makes use of                 based veriﬁcation has increased computational cost as it requires ad-
+the multiple independent registrations to different vertebrae. Correct              ditional registrations to be produced. On the other hand the pose
+registrations should give rise to similar poses for the CT data as inter-           agreement based veriﬁcation is computationally inexpensive as it re-
+vertebral movement, for patients lying in a similar position, is only a             quires the computation of two simple metrics comparing vertebra
+few degrees/mm (especially between adjacent vertebrae). Therefore,                  poses which have already been produced. We propose incorporat-
+features based on the difference between poses produced by different                ing the combined scheme to the registration pipeline in two steps:
+vertebrae can be used to discriminate between correct and incorrect                 ﬁrst the produced registration for each vertebra is checked with the
+registrations.                                                                      pose agreement veriﬁcation and the set of registrations classiﬁed
+    Two features are used. The ﬁrst feature is a measure of minimum                 as correct is kept. Then the registration corresponding to the verte-
+rotational difference, between the candidate pose of a given vertebra               bra closest to the centre of the image is checked with the similarity
+and the poses found for all other vertebrae. Using the N pose positions             value based veriﬁcation. The result of this check is the result of the
+112                                               A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119
+
+
+complete registration pipeline. In this way the combined veriﬁcation               range used here is expected to cover movements of the ﬂuoroscopy
+scheme achieves computational reduction by applying the expen-                     set for standard endovascular aortic repair. It is trivial to extend the
+sive similarity value based veriﬁcation to only one of the produced                operating range, but this will result in longer registration times.
+registrations.                                                                         R-tables were produced for the six vertebrae from T11 to L4 as
+                                                                                   depicted in Fig. 3 and described in Section 2.1.13 . DRRs were produced
+3. Experimental methods                                                            to cover the operating range with a rotational step of 4°, and an out of
+                                                                                   plane translational step of 50 mm. R-tables were produced for each
+    Experiments were carried out using real patient data and “gold                 of the four ﬂuoroscopy magniﬁcation settings. This resulted in M =
+standard” data of a cadaveric lumbar spine Tomaževič et al. (2002).               8400 R-tables per vertebra and per magniﬁcation setting.
+The real patient data were used to evaluate the performance of:                        A “ground truth” CT pose for each of the images in groups A and
+the initial pose estimation (Section 3.1); the result veriﬁcation                  B was obtained using the GDSM based 2D–3D registration algorithm
+(Section 3.2); and the entire fully automated registration pipeline                (Penney et al. (2011)). The registration algorithm was initialised man-
+(Section 3.3). The “gold standard” data were also used to evaluate the             ually using the method described by Penney et al. (2011). The initial-
+performance of the fully automated registration pipeline (Section 3.3)             isation was completed in under a minute for each image, but since
+and to quantify the ability of visual inspection to discriminate be-               manual vertebra identiﬁcation was required, knowledgeable input
+tween correct and incorrect 2D–3D registrations (Section 3.4).                     from an experienced user was needed. Registrations were carried out
+    The real patient data were acquired from 31 operations over two                to the vertebra closest to the centre of the image and completed in
+periods of one year, following requests by the clinicians to run the               1.25 s in each case. The results were veriﬁed using visual inspection.
+presented or earlier (Penney et al. (2011)) versions of the registration           An experiment to quantify the accuracy of this visual inspection pro-
+system intraoperatively. They consist of 31 preoperative CT scans and              cess is described in Section 3.4.
+417 intraoperative ﬂuoroscopy (nearly all low dose screening) images,                  In addition to the real patient data, we also used the publicly avail-
+acquired in approximately equal intervals during the operations or                 able dataset presented in Tomaževič et al. (2003) to enable compari-
+upon the clinicians’ requests. The dimensions of the ﬂuoroscopy im-                son of our results with other methods, and to an independently cal-
+ages were 480 × 480 pixels and the ﬂuoroscopy set had four magniﬁ-                 culated “gold standard”. The dataset consists of a CT scan and 18 ﬂu-
+cation settings with the pixel size varying in the range between 0.308             oroscopy images of a cadaveric lumbar spine (L1 to L5). The “gold
+and 0.744 mm. For each ﬂuoroscopy image the magniﬁcation setting                   standard” registrations have been calculated using ﬁducial markers
+and orientation of the ﬂuoroscopy set was recorded. This informa-                  Tomaževič et al. (2002). The dataset comes with 450 starting po-
+tion was used to estimate the intrinsic parameters, and to determine               sitions for the CT data (Tomaževič et al. (2003)), and eight points
+whether the image was within the operating range o of the regis-                  around each vertebra which are used to calculate the mean Target
+tration algorithm. The preoperative CT data came from a variety of                 Registration Error (TRE).
+scanners with an average and maximum slice thickness of 0.94 mm
+and 1 mm respectively. All the ﬂuoroscopy data was acquired us-                    3.1. Experiments for initial pose estimation
+ing a Siemens Axiom Artis DTA system at St Thomas’ Hospital. Use
+of these data was approved by National Research Ethics Committee                      The initial pose estimation method, described in Section 2.1, es-
+(09/H0707/64) with informed patient consent. The data was split into               timates the 3D pose of a single vertebra. The target vertebra for this
+three groups:                                                                      set of experiments was the vertebra closest to the image centre for
+                                                                                   each of the 224 ﬂuoroscopy images in Group A. For each image the
+ • Group A: 19 preoperative CT scans; 224 intraoperative ﬂuoroscopy
+                                                                                   target vertebra was manually identiﬁed, and the set of R-tables cor-
+   images (within operating range).
+                                                                                   responding to the identiﬁed vertebra and the magniﬁcation setting of
+ • Group B: 12 preoperative CT scans; 164 intraoperative ﬂuoroscopy
+                                                                                   the ﬂuoroscopy set were used as input to the pose estimation method.
+   images (within operating range).
+                                                                                   The difference between the found pose and the “ground truth” pose
+ • Group C: 29 intraoperative ﬂuoroscopy images (outside operating
+                                                                                   was calculated, and compared with the known capture range of the
+   range). CT scans contained in groups A and B.
+                                                                                   subsequent 2D–3D registration algorithm (Penney et al. (2011)).
+    The initial pose estimation operating range o was deﬁned as
+follows:                                                                           3.2. Experiments for registration result veriﬁcation
+
+ • The rotational range was deﬁned about the axes of the CT scan,                     To evaluate the result veriﬁcation algorithms (Section 2.2) the data
+   with the origin in the centre. The range about the axes perpen-                 in Group A was used for training and the data in Group B for testing
+   dicular to the transverse, sagittal and coronal planes was set to               purposes. For all the images in both groups the registration pipeline
+          ◦  ◦        ◦   ◦           ◦  ◦
+   [−40 , 40 ], [−30 , 30 ] and [−8 , 8 ], respectively. Since intra-              (see Fig. 2) was run up to the Result veriﬁcation stage (box B). This re-
+   operatively the ﬂuoroscopy plane is approximately parallel to the               sulted in a large number of successful and unsuccessful registrations.
+   CT coronal plane under the Anterior-Posterior (AP) position of the              The main causes of the latter are attempts to register a vertebra from
+   C-Arm, we refer to the rotations above as lateral, cranial-caudal               CT to a ﬂuoroscopy image which does not contain the chosen ver-
+   and in-plane respectively.                                                      tebra. Each produced pose was labelled as being correct or incorrect
+ • The out-of-plane translational range was set to [700 mm,
+                                                                                   using visual inspection (comparing DRRs constructed at the produced
+   900 mm]. This range describes the distance between the C-arm                    pose position with the ﬂuoroscopy).
+   source and the centroid of the CT scan.                                            The produced poses in the training set were used to compute
+ • In plane translation is deﬁned over the entire ﬂuoroscopy image
+                                                                                   the classiﬁcation rules as described in Sections 2.2.1, 2.2.2 and 2.2.3.
+   and requires at least two vertebrae from T11 to L4 to be visible                Whenever an SVM was employed, a constraint parameter C = 1 was
+   in it.                                                                          used. The classiﬁcation performance of the produced rules is mea-
+    The operating range needs to encompass variations in patient po-               sured both with respect to the training and the testing set.
+sition, and the range of movement of the ﬂuoroscopy set during the                    For the training and testing of the similarity value based veriﬁ-
+operation. Variations in how reproducibly patients lie supine are ex-              cation algorithm all data could be used. For the inter-vertebrae pose
+pected to be small, approximately 3–4° (Penney et al. (2011)). Pa-
+tient movement during procedures has been reported (Varnavas et al.                  3
+                                                                                       For two patients in Group A, we used 5 out of the 6 vertebrae in range T11–L4 for
+(2013)) but is expected to be mostly translational. The operating                  R-table production, as only 5 were in the ﬁeld of view of the preoperative CT scans.
+                                                             A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                          113
+
+
+                Table 1                                                                       bracket) was due to a large in-plane rotation (patient rotation around
+                Number of 3D poses in the training and testing sets for
+                                                                                              an axis perpendicular to the bed for an anterior-posterior view). Large
+                the three veriﬁcation algorithms.
+                                                                                              rotations around this axis have not been observed during our clinical
+                                                                                                                                                              ◦   ◦
+                                           Number of poses                                    procedures and so our algorithm only searches between [−8 , 8 ] for
+                                           Training set   Testing set                         this parameter.
+                                           Group A        Group B                                 To test our algorithm with multiple starting positions, R-tables
+                                                                                              were produced to cover the complete range of starting positions, with
+                  Similarity value         1325           984
+                  based veriﬁcation                                                           the same rotational (4°) and translational (50 mm) step size as used
+                  Pose agreement           1266           900                                 with the patient data. For each individual starting position, a subset
+                  based veriﬁcation                                                           of these R-tables were extracted which just covered our method’s op-
+                  Combined                 1266           900                                 erating range o . In addition, for each individual starting position,
+                  veriﬁcation scheme
+                                                                                              the 16 R-tables which represented the positions closest to the gold
+                                                                                              standard position were altered so that they were an integer multiple
+ Table 2                                                                                      of the step size from the starting position. These 16 R-tables are ex-
+ Number of Gold Standard data registrations within and outside operating range o ,
+                                                                                              pected to be the most critical for the initial pose identiﬁcation, so we
+ for three ranges of initial displacement from gold standard position.
+                                                                                              changed them to be identical to the ones we would produce if our op-
+                                    0–6 mm        6–12 mm       12–18 mm       Total          erating range was sampled exactly about the given starting position.
+     Within Operating Range o      2625          1371          429            4425               The complete registration pipeline (Fig. 2) was tested using the
+     Outside Operating Range o     304           1634          1737           3675           ﬁve lumbar vertebrae. As mentioned in Section 2.2, the ﬁnal pose for
+                                                                                              our method is the pose of the registered vertebra closest to the centre
+                                                                                              of the image. We compared our ﬁnal pose with ground truth, by cal-
+agreement algorithm only images where at least two correct regis-                             culating Target Reprojection Registration Error (TRRE) using the eight
+trations occurred were used, as this is the condition under which we                          target points around L3 provided with the dataset.
+want to train and test the algorithm. For the same reason only the im-
+ages above were used for the combined veriﬁcation scheme as well.                             3.4. Experiment for evaluation of visual veriﬁcation
+Table 1 shows the total number of poses in the training and testing
+sets for each algorithm.                                                                          The aim of this experiment was to evaluate the size of registra-
+                                                                                              tion error that could be robustly detected using expert visual inspec-
+3.3. Experiments for fully automated registration                                             tion. The CT scan and an anterior-posterior ﬂuoroscopy image from
+                                                                                              the gold standard dataset were used. DRRs were produced from the
+     To evaluate the complete registration pipeline (Fig. 2) both patient                     CT scan at poses close to the ground truth pose. The mean reprojec-
+and the gold standard data were used. For the patient data experi-                            tion error of each pose was calculated, and a set of 80 DRRs with er-
+ments, images from Groups B and C were used. The entire registration                          ror uniformly distributed between 0 and 4 mm was selected. Twenty
+pipeline was run, on each of these images, using each time one of the                         DRRs produced at the gold standard position were added to this set,
+three veriﬁcation methods presented in Section 2.2. When the simi-                            to produce a test data set of 100 DRRs. Each of these 100 DRRs were
+larity value and the pose agreement based methods were used, they                             presented to the two experts who carried out the visual inspection
+were applied on each of the vertebra corresponding poses produced                             veriﬁcation to obtain the patient data “ground truth” CT poses, as de-
+in the output of 2D–3D registration. When the combined veriﬁcation                            scribed in Section 3. The DRRs were presented in random order, over-
+scheme was used, it was applied in the way described in Section 2.2.3,                        laid to the ﬂuoroscopy image and were classiﬁed by each expert as
+i.e. ﬁrst selecting the poses which pass the pose agreement method                            either “correct” (good registration) or “incorrect” (misregistration).
+and then applying the similarity value based method on the pose cor-
+responding to the vertebra closest to the centre of the image.                                4. Results
+     When the pipeline produced a registration result, its correctness
+was manually checked using visual inspection. There are therefore                             4.1. Initial pose estimation performance
+three possible results of the registration pipeline:
+                                                                                                  An adequate initial pose (i.e. within the capture range of the 2D–
+ • Correct registration: the pipeline produces a registration result
+                                                                                              3D registration algorithm (Penney et al. (2011))) was produced for 211
+   and it is veriﬁed as correct by the visual inspection.
+                                                                                              out of 224 images in Group A. Therefore, our initialisation method
+ • Incorrect registration: the pipeline produces a registration result
+                                                                                              has a 94.2% chance of successfully ﬁnding an initial 3D pose to a sin-
+   but the visual inspection shows that it is incorrect.
+                                                                                              gle vertebra. The distances between the 211 successfully found ini-
+ • No registration: the pipeline produces no result (i.e. no vertebra
+                                                                                              tial poses and the corresponding “ground truths” are illustrated in
+   based registration is accepted by the result veriﬁcation module).
+                                                                                              Fig. 6. The vast majority of estimated poses fall well within the cap-
+    The complete registration pipeline, with combined veriﬁcation,                            ture range of the subsequent 2D–3D registration algorithm, which is
+was also evaluated with the use of the gold standard dataset. For each                        indicated in Fig. 6 by the horizontal dotted lines.
+of the 18 ﬂuoroscopy images, registrations were started from the 450                              The success of the initial pose estimation method lies with its abil-
+provided start positions (8100 registrations in total), which cover a                         ity to produce very high rankings for accumulator arrays which cor-
+wide range of transformations (up to 51.6°) from the gold standard                            respond to poses close to the registration position. To illustrate this,
+positions. In the original publication, Tomaževič et al. (2003), the                         Fig. 5 shows a ﬂuoroscopy image and the accumulator arrays of the
+starting positions are split into three ranges based on distance to the                       ﬁnally selected poses for the L2 and L3 vertebrae. The global maxi-
+gold standard position, 0–6 mm, 6–12 mm, 12–18 mm computed as a                               mum for each vertebra is clearly visible, and correctly calculates the
+mean TRE using the provided eight target points. These starting posi-                         position of the vertebra in the image (i.e. the in-plane translation pa-
+tions were separated into two sets, those which fell within the oper-                         rameters). The distinctiveness of the global maximum, for two ver-
+ating range (o deﬁned in Section 3) of our initial pose estimation al-                       tebrae which are partly occluded by interventional instruments, in
+gorithm, and those which were outside this range. Table 2 shows the                           a noisy, low-dose ﬂuoroscopy image, is indicative of the robustness
+number of registrations in each set. The main reason for starting po-                         of our method. Note also that, although vertebrae have very similar
+sitions falling outside the operating range (particularly in the 0–6mm                        shapes, their simultaneous presence in the ﬂuoroscopy image does
+114                                                           A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119
+
+
+                                              Table 3
+                                              Similarity value based veriﬁcation method results.
+
+                                                             True              False         True          False           Correctly
+                                                             Positive          Positive      Negative      Negative        Classiﬁed
+
+                                                Training     734 (99.32%)      0 (0%)        586 (100%)    5 (0.68%)       1320 (99.62%)
+                                                set
+                                                Testing      429 (93.67%)      0 (0%)        526 (100%)    29 (6.33%)      955 (97.05%)
+                                                set
+
+
+
+
+Fig. 5. Fluoroscopy image (with ground truth rotations) and accumulator arrays cor-
+responding to the estimated pose for the pictured vertebrae L2 and L3.
+
+
+
+
+Fig. 6. Box and whisker plot of errors for each extrinsic parameter after the initial pose
+estimation, for the 211 successful cases in Group A. Box shows upper quartile, median
+and lower quartile, whiskers indicate percentile range 5–95%. Horizontal dotted lines
+indicate the capture range of the subsequent 2D–3D registration algorithm.
+
+
+
+not create strong local maxima in the accumulator array: the method
+is able to identify speciﬁc vertebrae.
+    Let us also give here some statistics about the “adequacy” of the
+poses indicated by the accumulator array ranking, in order to illus-
+trate the contribution of further evaluating the top K poses with the                           Fig. 7. Scatter plot of similarity value based features for training (a) and testing (b) set.
+
+use of the GDSM. When considering only the top pose indicated by
+the accumulator array ranking using Eq. (1), this is within the capture
+                                                                                                note again, that all classiﬁcation rules were produced using just the
+range of the 2D–3D registration algorithm for ∼85% of the 224 images
+                                                                                                training data (Group A).
+in group A. This percentage of images increases to ∼95% and ∼99%
+                                                                                                    Table 3 shows a summary of the classiﬁcation performance in the
+when 10 and 100 top poses are considered respectively. Therefore,
+                                                                                                training (Group A) and testing (Group B) datasets respectively. In both
+our choice for K = 100, combined with the eﬃciency of the GDSM
+                                                                                                cases the True Positive Rate is high ( 99.32% and 93.67% respectively),
+for pose evaluation, signiﬁcantly increases the chances of producing
+                                                                                                whereas the False Positive Rate is 0%. Let us note here that we use the
+an adequate initial estimate.
+                                                                                                terms (True/False) Positive and Negative for registrations which have
+                                                                                                been (correctly/incorrectly) classiﬁed as correct and incorrect by the
+4.2. Registration result veriﬁcation performance                                                proposed veriﬁcation algorithms respectively.
+
+
+4.2.1. Results with similarity value based veriﬁcation                                          4.2.2. Results with inter-vertebrae pose agreement based veriﬁcation
+    Fig. 7 shows scatter plots of the similarity value based features                               Fig. 8 shows scatter plots of the pose agreement based features
+using the training (Fig. 7(a)) and testing (Fig. 7(b)) data. The solid line                     using the training (Fig. 8(a)) and testing (Fig. 8(b)) data. Table 4 sum-
+shows the two feature classiﬁcation rule produced by the SVM, the                               marises the classiﬁcation performance. The separability of correct
+dotted lines show the two single feature classiﬁcation rules. Let us                            from incorrect poses is good, with correct poses of the same image
+                                                                                          A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                               115
+
+
+                                                                        Table 4
+                                                                        Pose agreement based veriﬁcation method results.
+
+                                                                                       True                   False         True           False          Correctly
+                                                                                       Positive               Positive      Negative       Negative       Classiﬁed
+
+                                                                          Training     729 (100%)             18 (3.35%)    519 (96.65%)   0 (0%)         1248 (98.58%)
+                                                                          set
+                                                                          Testing      442 (99.55%)           8 (1.75%)     448 (98.25%)   2 (0.45%)      890 (98.89%)
+                                                                          set
+
+
+
+
+                                       50                                                                                                  Table 5
+                                                                                                 correct registration                      95% conﬁdence intervals for the False Positive and False
+                                                                                                 incorrect registration
+                                       45                                                                                                  Negative Rates of the similarity value based and the
+                                                                                                 Support vectors
+                                                                                                                                           pose agreement based veriﬁcation methods (computed
+                                       40                                                                                                  by data in testing sets).
+  Maximum angle difference ( o)
+
+
+
+
+                                       35                                                                                                                             False           False
+                                                                                                                                                                      Positive Rate   Negative Rate
+                                       30
+                                                                                                                                              Similarity value        0%–0.7%         4.28%–8.97%
+                                       25
+                                                                                                                                              based veriﬁcation
+                                                                                                                                              Pose agreement          0.76%–3.43%     0.05%–1.62%
+                                       20
+                                                                                                                                              based veriﬁcation
+                                       15
+
+                                       10
+                                                                                                                                   1. the similarity value based veriﬁcation method is statistically
+                                       5
+                                                                                                                                      signiﬁcantly better than the pose agreement based method for
+                                       0                                                                                              correctly classifying incorrect registrations (fewer False Posi-
+                                        0    10   20   30    40     50       60       70    80        90      100     110
+                                                        Minimum translational difference (mm)                                         tives).
+                                                            (a) Training set                                                       2. the pose agreement based veriﬁcation method is statistically
+                                                                                                                                      signiﬁcantly better than the similarity value based method for
+                                       50                                                                                             correctly classifying correct registrations (fewer False Nega-
+                                                                                             correct registration
+                                       45
+                                                                                                                                      tives).
+                                                                                             incorrect registration
+
+                                       40                                                                                          Correctly identifying incorrect registrations is most important for
+        Maximum angle difference ( )
+
+
+
+
+                                                                                                                               medical applications; therefore the similarity value based algorithm
+  o
+
+
+
+
+                                       35
+                                                                                                                               is preferable. However, since in the proposed registration pipeline we
+                                       30                                                                                      produce a number of (vertebra based) registrations from which we
+                                                                                                                               need to select only one correct, the two methods can be combined in
+                                       25
+                                                                                                                               a computationally eﬃcient way, retaining the high speciﬁcity of the
+                                       20                                                                                      similarity value based algorithm, as described in Section 2.2.3.
+                                       15
+                                                                                                                               4.2.4. Results with combined veriﬁcation scheme
+                                       10
+                                                                                                                                   Table 6 summarises the results for the veriﬁcation scheme that
+                                        5                                                                                      combines the similarity value and the inter-vertebrae pose agree-
+                                                                                                                               ment based classiﬁcation algorithms. Due to the way the algorithms
+                                        0
+                                         0   10   20   30    40     50       60       70    80        90      100     110      are combined (both need to pass to classify a produced pose as cor-
+                                                        Minimum translational difference (mm)
+                                                                                                                               rect), the False Positive Rate will be decreased, with a corresponding
+                                                            (b) Testing set                                                    increase in the False Negative Rate. Note that a direct comparison can
+Fig. 8. Scatter plot of inter-vertebrae pose agreement based features for training (a)
+                                                                                                                               be done only between Tables 4 and 6, as it is in these cases that the
+and testing (b) set.                                                                                                           underlying datasets are exactly the same. The combined veriﬁcation
+                                                                                                                               scheme reduced the False Positive Rate to 0%, with an increase in the
+                                                                                                                               False Negative Rate which is 0.69% and 5.41% in the training and test-
+being similar, within a translational and rotational tolerance of 5 mm                                                         ing sets respectively.
+      ◦
+and 5 respectively. On the other hand, most incorrect poses to a
+given image are very different to each other, resulting in overall clas-
+                                                                                                                               4.3. Automated registration performance
+siﬁcation performance of 98.58% (training data) and 98.89% (testing
+data). However, a few incorrect poses can be seen to have resulted
+                                                                                                                                   Table 7 summarises the performance of the automated registra-
+in good agreement with each other, resulting in some False Positive
+                                                                                                                               tion pipeline using the test patient data set (i.e. Group B). All of these
+results, 3.35% (training data) and 1.75% (testing data).
+                                                                                                                               images are within the operating range of the algorithm, and so a
+                                                                                                                               perfect result would be 100% correct registrations. Best performance
+4.2.3. Results comparing the veriﬁcation methods                                                                               is achieved with the similarity value based veriﬁcation, 95.73% suc-
+    To compare the performance of the similarity value based and                                                               cess, and 0% incorrect registrations are classiﬁed as correct. A lower
+the inter-vertebrae pose agreement based veriﬁcation methods, we                                                               success rate of 89.63% is achieved with the pose agreement veriﬁca-
+present in Table 5 the 95% conﬁdence intervals for the False Positive                                                          tion method, and now a few (3.66%) incorrect registrations are clas-
+and False Negative Rates. These binomial conﬁdence intervals were                                                              siﬁed as being correct. Combined use of both classiﬁers results in
+computed using the Clopper–Pearson method on the data of the test-                                                             a slightly lower overall success rate (87.8%) and 0% incorrect regis-
+ing sets. As these intervals do not overlap, they show that:                                                                   trations. It should be noted that although the combined approach
+116                                                           A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119
+
+
+                                              Table 6
+                                              Results for combined use of similarity value and pose agreement based veriﬁcation
+                                              methods.
+
+                                                              True               False      True           False          Correctly
+                                                              Positive           Positive   Negative       Negative       classiﬁed
+
+                                               Training       724 (99.31%)       0 (0%)     537 (100%)     5 (0.69%)      1261 (99.61%)
+                                               set
+                                               Testing        420 (94.59%)       0 (0%)     456 (100%)     24 (5.41%)     876 (97.33%)
+                                               set
+
+
+
+      Table 7
+      Performance of the registration pipeline for images within the operating
+      range of interest (Group B).
+
+        Type of veriﬁcation    Correct            Incorrect         No
+        used in the system     registration       registration      registration
+
+        Similarity value       157 (95.73%)       0 (0%)            7 (4.27%)
+        based veriﬁcation
+        Pose agreement         147 (89.63%)       6 (3.66%)         11 (6.71%)
+        based veriﬁcation
+        Combined               144 (87.8%)        0 (0%)            20 (12.2%)
+        veriﬁcation
+
+
+              Table 8
+              Performance of the registration pipeline for images
+              outside the operating range of interest (Group C).
+
+                Type of veriﬁcation     Incorrect          No
+                used in the system      registration       registration
+
+                Similarity value        0 (0%)             29 (100%)
+                based veriﬁcation
+                Pose agreement          1 (3.45%)          28 (96.55%)
+                based veriﬁcation
+                Combined                0 (0%)             29 (100%)
+                veriﬁcation
+
+
+
+
+produces a slightly lower success rate, its time requirements, com-
+pared to similarity value based veriﬁcation, are signiﬁcantly reduced
+(see Section 4.5).
+    The performance of the automated registration pipeline using im-
+ages outside the operating range (i.e. Group C) is presented in Table 8.
+Correct registration is not feasible to these images, and so the de-
+sired output is a “no registration” result. Using the similarity value
+based veriﬁcation or the combined veriﬁcation, all registrations are
+correctly rejected yielding 0% incorrect registrations. The pose agree-
+ment based veriﬁcation has a slightly lower performance of 3.45% in-
+correct registration rate.
+    The proposed registration pipeline, with combined veriﬁcation,
+was used during complex aortic repairs of 12 patients in Group B.
+This enabled 3D renderings of the aorta and visceral vessels from CT
+to be overlayed onto the ﬂuoroscopy during the procedure. We show
+in Fig. 9 four examples of such overlays. The images on the left are
+typical examples of the low dose ﬂuoroscopy images that were used
+in this study. Note also the good agreement of the aortic overlays
+on the right with the underlying ﬂuoroscopy images at anatomical                               Fig. 9. Overlay examples: typical low dose ﬂuoroscopy images (left) and CT rendered,
+                                                                                               aortic overlays produced after registration (right). The arrows indicate the ostia of vis-
+points critical for these procedures. These points are the ostia of the                        ceral vessels (key clinical landmarks), which agree well with the cannulating wires on
+visceral vessels which agree well with the cannulating wires on the                            the ﬂuoroscopy images, indicating accurate registrations. Note: due to deformation re-
+ﬂuoroscopy images, indicating accurate registrations.                                          nal arteries do not agree with wire positions distal to the aorta.
+    Table 9 shows results using the gold standard data for the 4425
+cases when the initial position was inside the operating range. A reg-
+istration was deﬁned to be successful if the Target Registration Repro-                        cases which corresponded to strong local extrema due to the reﬂec-
+jection Error (TRRE) for all eight target points was smaller than 2 mm.                        tion symmetry of a vertebra in a sagittal plane. This results in DRRs
+The results show very accurate registrations and a 100% success rate                           produced at an angle ± x° from true lateral view appearing similar
+for all three starting position ranges.                                                        (Penney (2000)). Such cases were not observed in our patient data
+                                                                                                                                  ◦
+    For the 3675 cases where the initial position was outside the op-                          as lateral rotations larger than 90 are not generally used in clinical
+erating range, a no registration result was produced for 3657 (99.5%)                          practice. These failures can be avoided in a clinical situation as long
+of them. Incorrect registrations were produced for the remaining 18                            as the operating range of the algorithm is not extended to be close
+                                                                       A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                                                         117
+
+
+                                             Table 9
+                                             Target Registration Reprojection Error (TRRE) and Rotation Error (γ )a before and after 2D/3D registration pro-
+                                             duced with Gold Standard Data. Percentage of successful registrations for three ranges of initial displacement
+                                             from gold standard position, within the algorithm’s operating range.
+
+                                                    Before registration                 After registration                                Successful registrations (%)
+
+                                                                    γ()                                              γ()
+                                                                       ◦                                                 ◦
+                                                TRRE (mm)                          TRRE (mm)                                        0–6 mm         6–12 mm          12–18 mm
+                                                                                                                                    γ < 16.7       γ < 32.7         γ < 43.7
+                                                                                                                                               ◦           ◦                ◦
+                                               RMS     Max      RMS        Max    RMS     Max      RMS                       Max
+                                               5.9     23.4     14.2       43.7   0.21    0.62     0.24                      0.69   100            100              100
+                                               a
+                                                 The rotation γ between two poses was computed by decomposing the pose difference into translation and
+                                             rotation components using the same approach as Tomaževič et al. (2003).
+
+
+                                    20                                                                        20
+                                                                                  classified as                                                                        classified as
+                                    18                                            correct                     18                                                       correct
+                                                                                  classified as                                                                        classified as
+                                                                                  incorrect                   16                                                       incorrect
+                                    16
+
+                                    14                                                                        14
+                       Number of DRRs
+
+
+
+
+                                                                                                    Number of DRRs
+                                    12                                                                        12
+
+                                    10                                                                        10
+
+                                        8                                                                            8
+
+                                        6                                                                            6
+
+                                        4                                                                            4
+
+                                        2                                                                            2
+
+                                        0                                                                            0
+                                            0 0.2 0.6 1 1.4 1.8 2.2 2.6 3 3.4 3.8                                       0 0.2 0.6 1 1.4 1.8 2.2 2.6 3 3.4 3.8
+                                        Mean Reprojection Distance from gold position (mm)                           Mean Reprojection Distance from gold position (mm)
+                                                               (a)                                                                          (b)
+
+Fig. 10. Number of DRRs classiﬁed as “correct” and “incorrect” as a function of their distance from gold standard position. Classiﬁcation took place through visual inspection by
+two experts (a) and (b).
+
+
+
+to true lateral. Our use of a global search strategy, which limits the                                                       Table 10
+                                                                                                                             Representative computation time (in seconds) for the three stages of the au-
+search algorithm to clinically used positions, could help avoid such
+                                                                                                                             tomated registration pipeline.
+local extrema which may be found using other search strategies.
+                                                                                                                                                     Initial pose      2D–3D           Result        Total
+                                                                                                                                                     estimation        registration    veriﬁcation
+4.4. Evaluation of visual veriﬁcation
+                                                                                                                               Similarity value      13                7.5             30            50.5
+                                                                                                                               based veriﬁcation
+    Fig. 10 shows the results of the experiment to evaluate the size
+                                                                                                                               Pose agreement        13                7.5             0             20.5
+of registration error which could be robustly detected using visual                                                            based veriﬁcation
+inspection. Both experts correctly classiﬁed all 20 DRRs which had                                                             Combined              13                7.5             5             25.5
+been produced at the gold standard position; therefore with this data                                                          veriﬁcation
+visual inspection had a sensitivity of 100%. Only 5 of the 2 × 80
+DRRs produced away from the gold standard were classiﬁed as cor-
+rect (speciﬁcity of 96.9%). The mean and maximum error from these
+                                                                                                                         Computation times for the three stages of the automated regis-
+5 incorrectly classiﬁed DRRs were 0.72 mm and 1.8 mm. All DRRs
+                                                                                                                     tration pipeline are summarised in Table 10. Exact computation time
+with an error larger than 2 mm were correctly classiﬁed. These re-
+                                                                                                                     varies depending on the magniﬁcation setting. Reported times corre-
+sults show our ability to discriminate between correct and incorrect
+                                                                                                                     spond to an intermediate magniﬁcation. The initial pose estimation
+registrations through visual inspection, and conﬁrms the validity of
+                                                                                                                     algorithm can produce 8400 accumulator arrays corresponding to a
+using visual inspection to verify the ground truth used in the patient
+                                                                                                                     single vertebra in 2 s. Therefore, for all six vertebrae, complete ini-
+data experiments.
+                                                                                                                     tialisation stage is achieved in 13 s. A single vertebra based 2D–3D
+                                                                                                                     registration is completed in 1.25 s. Thus, the 2D-3D registration stage
+4.5. Time Requirements for automated registration                                                                    of the automated pipeline requires 7.5 s (6 vertebrae × 1.25 s). Finally,
+                                                                                                                     for result veriﬁcation, similarity value based veriﬁcation requires four
+    To enable registration in a clinically acceptable time, a computer                                               additional 2D–3D registrations (i.e. 5 s) per vertebra; therefore 30 s
+with two NVidia GTX 690 Graphics cards was used. Each card con-                                                      for all 6 vertebrae. The computational cost of pose agreement based
+tains two GPUs, so in total four GPUs were used simultaneously. We                                                   veriﬁcation is insigniﬁcant. Combined veriﬁcation makes use of the
+implemented a parallel version of the three computationally expen-                                                   similarity value based veriﬁcation only for a single vertebra and so
+sive parts of the registration pipeline: production of the accumulator                                               is completed in 5 s. Therefore, the time required for the complete
+arrays, DRR rendering and similarity value computation.                                                              automated pipeline when the similarity value, the pose agreement
+118                                                 A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119
+
+
+and the combined veriﬁcation is used, is 50.5, 20.5 and 25.5 s respec-               can be used as landmarks. Secondly, our methods could be adapted to
+tively.                                                                              work with single bony structures by dividing them into sub-volumes.
+                                                                                     Each sub-volume would need to contain enough features to enable
+5. Discussion                                                                        an accurate registration, and there would need to be a high proba-
+                                                                                     bility of features from multiple sub-volumes appearing in the same
+     We have proposed methods to automate 2D–3D registration. The                    ﬂuoroscopy view. Such an adaptation has the potential to extend our
+only manual input in our experiments was the magniﬁcation setting                    proposed methods for use in the cranial and pelvic regions.
+of the ﬂuoroscopy set, information which could be transferred au-                        Finally we would like to discuss how the proposed approach
+tomatically via the image header. Therefore, provided with an inter-                 compares to image guided systems that use mechanical (Ruijters
+ventional ﬂuoroscopy image, and magniﬁcation setting, our proposed                   et al. (2011)) or optical (Livyatan et al. (2003)) tracking of the C-
+methods are able to carry out 2D–3D registration and veriﬁcation                     arm movement. C-arm tracking enables the maintenance of a 3D
+with no additional manual input.                                                     overlay based on an initially produced and veriﬁed registration be-
+     For clinical use a system should have a high correct registration               tween intraoperative and preoperative data. Although such systems
+rate, low (preferably zero) incorrect registration rate, and be fast,                remove the computational needs of continuous 2D-3D registration,
+preferably enabling registration and validation in just a few seconds.               they are associated with a number of limitations which our pro-
+Our system, using similarity value based veriﬁcation with patient                    posed methods are able to overcome. Firstly, the initial registration
+data sets achieved 95.73% correct registration rate and a 0% incorrect               stage typically involves extended manual interaction, as manual reg-
+registration rate. Registrations to the phantom (ground truth) data set              istration or identiﬁcation of the initial position is used. High radia-
+showed the algorithm to be accurate (0.21 mm RMS error) and robust                   tion dose is also associated with the systems where interventional
+(100% successful for images in operating range). A very small number                 3D imaging is used to establish correspondence with the preoper-
+(0.5%) of incorrect registrations were not detected, however as long                 ative data (Ruijters et al. (2011)). The 2D–3D registration method
+as the operating range is not extended close to a true lateral view,                 presented here can remove the above obstacles from the initialisa-
+and then these failures would require view directions which are very                 tion process, as it has a wide capture range and uses only 2D in-
+unlikely to occur in a clinical situation.                                           terventional ﬂuoroscopy. The second limitation of C-arm tracking
+     The algorithm took 50 s to register. Although 50 s is much longer               based methods comes from the fact that intraoperative patient move-
+than clinically desired, use of combined veriﬁcation reduced this time               ment can introduce errors in the initially established correspondence.
+to 25 s which is a feasible time scale for clinical use. Additional code             Commercially available image guided systems with C-arm tracking
+optimisation is ongoing and further computational advances should                    at the moment require the manual identiﬁcation of patient motion
+reduce this time to the desired few seconds in the near future.                      and repetition of the cumbersome initialisation process (Ruijters et al.
+     Our initial pose estimation method relies heavily on the ability of             (2011), Rossitti and Pﬁster (2009)). Automated correction for patient
+the GHT and GDSM to detect speciﬁc vertebra. Although vertebrae                      motion has been proposed with the use of 3D motion compensation
+visually appear very similar, the sensitivity of the GHT and GDSM to                 methods (Wang et al. (2014)), whereas fast 2D–3D registration tech-
+their small differences in shape enables the robust detection of spe-                niques with limited capture range could also be employed, based on
+ciﬁc vertebra. The standard use of the GHT is to detect multiple rea-                the fact that a good initial position in such cases is available. However,
+sonably generically shaped objects, and variations in shape due to                   such techniques will at times fail to provide an accurate registration;
+view angle is normally a confounding factor. By producing vertebra                   challenging scenarios include: a highly magniﬁed view with few bony
+speciﬁc and pose speciﬁc R-tables we are able to achieve high signal                 features, views with large instruments obscuring bony detail, large
+to noise using the GHT, as illustrated in Fig. 5. This is also achieved us-          patient movement, or a combination of these effects. Therefore,
+ing low dose ﬂuoroscopy images which often contain many overlying                    methods for automatic result veriﬁcation like the ones presented
+interventional instruments (see Figs. 1 and 9).                                      here, could signiﬁcantly improve automatic motion correction algo-
+     Our veriﬁcation methods are statistical, and so are not guaranteed              rithms. Finally, it should be noted that C-arm mechanical tracking is
+to work. Although a 0% incorrect registration rate was achieved using                only provided by high end ﬂuoroscopy sets, limiting their use to sites
+the similarity value based veriﬁcation on patient data, and is vali-                 where such equipment is available.
+dated here using a large number of images, if enough data is tested it
+is likely that some incorrect registrations would not be detected. How               6. Conclusions
+large an incorrect registration rate would be clinically acceptable is a
+subject for further research. However, it should be noted that guaran-                   We presented novel techniques and demonstrated their use in
+teeing a 0% incorrect registration rate is unlikely to be feasible even              fully automating the 2D–3D registration process. The proposed reg-
+when manual inspection of registrations is used, as they are still sub-              istration pipeline requires no manual input (apart from ﬂuoroscopy
+ject to human error. Combined use of multiple veriﬁcation methods                    magniﬁcation setting) in either the initialisation or the veriﬁcation
+has the potential to greatly reduce incorrect registration rate if they              process and it can cope with a wide range of movements of the ﬂuo-
+are “not strongly correlated in their misclassiﬁcations” (Kittler et al.             roscopy set in a clinically acceptable time. The complete registration
+(1998)). This appears to be the case with our proposed veriﬁcation                   process was extensively tested in real clinical conditions enabling au-
+methods: out of the 55 registrations in Section 4.2 which were clas-                 tomatic CT-to-ﬂuoroscopy image registration. The system was very
+siﬁed by both veriﬁcation methods and at least one of them failed,                   robust producing correct registrations for the vast majority of images
+only one registration was jointly misclassiﬁed by both methods. An-                  within the operating range of interest. Moreover no wrong registra-
+other strategy is for clinicians to never rely on a single registration;             tions were produced for the remaining images as the results were
+an easy to use (i.e. fast and automatic) registration algorithm will en-             successfully rejected by the veriﬁcation algorithm. We believe that
+able additional registrations to be carried out and conﬁdence can be                 the proposed techniques can have signiﬁcant impact on the practical
+increased by low variability in registration position. However, care                 use of 2D–3D registration technology in clinical practice and facilitate
+should be taken using such an approach that the separate registra-                   its widespread use in endovascular procedures.
+tions have some degree of independence.
+     Let us also mention here that although the proposed methods                     Acknowledgment
+make speciﬁc use of vertebrae, there is potentially a wide range of ap-
+plications for our methods. Firstly, a wide range of medical operations                  The authors would like to thank the Guy’s and St Thomas’ char-
+take place in the area of the thorax and/or abdomen where vertebrae                  ity for funding this work. The authors also acknowledge ﬁnancial
+                                                            A. Varnavas et al. / Medical Image Analysis 26 (2015) 108–119                                                                 119
+
+
+support from the Department of Health via the National Institute for                         Therefore, we expect our GHT method to be at least a factor of 10
+Health Research (NIHR) comprehensive Biomedical Research Centre                              faster than using a standard intensity based similarity measure.
+award to Guy’s and St Thomas’ NHS Foundation Trust in partnership
+with King’s College London and King’s College Hospital NHS Foun-                             References
+dation Trust. We would also like to thank the Laboratory of Imaging
+                                                                                             Ballard, D.H., 1981. Generalizing the hough transform to detect arbitrary shapes. Patt.
+Technologies, University of Ljubljana, Faculty of Electrical Engineer-                            Recogn. 13 (2), 111–122.
+ing, Slovenia, for providing the CT, X-ray images and gold standard                          van der Bom, M.J., Bartels, L.W., Viergever, M.A., Pluim, J.P.W., 2010. Robust initializa-
+registrations used in the cadaver experiments presented in this work.                             tion of 2D–3D image registration using the projection-slice theorem and phase
+                                                                                                  correlation. Med. Phys. 37 (4), 1884–1892.
+Finally, we would like to thank all clinical staff at St Thomas’ who                         Chintalapani, G., Chinnadurai, P., 2012. Role of 3D/3D and 2D/3D registration in
+aided this research and all of the patients who participated in this                              computer-assisted stenting aneurysms. In: Lee, Demirci, Unal, Radeva (Eds.), Pro-
+study.                                                                                            ceedings of the MICCAI-STENT, 2012, pp. 112–121.
+                                                                                             Cortes, C., Vapnic, V., 1995. Support-vector networks. Mach. Learning 20, 273–297.
+                                                                                             Gendrin, C., Furtado, H., Weber, C., Bloch, C., Figl, M., Pawiro, S.A., Bergmann, H.,
+Appendix A. Complexity comparison between use of GHT and use                                      Stock, M., Fichtinger, G., Georg, D., Birkfellner, W., 2012. Monitoring tumor mo-
+of similarity measure                                                                             tion by real time 2D/3D registration during radiotherapy. Radiotherapy Oncol. 102,
+                                                                                                  274–280.
+                                                                                             Gendrin, C., Markelj, P., Pawiro, S.A., Spoerk, J., Bloch, C., Weber, C., Figl, M.,
+    Our main motivation for using the GHT is to enable fast registra-                             Bergmann, H., Birkfellner, W., Likar, B., Pernus, F., 2011. Validation for 2D/3D regis-
+tions. We present the following simpliﬁed registration example to                                 tration. II: the comparison of intensity- and gradient-based merit functions using
+demonstrate the greatly reduced computational complexity of the                                   a new gold standard data set. Med. Phys. 38 (3), 1491–1502.
+                                                                                             Gong, R.H., Guler, O., Kurkluoglu, M., Lovejoy, J., Yaniv, Z., 2013. Interactive initialization
+GHT compared to a more standard intensity based similarity mea-                                   of 2D/3D rigid registration. Med. Phys. 40 (12), 121911.
+sure. Assume two images with equal pixel sizes are to be registered                          Hamadeh, A., Lavallee, S., Cinquin, P., 1998. Automated 3-dimensional computed tomo-
+using a global strategy which searches for the optimum in-plane                                   graphic and ﬂuoroscopic image registration. Comput. Aided Surg. 3 (1), 11–19.
+                                                                                             Kittler, J., Hatef, M., Duin, R.P.W., Matas, J., 1998. On combining classiﬁers. IEEE Trans.
+translation. The images are: a DRR with R1 × R2 pixels and ﬂuo-                                   Pattern Anal. Mach. Intell. 20 (3), 226–239.
+roscopy image with L1 × L2 pixels.                                                           Kovesi, P., 2003. Phase congruency detects corners and edges. In: The Australian Pattern
+    When the intensity-based similarity measure is used, the DRR is                               Recognition Society Conference: DICTA 2003, pp. 309–318.
+                                                                                             Livyatan, H., Yaniv, Z., Joskowicz, L., 2003. Gradient-based 2-D/3-D rigid registration of
+translated across the ﬂuoroscopy image using a step size s and the                                ﬂuoroscopic X-ray to CT. IEEE Trans. Med. Imaging 22 (11), 1395–1406.
+similarity value is computed in each step. The complexity of similar-                        Markelj, P., Tomaževič, D., Likar, B., Pernuš, F., 2012. A review of 3D/2D registration
+ity value computation at each step is proportional to the number of                               methods for image-guided interventions. Med. Image Anal. 16 (3), 642–661.
+                                                                                             Otake, Y., Armand, M., Armiger, R., Kutzer, M.D., Basafa, E., Kazanzides, P., Taylor, R.H.,
+pixels in the DRR. Therefore, overall complexity is given by:
+                                                                                                  2012a. Intraoperative image-based multiview 2D/3D registration for image-guided
+       L 1 L2                                                                                     orthopaedic surgery: incorporation of ﬁducial-based C-arm tracking and GPU-
+C1 =          R1 R2 n1 ,                                                           (5)            acceleration. IEEE Trans. Med. Imaging 31 (4), 948–962.
+         s2                                                                                  Otake, Y., Schafer, S., Stayman, J.W., Zbijewski, W., Kleinszig, G., Graumann, R.,
+where n1 is the number of operations per pair of ﬂuoroscopy and DRR                               Khanna, A.J., Siewerdsen, J.H., 2012b. Automatic Localization of Vertebral Levels
+                                                                                                  in X-Ray Fluoroscopy Using 3D-2D Registration: A Tool to Reduce Wrong-Site
+pixels, required by the similarity measure.                                                       Surgery. Phys. Med. Biol. 57 (17), 5485–5508.
+    When the GHT is used, a set of edge points are found in the im-                          Otake, Y., Wang, A.S., Stayman, J.W., Uneri, A., Kleinszig, G., Vogt, S., Khanna, A.J., L., G.Z.,
+ages, and the orientation of each edge point is calculated and placed                             Siewerdsen, J.H., 2013. Robust 3D-2D image registration: application to spine inter-
+                                                                                                  ventions and vertebral labeling in the presence of anatomical deformation. Phys.
+in one of b equally sized bins. Let us assume we have p and p points                             Med. Biol. 58, 8535–8553.
+per orientation bin in the ﬂuoroscopy and the DRR respectively. Each                         Penney, G. P. (Ed.), 2000. Registration of Tomographic Images to X-ray Projections for
+point in the DRR will cast a vote for each point in the ﬂuoroscopy im-                            Use in Image Guided Interventions. Doctoral Thesis. pp. 158--159
+                                                                                             Penney, G.P., Varnavas, A., Dastur, N., Carrell, T., 2011. An image-guided surgery sys-
+age which belongs to the same orientation bin. Therefore, the GHT                                 tem to aid endovascular treatment of complex aortic aneurysms: description and
+complexity is given by:                                                                           initial clinical experience. In: Information Processing in Computer-Assisted Inter-
+                                                                                                  ventions. Springer, pp. 13–24.
+                      R1 R2 r L1 L2 r      R1 R2 r2
+C2 = bp pn2 = b
+                                                                                             Penney, G.P., Weese, J., Batchelor, P.G., Hill, D.L.G., Hawkes, D.J., 2001. Validation of a
+                                      n2 =          L 1 L2 n 2                     (6)            two- to three-dimensional registration algorithm for aligning preoperative CT im-
+                        b       b             b
+                                                                                                  ages and intraoperative ﬂuoroscopy images. Med. Phys. 28 (6), 1024–1032.
+where r is the fraction of pixels deﬁned as edge points in the ﬂuo-                          Rossitti, S., Pﬁster, M., 2009. 3D Road-mapping in the Endovascular Treatment of Cere-
+roscopy and the DRR, and n2 is the number of operations required to                               bral Aneurysms and Arteriovenous Malformations. Interventional Neuroradiology
+                                                                                                  15, 283–290.
+cast a single GHT vote: a process which involves just two summations
+                                                                                             Ruijters, D., Homan, R., Mielekamp, P., van de Haar, P., Babic, D., 2011. Validation of 3D
+for the computation of an index variable and update of the indexed                                multimodality roadmapping in interventional neuroradiology. Phys. Med. Biol. 56,
+element in the accumulation space.                                                                5335–5354.
+    Using Eqs. (5) and (6) the ratio ρ of the two complexities is given                      Tomaževič, D., Likar, B., Pernuš, F., 2002. “Gold Standard” 2D/3D Registration of X-
+                                                                                                  Ray to CT and MR Images. In: Medical Imaging Computing and Computer-Assisted
+by:                                                                                               Intervention—MICCAI ’02, pp. 461–468.
+                                                                                             Tomaževič, D., Likar, B., Slivnik, T., Pernuš, F., 2003. 3-D/2-D registration of CT and MR
+       C1   bn1
+ρ=        = 2 2 .                                                                  (7)            to X-ray images. IEEE Trans. Med. Imaging 22 (11), 1407–1416.
+       C2  r s n2                                                                            Varnavas, A., Carrell, T., Penney, G.P., 2013. Increasing the automation of a 2D-3D regis-
+                                                                                                  tration system. IEEE Trans. Med. Imaging 32 (2), 387–399.
+   To estimate ρ we use the following approximate typical values                             Wang, J., Borsdorf, A., Heigl, B., Köhler, T., Hornegger, J., 2014. Gradient-based differ-
+                                                   1
+from the images used in our experiments: r = 10      (depends on im-                              ential approach for 3-D motion compensation in interventional 2-D/3-D image fu-
+                                                                                                  sion. In: 2nd International Conference on 3D Vision (3DV), 2014, pp. 293–300.
+age content); s = 10 (depends on pixel size); b = 12; and dependent
+                                                                                             Weese, J., Penney, G.P., Desmedt, P., Buzug, T.M., Hill, D.L.G., Hawkes, D.J., 1997. Voxel-
+on the similarity measure used n1 is typically several times larger                               based 2-D/3-D registration of ﬂuoroscopy images and CT scans for image-guided
+than n2 . Using these values ρ is estimated to be between 10 and 100.                             surgery. IEEE Trans. Informat. Technol. Biomed. 1 (4), 284–293.
+

@@ -1,0 +1,499 @@
+                                                     The Thirty-Second AAAI Conference
+                                                      on Artificial Intelligence (AAAI-18)
+
+
+
+
+                                          Dilated FCN for Multi-Agent
+                                        2D/3D Medical Image Registration
+
+                       Shun Miao,1∗ Sebastien Piat,1 Peter Fischer,2 Ahmet Tuysuzoglu,1
+                                Philip Mewes2 Tommaso Mansi,1 Rui Liao1
+                           1
+                               Siemens Healthineers, Medical Imaging Technologies, Princeton, NJ, USA
+                                            2
+                                              Siemens Healthineers, Forchheim, Germany
+
+
+                           Abstract                                        actively researched for decades (Markelj et al. 2012), it re-
+                                                                           mains a very challenging and unsolved problem, especially
+  2D/3D image registration to align a 3D volume and 2D X-ray
+                                                                           in the complex environment of hybrid operating rooms.
+  images is a challenging problem due to its ill-posed nature
+  and various artifacts presented in 2D X-ray images. In this                 A Markov Decision Process (MDP) formulation for
+  paper, we propose a multi-agent system with an auto attention            3D/3D image registration was recently introduced and re-
+  mechanism for robust and efﬁcient 2D/3D image registration.              sulted in a signiﬁcant robustness improvement (Liao et al.
+  Speciﬁcally, an individual agent is trained with dilated Fully           2017). The original formulation however has three major
+  Convolutional Network (FCN) to perform registration in a                 limitations that make it ineffective for 2D/3D registration in
+  Markov Decision Process (MDP) by observing a local region,               a clinical setup. First, it requires the rough location and size
+  and the ﬁnal action is then taken based on the proposals from            of the target object to be registered as a prior, in order to ex-
+  multiple agents and weighted by their corresponding conﬁ-                tract a local region around the target as the agent’s observa-
+  dence levels. The contributions of this paper are threefold.             tion. However, in 2D/3D registration, the location and size of
+  First, we formulate 2D/3D registration as a MDP with obser-
+                                                                           the target object can vary signiﬁcantly in 2D X-ray images,
+  vations, actions, and rewards properly deﬁned with respect to
+  X-ray imaging systems. Second, to handle various artifacts               due to variations in C-arm geometry and imaging protocols
+  in 2D X-ray images, multiple local agents are employed efﬁ-              such as collimation factors. Second, there could be various
+  ciently via FCN-based structures, and an auto attention mech-            artifacts / interference coming from medical devices in 2D
+  anism is proposed to favor the proposals from regions with               X-ray images and simulation of all of them in the training
+  more reliable visual cues. Third, a dilated FCN-based train-             samples is not practical. Therefore an auto attention mech-
+  ing mechanism is proposed to signiﬁcantly reduce the Degree              anism is needed in order to be able to inherently detect the
+  of Freedom in the simulation of registration environment, and            regions with more reliable visual cues to drive registration,
+  drastically improve training efﬁciency by an order of magni-             and this mechanism is not provided in (Liao et al. 2017).
+  tude compared to standard CNN-based training method. We                  Third, training data need to be sampled extensively from the
+  demonstrate that the proposed method achieves high robust-
+                                                                           registration environment with a high DoF (i.e., environmen-
+  ness on both spine cone beam Computed Tomography data
+  with a low signal-to-noise ratio and data from minimally in-             tal DoFs include location of agent’s observation and pose
+  vasive spine surgery where severe image artifacts and occlu-             of the 3D volume), which is associated with an high com-
+  sions are presented due to metal screws and guide wires, out-            putational cost. In fact, ﬁve million samples are needed as
+  performing other state-of-the-art methods (single agent-based            reported in (Liao et al. 2017), even after using location prior
+  and optimization-based) by a large margin.                               knowledge to reduce the DoF by 3. Since data sampling
+                                                                           grows exponentially with the DoF, without the location prior
+                                                                           knowledge, computational cost would be prohibitively high
+                       Introduction                                        for our 2D/3D registration problem.
+The goal of 2D/3D medical image registration is to ﬁnd                        In this paper, we propose a multi-agent system with an
+the 6 Degree of Freedom (DoF) pose of a 3D volume (e.g.                    auto attention mechanism to address the above three limita-
+Computed Tomography (CT), Mangnetic Resonance Imag-                        tions of agent-based registration, and apply it to a challeng-
+ing (MRI) etc), to align its projections with given 2D X-                  ing 2D/3D registration application for minimally invasive
+ray images. Reliable 2D/3D registration is a key enabler for               spine surgery. In particular, multiple agents are employed to
+image-guided surgeries in modern operating rooms. It brings                observe multiple regions of the image, and the system adap-
+measurement and plannings done on the pre-operative data                   tively favors proposals from regions with more distinct vi-
+into the operating room, and fuse it with intra-operative live             sual cues for registration. We furthermore propose a policy
+2D X-ray images. It can be used to provide augmented re-                   network architecture with separate encoding of the ﬁxed and
+ality image guidance for the surgery, or provide navigation                moving images, and a dilated Fully Convolutional Network
+for robotic surgery. Despite that 2D/3D registration has been
+                                                                               Disclaimer: This feature is based on research, and is not com-
+Copyright  c 2018, Association for the Advancement of Artiﬁcial           mercially available. Due to regulatory reasons its future availability
+Intelligence (www.aaai.org). All rights reserved.                          cannot be guaranteed.
+
+
+
+
+                                                                    4694
+Figure 1: Example X-ray images (top row) and corresponding Digitally Reconstructed Radiographs (DRRs) (bottom row). The
+ﬁrst four X-ray images are clinical data from spine surgery, which contain various highly opaque metal objects and have very
+different Field-of-Views (FoVs). The last three X-ray images are from CBCT data, which have a relatively low SNR due to a
+very small dynamic range.
+
+
+(FCN) based training strategy to train all observation regions          tional cost. Few attempts have been made to seek heuristic
+in each back propagation. This strategy signiﬁcantly reduces            semi-global optimization to seek a proper balance between
+the DoFs of the registration environment, and as a result               robustness and computational cost (Uneri et al. 2017)(Lau
+training efﬁciency is improved by an order of magnitude                 and Chung 2006).
+compared to standard CNN-based training method. The pro-
+posed FCN structure also naturally supports our multi-agent             Learning-based Image Registration
+system in the application phase for efﬁcient 2D/3D regis-
+tration. We demonstrate that when there are severe image                Several attempts have been made recently to tackle 2D/3D
+artifacts and occlusions, e.g. due to metal screws and guide            registration problems using learning-based approaches.
+wires, the proposed method signiﬁcantly outperforms single              Hand crafted features and simple regression modules like
+agent-based method and other state-of-the-art optimization-             Multi-Layer Perceptron and linear regression were proposed
+based methods by reducing the gross failure rate (GRF) by               to regress 2D/3D registration parameters (Gouveia et al.
+10 fold.                                                                2015) (Chou et al. 2013). A CNN-based regression approach
+                                                                        was introduced in (Miao, Wang, and Liao 2016) to solve
+                     Related Work                                       2D/3D registration for 6 DoF device pose estimation from
+                                                                        X-ray images, and later on a domain adaptation scheme was
+Optimization-based 2D/3D Registration                                   proposed (Zheng, Miao, and Liao 2017) to improve the per-
+The most widely adopted formulation for 2D/3D registra-                 formance generalization of the CNN model on unseen real
+tion is to solve it as an optimization problem to mini-                 data. In (Wohlhart and Lepetit 2015), a range image de-
+mize a cost function that quantiﬁes the quality of align-               scriptor was learned via CNN to differentiate 3D pose of
+ment between the images being registered (Markelj et al.                the object, and was used for 6 DoF pose estimation. While
+2012)(Gendrin et al. 2012)(Schmid and Chênes 2014)(Miao,               the CNN-based methods improve robustness of 2D/3D reg-
+Liao, and Zheng 2011). The success of these approaches de-              istration, they are limited to registering only highly opaque
+pends on the global optimization of the cost function. Ex-              objects with a ﬁxed shape described by a CAD model (e.g.,
+isting image-based cost functions are mostly based on low               rigid metal devices), because they aimed at explicitly mod-
+level metrics, e.g., Mutual Information (MI) (Maes et al.               eling the appearance-pose relationship. Therefore, it cannot
+1997), Cross Correlation (CC) (Knaan and Joskowicz 2003),               solve 2D/3D registration of anatomical structures with vary-
+Gradient Correlation (GC) (De Silva et al. 2016) and etc.               ing shapes across patients.
+These metrics compare images directly at the pixel level                   Learning-based approaches have also been explored for
+without understanding the higher level structures in the im-            2D/2D and 3D/3D image registration, where the goal is
+age. As a result, on images with a low signal-to-noise ratio            to ﬁnd the spatial transformation to align images of the
+(SNR) and/or severe image artifacts like examples shown                 same dimension. Unsupervised learning using CNN was
+in Fig. 1, they often have numerous local minima, which                 proposed in (Wu, Qi, and Shen 2006) to extract features for
+makes it extremely challenging to locate the global solu-               deformable registration. These features however were ex-
+tion using mathematical optimization strategy, e.g. Powell’s            tracted separately from the image pairs and therefore may
+method, Nelder-Mead, BFGS, CMA-ES. Although there                       not be optimal for registration purpose. Optical ﬂow estima-
+are global optimization methods, e.g., simulated annealing              tion between 2D RGB images has been proposed using CNN
+(Van Laarhoven and Aarts 1987) and genetic algorithm (Deb               via supervised learning in (Weinzaepfel et al. 2013)(Doso-
+et al. 2002), they require comprehensive sampling of the pa-            vitskiy et al. 2015)(Ilg et al. 2016). A learnable module,
+rameter space, which leads to a prohibitively high computa-             called spatial transformer network (STN), was introduced
+
+
+
+                                                                 4695
+in (Jaderberg et al. 2015). The focus of STN was not an
+accurate alignment of two images, but a rough transforma-
+tion of a single input image to a canonical form. In a recent
+work, rigid-body 3D/3D image registration is formulated as
+a MDP and a policy network is trained to perform image reg-
+istration (Liao et al. 2017). Motivated by this work, we de-
+sign a 2D/3D registration system by utilizing multiple agents
+coupled with an auto attention mechanism for high robust-
+ness, and train the agent using dilated FCN-based strategy
+for high efﬁciency.
+
+                      Background                                       Figure 2: Policy network with encoder CNN and decoder
+2D/3D Registration                                                     neural network (NN). An ROI centered on the projection of
+Given a 3D CT volume J : R3 → R, a projection image can                the agent’s location is extracted from the X-ray image and
+be calculated following the X-ray imaging model (Bushberg              DRR. The extracted regions are encoded using CNN to ob-
+and Boone 2011):                                                       tain feature vectors, which are concatenated and decoded by
+                                                                    a NN to obtain reward estimation.
+            HT (p) = J T −1 ◦ L(p, r) dr,             (1)
+
+where I(p) is the intensity of the synthetic X-ray image at            5-tuple {T , A, P· (·), R· (·), γ}, where T is the set of pos-
+point p, L(p, r) is the line connecting the X-ray source and           sible states (i.e., transformations in SE(3)), A is the set of
+the point p, parameterized by r, and T : R3 → R3 is the                actions (i.e., modiﬁcation of the transformation), PA (T ) is
+geometric transformation of the 3D volume. Such projection             the state obtained by taking action A in state T , RA (T ) is
+image is referred to as DRR, and can be computed using the             the reward received by taking action A in state T , and γ is
+Ray-Casting algorithm (Kruger and Westermann 2003).                    the discount factor that controls the importance of future re-
+   In 2D/3D registration problems, a 3D volume J(·), a 2D              wards. With the action space A and the reward scheme R· (·)
+X-ray image I(·) and the camera model of the X-ray im-                 deﬁned (details are provided in the next sections), the core
+ages L(·) are given. The goal is to ﬁnd the transformation T           problem of MDP is to ﬁnd a policy π(·) that speciﬁes the
+that aligns the projection of the 3D volume HT (·) with the            optimal action π(Tt ) to be taken at state Tt to maximize the
+X-ray image I(·). Due to the ambiguity in matching a 3D                long term reward:
+volume with a single projected 2D image, multiple X-ray                    inf
+                                                                           
+images from different projection angles are often employed                       γ t RAt (Tt ),   where we choose At = π(Tt ).    (4)
+in 2D/3D registration. In such cases, the goal is to ﬁnd the               t=0
+transformation T that aligns all DRR and X-ray image pairs,
+denoted as Hi,T (·) and Ii , where i denotes the index of the          Action Space
+X-ray image.                                                           To make the policy learnable, we deﬁne the action space
+                                                                       based on the X-ray projection geometry such that each ac-
+Special Euclidean Group SE(3)                                          tion is correlated with a speciﬁc appearance change of the
+Special Euclidean group SE(3) is the set of 4 × 4 matri-               DRR that is largely independent of C-arm geometry. Specif-
+ces corresponding to translations and rotations. The tangent           ically, the transformation T is described in the image co-
+space of SE(3) is described using the Lie algebra se(3),               ordinate system, which has its origin at the upper left cor-
+which has six generators corresponding to the derivatives of           ner of the image, its (x, y) axes along the image edges, and
+translation and rotation along/around each of the standard             its z axes perpendicular to the image (illustrated in Fig. 2).
+axes. An element of se(3) is then represented by multiples             We further deﬁne an agent coordinate system with the same
+of the generators                                                      orientation as the image coordinate system and an origin
+                                                                       that can be selected individually (details on the selection of
+                δ = (u, v) ∈ R6                          (2)
+                                                                       the origin will be discussed later). The coordinate transform
+              δ × = u 1 G1 + u 2 G2 + u 3 G3 +                         from the image coordinate system to the agent coordinate
+                 v1 G4 + v2 G5 + v3 G6 ∈ se(3),          (3)           system is denoted as E. The transformation Tt is then de-
+where (G1 , G2 , G3 ) are the translation generators, and              scribe in the agent coordinate system, written as E ◦ Tt , and
+(G4 , G5 , G6 ) are the rotation generators. Matrix exponen-           the action space is deﬁned as small movements in the tangent
+tial and logarithm can be taken to convert elements between            space of SE(3) at E◦Tt , parameterized by se(3). Speciﬁcally,
+SE(3) and se(3).                                                       the action space contains 12 actions of positive and negative
+                                                                       movements along the 6 generators of se(3):
+                  Proposed Method                                                A = {−λ1 G1 , λ1 G1 , . . . , −λ6 G6 , λ6 G6 },   (5)
+Markov Decision Process                                                where λi is the step size for the action along the generator
+We cast the problem of ﬁnding T to align the DRR HT (·)                Gi . Application of an action A ∈ A is represented as
+with a X-ray image I(·) as a MDP, which is deﬁned by a                                Tt+1 = E −1 ◦ exp(A) ◦ E ◦ Tt .              (6)
+
+
+
+                                                                4696
+Since the actions need relatively small step size in order to
+achieve high accuracy, we set λ1,2,3 to be 1 to get a step size          Table 1: Layer conﬁgurations for encoder/decoder CNNs
+of 1 mm in translation, and λ4,5,6 to be π/180 = 0.0174 to               and their equivalent dilated FCNs. Parameters for convolu-
+get a step size of 1 degree in rotation. Our deﬁnition of the            tional layers are written as m × n × f , where n × m is the
+action space ensures that the translation actions causes 2D              convolution kernal size, f is the number of feature maps. sk
+shift and zooming of the DRR, and rotation actions causes                indicates that the layer has input stride k, and dk indicates
+rotation of object in the DRR around the agent’s origin.                 that the ﬁlter kernel is dilated k times. All convolutional lay-
+Therefore the image appearance change of the DRR for a                   ers have zero padding. SELU activation function is applied
+given action is largely independent of the underlying C-arm              after all layers except for the input and output layers. The
+geometry. Note there is no action for terminating the MDP.               column ”output size” speciﬁes the output sizes for CNN.
+Instead, we run the agent for a ﬁxed number of steps (i.e., 50                     Layer    Output         Original       Equivalent
+in our experiments).                                                               Name       Size          CNN             FCN
+                                                                                      input    61x61   -               -
+Reward System                                                                         conv1    59x59   3x3x32          3x3x32,
+In standard MPD, the optimization target is a long term re-                           conv2    57x57   3x3x32          3x3x32,
+ward, i.e., an accumulation of discounted future reward, due                          conv3    27x27   3x3x64,s2       3x3x64,d2
+to the difﬁculty of forging a reward system that directly as-
+
+
+
+
+                                                                            Encoder
+                                                                                      conv4    25x25   3x3x64          3x3x64,d2
+sociate the immediate reward with the long term goal. For                             conv5    11x11   3x3x128,s2      3x3x128,d4
+2D/3D registration, however, we can deﬁne a distance-based                            conv6    9x9     3x3x128         3x3x128,d4
+reward system such that the immediate reward is tied with                             conv7    3x3     3x3x256,s2      3x3x256,d8
+the improvement of the registration. The reward scheme is                             fc1      1x1     1024            3x3x1024,d8
+deﬁned as the reduction of distance to the ground truth trans-                        fc2      1x1     1024            1x1x1024,d8
+formation in the agent coordinate system:                                             output   1x1     128             1x1x128,d8
+  RA (T ) = D(E ◦ T, E ◦ Tg ) − D(E ◦ T  , E ◦ Tg ),      (7)                        input    1x1     -               -
+                                                                            Decoder   fc1      1x1     1024            3x3x1024,d8
+where T and T  are transformations before and after the                              fc2      1x1     1024            1x1x1024,d8
+action, Tg is the ground truth transformation. The dis-                               output   1x1     6               1x1x6,d8
+tance metric D(·, ·) is deﬁned as the geodesic distance of
+two transformations on SE(3) (Hartley, Aftab, and Trumpf
+2011):
+                                                                         to as Region of Interest (ROI). The ROI of an agent is cen-
+             D(T1 , T2 ) =  log(T2 ◦ T1−1 )F                           tered on the projection of its origin, so that rotation actions
+                                           1             (8)           cause rotations with respect to the center of the ROI. Such
+                         = 2u22 + v22 2 ,                            ROI center ensures that the same action always cause the
+                                                                         same visual change in the observation, leading to a consis-
+where log(·) takes T2 ◦ T1−1 ∈ SE(3) into se(3), u and v are             tent mapping between the observation and rewards of dif-
+rotation and translation coefﬁcients of log(T2 ◦ T1−1 ) as de-           ferent actions that can be modeled by a neural network. We
+scribed in Eqn. (2). Because the units for rotation and trans-           propose a network architecture that encodes X-ray and DRR
+lation are radian and mm, the distance impact of rotation is             separately and decodes them jointly to obtain the estimated
+too small. Therefore, we scale the rotation coefﬁcients v by             reward, as shown in Fig. 2 and Table 1.
+180/π to balance the impacts of rotation and translation.                   Such CNN can be trained by supervised learning on data
+   Since the distance D(T, Tg ) measures the distance to the             randomly sampled from the registration environment, simi-
+ground truth, a greedy policy that maximizes the immedi-                 lar to (Liao et al. 2017). In particular, given one pair of 2D
+ate reward (i.e., minimizes the distance to the ground truth)            and 3D data, training data of the CNN can be generated with
+would lead to the correct registration.                                  8 DoFs, including 2 DoFs for (x, y) of the agent’s origin (z
+                                                                         is set to be the mid-point of the 3D volume) corresponding
+                  π(T ) = arg max RA (T ).                 (9)
+                              A                                          to the location of the agent, and 6 DoFs for the transfor-
+                                                                         mation T corresponding to the pose of the 3D volume. The
+It can also be seem as a special case of MPD with the dis-               ground truth rewards can be calculated following Eqn. (7).
+count factor γ = 0.                                                      To make the learned reward function generalizable to unseen
+                                                                         data, all 8 DoFs need to be sufﬁciently sampled during train-
+Policy Learning via Dilated FCN                                          ing, which has a prohibitively high computational cost. In
+Since we seek a greedy policy that maximizes the immedi-                 (Liao et al. 2017), ﬁve million samples are needed to cover
+ate reward, we model the reward function as a deep neural                training data of 6 DoFs, and the sampling requirement grows
+network, as shown in Fig. 2, which can be learned via super-             exponentially with the DoF.
+vised learning. The input of the network is an observation                  We propose a dilated FCN-based training mechanism to
+of the current state, which consists of an observed region of            reduce the DoF of training data from 8 to 4. First, the en-
+ﬁxed size (i.e. 61 × 61 pixels with 1.5×1.5 mm pixel spac-               coder and decoder CNNs are converted to equivalent dilated
+ing in our experiment) from both X-ray and DRR, referred                 FCNs. The ﬁlter dilation technique introduced in (Long,
+
+
+
+                                                                  4697
+Figure 3: Training of the reward network using dilated FCN. The encoder CNN and decoder NN are converted to equivalent
+dilated FCNs. Densely overlapping ROIs are encoded to a dense feature vector map. The feature vector map of DRR is then
+randomly shifted N (N=4 in our experiments) times to simulate translations of the 3D volume in the imaging plane. A ground
+truth dense reward map is calculated from each 2D shift combined with the 3D transformation. Euclidean loss comparing the
+estimated and ground truth rewards is used for training.
+
+
+Shelhamer, and Darrell 2015) is used to make each pixel
+in the FCN output exactly the same as that produced using
+the corresponding CNN on its receptive ﬁeld in the input
+images. Layer to layer correspondence of CNN and dilated
+FCN is shown in Table 1. Training using dilated FCN is il-
+lustrated in Fig. 3. Since the encoder FCN encodes all ROIs
+in the input image, it can replace sampling (x, y) of the
+agent’s origin. The (x, y) translation part of T creates 2D
+shift of the DRR, which can be replaced by shifting the en-
+coded feature map of the DRR during training. Therefore, 4
+DoFs of training data can be avoided by using FCN-based
+training, reducing the number of total DoFs from 8 to 4.                  Figure 4: Conﬁdence map of densely overlapping ROIs
+Since the complexity of the environment grows exponen-                    within the image. Color of each pixel indicates the conﬁ-
+tially with its DoF, reducing the DoF by 4 can signiﬁcantly               dence value from the ROI centered on this pixel.
+improve the training efﬁciency.
+   In the FCN-based training, the ground truth reward
+map needs to be calculated during training, following                     able visual cues for registration (as shown in Fig. 1). There-
+Eqn. (7) and Eqn. (8). Given a X-ray/DRR pair with known                  fore we propose a multi-agent system to provide auto atten-
+Tg and T , the agent coordinate system {Ei } is calcu-                    tion and adaptively choose most reliable ROIs during regis-
+lated for all ROIs within the input image by tracing the                  tration. Speciﬁcally, the FCN policy network is applied on
+pixel back to the 3D volume.
+                                 For each ROI, (ui , v i ) of            the X-ray and DRR to produce a dense reward map, which
+log Ei ◦ T ◦ (Ei ◦ Tg )−1 is pre-calculated. The effect of                contains estimated rewards for agents with all possible ROIs
+2D shift of the DRR feature map is essentially adding the                 from the input images, denoted as Ri (A), where i is the in-
+translation to T , which is equivalent to updating ui ←                   dex of the agent and A ∈ A is the action. For every agent,
+ui + Δu, where Δu is the 2D shift represented in mm. The                  the maximum reward is calculated and the action associated
+distance before action is then calculated using (ui , v i ) fol-          with it is selected:
+lowing Eqn. (8) for each ROI. Similarly, the distance after
+action is calculated following the same steps by replacing T                                  R̂i = max Ri (A),
+                                                                                                     A∈A
+with T  = Ei−1 ◦ exp(A) ◦ Ei ◦ T . Note that the expensive                                   Ai = arg max Ri (A).
+                                                                                                                                       (10)
+computation of matrix logarithms can be pre-calculated for                                             A∈A
+each X-ray/DRR pair, as it does not depend on the 2D shift.
+                                                                          Since R̂i is the anticipated reward of its selected action Ai , it
+Multi-agent System                                                        represents the agent’s conﬁdence on the action. Fig. 4 shows
+Since X-ray images during surgery and interventions can                   a strong correlation between the conﬁdence score R̂i and
+have very different Field-of-View (FoV) and contain many                  the quality of the corresponding ROI: for image with a large
+structures that do not match with the 3D image (e.g., medi-               FoV, the conﬁdence score is high on spine (i.e., good visual
+cal devices), there can be many ROIs that do not contain reli-            cue for registration) and low on soft tissue; when severe oc-
+
+
+
+                                                                   4698
+Figure 5: Left: Conﬁdence distribution of agents producing               Figure 6: Comparison of training speed using CNN-based
+correct and wrong actions. Right: Relation between the per-              training and dilated FCN-based training.
+centage of correct action among selected action and the con-
+ﬁdence threshold used for selecting action.
+                                                                         this range. In particular, the X-ray/DRR pairs used for train-
+                                                                         ing have random rotation offset up to 10◦ , and the DRR fea-
+clusion is presented due to medical devices, the occluded                ture map is randomly shifted up to 20 mm during training.
+area has low conﬁdence scores.                                           The training data was generated from 77 CBCT data sets,
+   We propose to use the conﬁdence score R̂i to derive an at-            where each CBCT data set consists of one CBCT and ∼350
+tention mechanism that only selects agents with R̂i above a              X-ray images used for reconstructing the CBCT. From each
+certain conﬁdence threshold. To determine the threshold, the             CBCT data set, we extracted 350 X-ray/DRR pairs. Since
+behavior of the conﬁdence score was analyzed on validation               the number of CBCTs is limited, we also generated pairs of
+data. Actions are categorized into correct and wrong, based              synthetic X-ray image and DRR from 160 CTs as additional
+on their impact on the registration (i.e., increase or decrease          training data, where 200 pairs where generated from each
+the distance to ground truth). Fig. 5 shows the distribution             CT. In total, our training data consist of 58,950 data, i.e.,
+of the conﬁdence scores from agents producing correct and                26,950 CBCT data and 32,000 synthetic data. Training was
+wrong actions, and relation between the percentage of cor-               performed on a Nvidia Titan Xp GPU using pyTorch.
+rection action among selected actions and the conﬁdence                     We compared training using CNN and the proposed di-
+threshold used for selecting actions. Based on the analysis,             lated FCN. In the training of CNN, random ROIs are ex-
+we selected a conﬁdence threshold (i.e., 0.67 in our experi-             tracted from the X-ray and DRR as the CNN input, and
+ment) such that the correct rate of selected actions is above            ground truth rewards are calculated and used as supervision.
+95%. To avoid the scenario that too few agents are selected              Curves for the training loss and correct action rate using
+for a given test image, if less than 10% of the agents have              CNN-based and dilated FCN-based training are shown in
+a conﬁdence score above this threshold, the top 10% agents               Fig. 6. FCN-based training ﬁnished in 17 hours, with a test-
+will then be selected. After the agents are selected, denoted            ing loss of ∼0.13 and a testing correct action rate of ∼90%.
+as I, actions from the selected agents are further aggregated            In comparison, CNN-based training after 17 hours reached a
+by L2 chordal mean to obtain the ﬁnal actions:                           test loss of ∼0.22 and a testing correct action rate of ∼80%,
+                                                                        which is close to the performance of FCN-based method af-
+                Â = arg min      Ai − A2F .             (11)          ter 2 hours of training.
+                    A∈SE(3) i∈I
+
+                                                                         Testing
+The L2 chordal mean can be solved globally in close form
+as described in (Hartley, Aftab, and Trumpf 2011).                       To evaluate the contribution of the multi-agent strategy, we
+                                                                         tested the agent-based method in two modes: 1) using a sin-
+               Experiment and Result                                     gle agent with an ROI at the center of the image, referred to
+                                                                         as agt-s, and 2) using the proposed multi-agent strategy, re-
+We applied the proposed method on a clinical application of              ferred to as agt-m. To apply the proposed method on 2D/3D
+2D/3D registration during minimally invasive spine surgery,              registration with two X-ray images, in every step, one action
+which aims at registering spine in 3D cone beam CT (CBCT)                is obtained from each X-ray image, and the obtained actions
+and two X-ray images acquired from different angles. This is             are applied sequentially. We also tested a combination of
+a challenging problem because surgical objects like screws               agt-m and an optimization-based method, referred to as agt-
+and guide wires can be presented separately in the 3D and                m-opt, where optimization of GC using BOBYQA optimizer
+2D images, creating severe image artifacts and occlusion of              was applied starting from the result of agt-m. We compared
+the target object (examples are shown in Fig. 1).                        the agent-based method with state-of-the-art optimization-
+                                                                         based methods. Multiple similarity measures were evalu-
+Training                                                                 ated in (De Silva et al. 2016) using CMA-ES optimizer for
+During minimally invasive spine surgery, the initial pose off-           spine 2D/3D registration, and GC and GO were reported
+set between the CBCT and the X-ray images can be up to 20                to achieve the best performance. Therefore, we evaluated
+mm in translation and 10 degrees in rotation. Therefore, we              CMA-ES optimization of GO and GC using the same param-
+train the agents to perform registration starting from within            eters reported in (De Silva et al. 2016), referred to as ES-GO
+
+
+
+                                                                  4699
+and ES-GC, respectively. Registration error is measured by
+Target Registration Error (TRE), which is calculated as the              Table 2: Experiment results on bi-plane 2D/3D registration
+Root Mean Square Error of the locations of seven anatomi-                on 1,160 test cases from 116 CBCT data sets, and 560 test
+cal landmarks located on spine vertebrae.                                cases from 28 clinical data sets. Gross failure rate (GFR) ac-
+                                                                         counts for test cases with TRE>10 mm. Median, 75th per-
+CBCT Data Testing was ﬁrst performed on 116 CBCT                         centile and 95th percentile TREs are reported.
+data sets via three-fold cross validation (77 used for training
+and 39 used for testing). The typical size of the CBCT data is                                     Median Percentile (mm) Run
+                                                                              Method       GFR
+512 × 512 × 389 with a pixel spacing of 0.486 mm. On each                                           (mm)      75%       95% Time
+data set, 10 pairs of X-ray images that are >60◦ apart (com-                              Start       93.4%   19.4   23.2   27.8     -
+mon practice for spine surgery) were randomly selected,
+
+
+
+
+                                                                          CBCT Data
+and 2D/3D registration was performed on each pair, start-                                 ES-GC       32.2%   1.67   22.1   44.1   18.7 s
+ing from a perturbation of the ground truth transformation                                ES-GO       34.3%   1.81   21.0   38.6   33.9 s
+within 20 mm translation and 10◦ rotation, leading to 1,160                               agt-s     17.2%     5.30   8.13   23.3   0.5 s
+test cases. Note that X-ray images in CBCT data have a rel-                               agt-m      4.1%     3.59   5.30   8.98   2.1 s
+atively low SNR with a faint spine as shown in Fig. 1.                                    agt-m-opt 2.1%      1.19   1.76   4.38   2.6 s
+   Experiment results are summarized in Table 2. The two
+optimization-based methods, ES-GO and ES-GC, resulted                                     Start       95.4%   20.4   23.1   26.8     -
+
+
+
+
+                                                                          Clinical Data
+in relatively high gross failure rate (account for TRE>10                                 ES-GC       49.3%   8.79   26.5   55.6   20.4 s
+mm, which is about 1/2 of a vertebrae and considered to be                                ES-GO       42.1%   3.18   29.0   84.6   35.8 s
+grossly off by our clinical collaborating partners). This is                              agt-s     45.7%     8.42   14.2   26.4   0.6 s
+mainly due to the low image quality (e.g., low SNR, im-                                   agt-m      6.8%     4.97   7.36   10.3   2.1 s
+age artifacts in CBCT and etc.), which leads to a highly                                  agt-m-opt 6.1%      1.99   2.76   10.8   2.7 s
+non-convex optimization problem using low level similarity
+measures like GC and GC. In comparison, agt-m achieved a
+much lower gross failure rate, demonstrating the robustness
+advantage of the agent-based method. Comparison of agt-s                 paring to that on the CBCT data. The multi-agent system,
+and agt-m shows that the multi-agent strategy can noticeably             agt-m, in contrast achieved a much higher robustness than
+improve robustness by aggregating information from most                  agt-s, even though the individual agent was trained without
+conﬁdent agents. The comparison of median TRE shows that                 using any clinical data from spine surgery, demonstrating
+while the agent-based method provides low failure rate, its              the effectiveness of the multi-agent strategy in dealing with
+accuracy is lower than that of optimization-based methods.               complex scenarios.
+This is primarily due to the discrete actions of 1 mm and
+1 degree, and location information loss during stride in the                                      Conclusion and Future Works
+CNN. By applying opt-local to reﬁne the result of agt-m,
+apt-m-opt achieved both low failure rate and high accuracy.              In this paper, we formulated 2D/3D registration as a MDP,
+                                                                         and proposed an multi-agent system to solve this challeng-
+Clinical Data To evaluate the proposed method in a real                  ing problem. A multi-agent action aggregation scheme is
+clinical setup, we blindly selected one trained model from               proposed to drive the registration with inherent attention fo-
+the three-hold cross validation on CBCT data, and tested it              cus. In addition, a dilated FCN-based training scheme is pro-
+on 28 clinical data sets collected from minimally invasive               posed to reduce the number of DoFs that need to be sampled
+spine surgery. Each data set contains a CBCT acquired be-                in training from 8 to 4, which speeds up the training efﬁ-
+fore the surgery and two X-ray images acquired during the                ciency by an order of magnitude. On our experiments on
+surgery. Ground truth registration was manually annotated                both CBCT data and clinical data, the proposed method is
+by experts. On each data set, 20 perturbations of the ground             shown to be able to achieve signiﬁcantly higher robustness
+truth transformation were randomly generated as starting po-             than the state-of-the-art 2D/3D registration methods.
+sitions for 2D/3D registration, leading to 560 test cases.                  In our future works, we will explore the advantages pro-
+   Experiment results on clinical data are summarized in Ta-             vided by the proposed dilated FCN-based network structure
+ble 2. Higher TREs are reported for all methods on clinical              for other general computer vision problems such as opti-
+data than that on the CBCT data, primarily due to three rea-             cal ﬂow estimation and metric learning. Speciﬁcally, unlike
+sons: 1) The ground truth registration for clinical data was             FCN-based optical ﬂow (e.g., FlowNet (Dosovitskiy et al.
+manually annotated, which could bear 1∼2 mm error; 2) The                2015)), where the pooling and uppooling layers inherently
+complexity of clinical data is much higher than the CBCT                 make the output insensitive to small motion, our network
+data (i.e., artifacts and occlusion caused by surgical devices,          structure ensures that local image descriptor strictly follows
+varying imaging FoVs and etc.); 3) For agent-based meth-                 the input ROI (i.e., 1 pixel shift of the ROI causes exactly
+ods, the agent was trained without using any real clinical               1 pixel shift of the descriptor), and therefore can poten-
+data from spine surgery. We observed that due to the in-                 tially provide high accuracy for motion estimation. In addi-
+creased complexity, the heuristically selected ROI used in               tion, this property could be utilized for metric learning using
+agt-s (i.e., center of the image) become even less reliable. As          triplet networks, i.e. embeding ROIs to feature vectors with
+a result, the robustness of agt-s degrades signiﬁcantly com-             Euclidean distances correlated with the physical distances
+
+
+
+                                                                  4700
+of the ROIs. The dilated FCN based training scheme could               Lau, K. K., and Chung, A. C. 2006. A global optimization
+in general be highly efﬁcient by allowing training multiple            strategy for 3d-2d registration of vascular images. In BMVC,
+displacements in each back propagation. These are currently            489–498.
+under investigation.                                                   Liao, R.; Miao, S.; de Tournemire, P.; Grbic, S.; Kamen, A.;
+                                                                       Mansi, T.; and Comaniciu, D. 2017. An artiﬁcial agent for
+                       References                                      robust image registration. In AAAI, 4168–4175.
+Bushberg, J. T., and Boone, J. M. 2011. The essential                  Long, J.; Shelhamer, E.; and Darrell, T. 2015. Fully con-
+physics of medical imaging. Lippincott Williams & Wilkins.             volutional networks for semantic segmentation. In Proceed-
+Chou, C.-R.; Frederick, B.; Mageras, G.; Chang, S.; and                ings of the IEEE Conference on Computer Vision and Pat-
+Pizer, S. 2013. 2d/3d image registration using regres-                 tern Recognition, 3431–3440.
+sion learning. Computer Vision and Image Understanding                 Maes, F.; Collignon, A.; Vandermeulen, D.; Marchal, G.;
+117(9):1095–1106.                                                      and Suetens, P. 1997. Multimodality image registration by
+De Silva, T.; Uneri, A.; Ketcha, M.; Reaungamornrat, S.;               maximization of mutual information. IEEE transactions on
+Kleinszig, G.; Vogt, S.; Aygun, N.; Lo, S.; Wolinsky, J.; and          medical imaging 16(2):187–198.
+Siewerdsen, J. 2016. 3d–2d image registration for target lo-           Markelj, P.; Tomaževič, D.; Likar, B.; and Pernuš, F. 2012.
+calization in spine surgery: investigation of similarity met-          A review of 3d/2d registration methods for image-guided in-
+rics providing robustness to content mismatch. Physics in              terventions. Medical image analysis 16(3):642–661.
+medicine and biology 61(8):3009.                                       Miao, S.; Liao, R.; and Zheng, Y. 2011. A hybrid method for
+Deb, K.; Pratap, A.; Agarwal, S.; and Meyarivan, T. 2002.              2-d/3-d registration between 3-d volumes and 2-d angiogra-
+A fast and elitist multiobjective genetic algorithm: Nsga-ii.          phy for trans-catheter aortic valve implantation (tavi). In
+IEEE transactions on evolutionary computation 6(2):182–                Biomedical Imaging: From Nano to Macro, 2011 IEEE In-
+197.                                                                   ternational Symposium on, 1215–1218. IEEE.
+Dosovitskiy, A.; Fischer, P.; Ilg, E.; Hausser, P.; Hazirbas,          Miao, S.; Wang, Z. J.; and Liao, R. 2016. A cnn regression
+C.; Golkov, V.; van der Smagt, P.; Cremers, D.; and Brox,              approach for real-time 2d/3d registration. IEEE transactions
+T. 2015. Flownet: Learning optical ﬂow with convolutional              on medical imaging 35(5):1352–1363.
+networks. In Proceedings of the IEEE International Confer-             Schmid, J., and Chênes, C. 2014. Segmentation of x-ray
+ence on Computer Vision, 2758–2766.                                    images by 3d-2d registration based on multibody physics.
+Gendrin, C.; Furtado, H.; Weber, C.; Bloch, C.; Figl, M.;              In Computer Vision–ACCV 2014. Springer. 674–687.
+Pawiro, S. A.; Bergmann, H.; Stock, M.; Fichtinger, G.;                Uneri, A.; De Silva, T.; Goerres, J.; Jacobson, M.; Ketcha,
+Georg, D.; et al. 2012. Monitoring tumor motion by real                M.; Reaungamornrat, S.; Kleinszig, G.; Vogt, S.; Khanna,
+time 2d/3d registration during radiotherapy. Radiotherapy              A.; Osgood, G.; et al. 2017. Intraoperative evaluation of
+and oncology 102(2):274–280.                                           device placement in spine surgery using known-component
+Gouveia, A. R.; Metz, C.; Freire, L.; Almeida, P.; and Klein,          3d–2d image registration. Physics in Medicine and Biology
+S. 2015. Registration-by-regression of coronary cta and x-             62(8):3330.
+ray angiography. Computer Methods in Biomechanics and                  Van Laarhoven, P. J., and Aarts, E. H. 1987. Simulated an-
+Biomedical Engineering: Imaging & Visualization (ahead-                nealing. In Simulated annealing: Theory and applications.
+of-print):1–13.                                                        Springer. 7–15.
+Hartley, R.; Aftab, K.; and Trumpf, J. 2011. L1 rotation               Weinzaepfel, P.; Revaud, J.; Harchaoui, Z.; and Schmid, C.
+averaging using the weiszfeld algorithm. In Computer Vi-               2013. Deepﬂow: Large displacement optical ﬂow with deep
+sion and Pattern Recognition (CVPR), 2011 IEEE Confer-                 matching. In Proceedings of the IEEE International Confer-
+ence on, 3041–3048. IEEE.                                              ence on Computer Vision, 1385–1392.
+Ilg, E.; Mayer, N.; Saikia, T.; Keuper, M.; Dosovitskiy,               Wohlhart, P., and Lepetit, V. 2015. Learning descriptors
+A.; and Brox, T. 2016. Flownet 2.0: Evolution of op-                   for object recognition and 3d pose estimation. In Proceed-
+tical ﬂow estimation with deep networks. arXiv preprint                ings of the IEEE Conference on Computer Vision and Pat-
+arXiv:1612.01925.                                                      tern Recognition, 3109–3118.
+Jaderberg, M.; Simonyan, K.; Zisserman, A.; et al. 2015.               Wu, G.; Qi, F.; and Shen, D. 2006. Learning-based de-
+Spatial transformer networks. In Advances in Neural Infor-             formable registration of mr brain images. IEEE transactions
+mation Processing Systems, 2017–2025.                                  on medical imaging 25(9):1145–1157.
+Knaan, D., and Joskowicz, L. 2003. Effective intensity-                Zheng, J.; Miao, S.; and Liao, R. 2017. Learning cnns
+based 2d/3d rigid registration between ﬂuoroscopic x-ray               with pairwise domain adaption for real-time 6dof ultrasound
+and ct. Medical Image Computing and Computer-Assisted                  transducer detection and tracking from x-ray images. Med-
+Intervention-MICCAI 2003 351–358.                                      ical Image Computing and Computer-Assisted Intervention-
+Kruger, J., and Westermann, R. 2003. Acceleration tech-                MICCAI 2017.
+niques for gpu-based volume rendering. In Proceedings of
+the 14th IEEE Visualization 2003 (VIS’03), 38. IEEE Com-
+puter Society.
+
+
+
+                                                                4701
+

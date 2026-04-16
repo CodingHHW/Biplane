@@ -1,0 +1,695 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005                                                                                    1177
+
+
+
+
+                     Standardized Evaluation Methodology
+                           for 2-D–3-D Registration
+                 Everine B. van de Kraats*, Graeme P. Penney, Dejan Tomaževič, Theo van Walsum, and
+                                        Wiro J. Niessen, Associate Member, IEEE
+
+
+   Abstract—In the past few years, a number of two-dimensional                    feature-based [1]–[8], intensity-based [9]–[18], hybrid [15],
+(2-D) to three-dimensional (3-D) (2-D–3-D) registration algo-                     [19] and, most recently, gradient-based [20], [21] methods.
+rithms have been introduced. However, these methods have been                     Their results are not directly comparable, owing to the use of
+developed and evaluated for specific applications, and have not
+                                                                                  different datasets, different starting positions, different failure
+been directly compared. Understanding and evaluating their per-
+formance is therefore an open and important issue. To address this                criteria and different error calculation methods, as was also
+challenge we introduce a standardized evaluation methodology,                     commented on in [20]. Only a few efforts have been aimed at
+which can be used for all types of 2-D–3-D registration methods                   comparing 2-D–3-D registration approaches [12], [15], [22],
+and for different applications and anatomies. Our evaluation                      mainly comparing similarity measures for the intensity-based
+methodology uses the calibrated geometry of a 3-D rotational                      approach. Moreover, many of the commonly used error mea-
+X-ray (3DRX) imaging system (Philips Medical Systems, Best,                       sures do not adequately represent the accuracy of registration
+The Netherlands) in combination with image-based 3-D–3-D
+registration for attaining a highly accurate gold standard for                    performance [23].
+2-D X-ray to 3-D MR/CT/3DRX registration. Furthermore, we                            Evaluating the performance of 2-D–3-D registration ap-
+propose standardized starting positions and failure criteria to                   proaches requires a reference dataset with a known gold
+allow future researchers to directly compare their methods. As an                 standard registration. Previously, gold standards for 2-D–3-D
+illustration, the proposed methodology has been used to evaluate                  registration were either obtained manually [9], [22], by con-
+the performance of two 2-D–3-D registration techniques, viz. a                    trolled motion [7], [8], [24], by independent measuring devices
+gradient-based and an intensity-based method, for images of the
+spine. The data and gold standard transformations are available                   [3], [7], [11], by back-projection of images features (mainly
+on the internet (http://www.isi.uu.nl/Research/Databases/).                       implanted fiducials) [4], [9], [12], [15], [17]–[19], [21], [24],
+                                                                                  [25] or by using simulated data [1], [2], [7], [8], [10], [14], [16],
+  Index Terms—2-D–3-D registration, evaluation, gold standard,
+ground truth, validation.                                                         [21]. These methods all have their own drawbacks: manual
+                                                                                  methods are often subjective, and can require a large amount of
+                                                                                  user interaction. Methods which use controlled motion, inde-
+                           I. INTRODUCTION                                        pendent measuring devices or fiducials usually require the use
+                                                                                  of rigidly attached frames or markers which often limits their
+T     WO-DIMENSIONAL (2-D) to three-dimensional (3-D)
+      (2-D–3-D) registration has been proposed to help in a
+number of clinical areas, such as radiotherapy planning and
+                                                                                  use to phantom or cadaver studies. Simulated projection images
+                                                                                  often lack a number of characteristics of real X-rays (e.g.,
+treatment verification, spinal surgery, hip replacement, neu-                     coarser resolution) and may introduce a bias as the projection
+rointerventions and aortic stenting. The 2-D–3-D registration                     images are usually generated from the 3-D volume, often using
+can be a means to noninvasively register the patient to an image                  the same method as is employed by the registration algorithm.
+volume used for image-guided navigation by finding the best                       Therefore, most of the described methods are cumbersome, and
+match between one or more intraoperative X-ray projections of                     so are not easily repeated for other anatomies.
+the patient and the preoperative 3-D volume.                                         To address the challenge of comparing 2-D–3-D registration
+   Several researchers have described and evaluated 2-D–3-D                       algorithms, we introduce a standardized evaluation method-
+registration methods, which can roughly be subdivided in                          ology, which can be used for different algorithms and different
+                                                                                  applications, and can easily be extended to a large database
+                                                                                  including multiple anatomies and patient data. The proposed
+   Manuscript received February 17, 2005; revised June 6, 2005. The Associate
+Editor responsible for coordinating the review of this paper and recommending
+                                                                                  methodology exploits the precalibrated relationship that exists
+its publication was P. Suetens. Asterisk indicates corresponding author.          between acquired 2-D X-ray projections and reconstructed 3-D
+   *E. B. van de Kraats is with the Image Sciences Institute, University Med-     data in a 3DRX imaging system to generate a gold standard
+ical Center Utrecht, room Q0S.459, Heidelberglaan 100, 3584 CX Utrecht, The       dataset. The standard 3DRX system calibration is fiducial
+Netherlands (e-mail: everine@isi.uu.nl)
+   G. P. Penney was with the Image Sciences Institute, University Medical         based and the calibration is checked every six months. The
+Center Utrecht, The Netherlands. He is now with the Centre for Medical Image      motion of the 3DRX system is highly reproducible, and there
+Computing, University College London, London WC1E 6BT, UK.                        is a fixed relationship between each of the X-ray projections
+   D. Tomaževič is with the Faculty of Electrical Engineering, University of
+Ljubljana, SI-1000 Ljubljana, Slovenia.
+                                                                                  used to reconstruct the 3DRX image and the resultant 3DRX
+   T. van Walsum and W. J. Niessen were with the Image Sciences Institute,        volume. This means that the distortion corrected projections,
+University Medical Center Utrecht, The Netherlands. They are now with the         the 3DRX volume and the calibrated projection geometry can
+Biomedical Imaging Group Rotterdam, Erasmus MC, University Medical                be used as a gold standard for 2-D–3-D registration. This has
+Center, Departments of Radiology and Medical Informatics, 3000 DR Rot-
+terdam, The Netherlands.                                                          the big advantage that no markers need to be rigidly attached
+   Digital Object Identifier 10.1109/TMI.2005.853240                              to the object being imaged. Therefore, it is much easier to
+                                                                0278-0062/$20.00 © 2005 IEEE
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1178                                                                          IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+acquire gold standard data from patients compared to using
+conventional fiducial-based methods. The 2-D–3-D gold stan-
+dard registration can be extended to other 3-D modalities, such
+as computed tomography (CT) or magnetic resonance (MR),
+by 3-D–3-D image registration of the CT or MR volume to
+the 3DRX data using established and well-validated inten-
+sity-based registration [26]. Our methodology also comprises
+a standardized procedure for generating starting positions, and
+appropriate definitions for error measures and failure criteria.
+   To show the usefulness of such an evaluation methodology we
+apply our methodology to the registration of 3DRX, CT and MR
+volumes of vertebral bodies to mono- and biplane X-ray projec-
+tions using two registration algorithms: gradient-based [20] and                Fig. 1. The six degrees of freedom (T , T , T , R , R , and R ) in our rigid
+                                                                                body 2-D–3-D registration problem. The intrinsic parameters, which are the
+intensity-based [12]. These two approaches were selected be-                    source and detector positions and orientations, are known. The world coordinate
+cause they have been developed for 2-D–3-D spine registration.                  system is intrinsically linked to the center of the initially reconstructed 3DRX
+From the information present in the papers it was not possible to               volume, and it is completely determined by the 3DRX system calibration.
+compare them. Since the original implementations were avail-
+able to us, these two methods served well in the demonstration
+of the proposed standardized evaluation methodology.
+
+               II. EVALUATION METHODOLOGY
+   This section describes in detail how the gold standard data
+was generated, how registration accuracy was assessed, how the
+capture range and failure criteria were defined, how starting po-
+sitions were determined and how the data was presented to the
+registration algorithms.
+
+A. Generation of Gold Standard Data
+                                                                                Fig. 2. Gold standard data obtained with 3DRX C-arm. The X-ray images are
+   In the proposed evaluation methodology, gold standard data                   used to reconstruct the 3DRX volume and they are, thus, directly related to the
+is acquired with a clinical floor-mounted 3DRX C-arm system                     3DRX volume. The CT and MR data are registered to the 3DRX data using
+(Integris BV5000, Philips Medical Systems, Best, The Nether-                    3-D–3-D registration, thereby obtaining the gold standard for CT/MR data to
+                                                                                X-ray images.
+lands). During an 8-s run of 180 around the patient the 3DRX
+system acquires 100 projection images, which are used to recon-
+struct a high-resolution 3-D volume using a filtered back-pro-                  reconstruction in 3-D from 2-D projections, achieving a high ac-
+jection reconstruction technique [27]. The C-arm system is cal-                 curacy. Moreover, they showed that when introducing small er-
+ibrated for 3DRX imaging [28] at installation. Two calibration                  rors into the projection geometry information, a large guidewire
+runs are required: the first run determines the image intensifier               reconstruction error was obtained. This again indicates that the
+distortion and the position of the focal spot of each projection                geometrical calibration process is highly accurate.
+with respect to the detector. The second run establishes the pro-                  As a result of the calibration, both the projection geometry of
+jection parameters (rotations around the -, -, and -axis of                     the X-ray images with respect to the reconstructed volume and
+the calibration phantom and shifts in the , , and directions)                   the distortion of the X-ray images are known [32]. Hence, the
+for each projection. The most crucial aspect for our evaluation                 3DRX volume and the 100 corresponding distortion corrected
+methodology is the accurate projection geometry calibration of                  X-ray projections can be used as a gold standard dataset for
+the system, which has been evaluated in a number of studies.                    2-D–3-D registration. Fig. 1 shows all the degrees of freedom
+The accuracy of the derived geometrical parameters has been                     which are known for the calibrated 3DRX. For the 2-D–3-D
+demonstrated in [29], where the 3-D image quality was evalu-                    registration, the intrinsic parameters are calculated using a cal-
+ated in terms of spatial resolution and geometrical accuracy. It                ibration step and then the registration algorithms calculate the
+was shown that the system can obtain an almost isotropic 3-D                    extrinsic parameters. The extrinsic parameters describe the po-
+resolution of up to 22 lp/cm (line pairs per cm). Furthermore,                  sition and orientation of the 3-D volume in space (translations
+Rasche et al. [29] showed that the 3-D geometrical accuracy of                  in , , and directions ( , , and ) and rotations around
+a reconstructed volume was in the order of its spatial resolution.                -, -, and -axis ( ,        ,    )).
+Using the same 3DRX system, Movassaghi et al. [30] investi-                        The gold standard can be extended to other 3-D modalities
+gated the geometrical accuracy of 3-D point reconstruction in                   (such as CT or MR) by registering corresponding CT or MR data
+a bullet phantom from pairs of 2-D projections using the cali-                  to the 3DRX data, thereby indirectly obtaining the transforma-
+brated projection geometry. Their results showed only a small                   tion to the X-ray images (Fig. 2). An application based on the
+error as a function of the projection pair used (               ).              Multi-Modality Image Registration using Information Theory
+The small standard deviation of 0.08 mm shows that the pro-                     (MIRIT) software by the Laboratory for Medical Imaging Re-
+jection geometry produces spatially consistent volumes. Also,                   search, Leuven, Belgium [26] was used for 3-D–3-D registra-
+using the same system, Baert et al. [31] performed guide wire                   tion. This algorithm optimizes mutual information. Voxel-based
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                         1179
+
+
+
+3-D–3-D registration methods have been previously described
+in the literature and have been validated to be subvoxel accurate
+for certain applications [33]. In a previous study, we showed
+that, for spine images, mutual-information-based registration of
+MR data to 3DRX data, with an isotropic resolution of
+and                respectively, yields a root-mean-squared error
+(RMSE) in the order of 0.8 mm at fiducial markers, and is at
+least as accurate as marker-based registration [34].
+
+B. Method for Assessment of 2-D–3-D Registration Accuracy
+   For our evaluation we introduce the following transformation
+matrices:        is the 4 4 gold standard transformation matrix
+from CT/MR image space to the 3-D space of the 3DRX system
+obtained by registering the CT/MR volumes to the 3DRX                           Fig. 3. Depiction of the error for each evaluation method displayed for a
+volume;         is the same transformation but obtained after                   single point within the object, where TRE is the target registration error,
+
+                                                                                                            T                                          T
+having performed 2-D–3-D registration.                            is            TREproj the error in the projection direction, PD the projection distance, RPD
+
+                                                                                                             M                                             M
+                                                                                the reprojection distance,         the gold standard transformation,         the
+the 3 4 gold standard projection matrix from 3-D space of the                   registration transformation,         the gold standard projection matrix,
+3DRX system to 2-D space of the X-ray projection, where                         the registration projection matrix and n
+                                                                                                                       ^ the normal to the projection plane.
+is obtained from the system calibration, and
+is the same projection matrix but obtained after 2-D–3-D                        in the projection direction is difficult. To assess the magnitude of
+registration.                                                                   the error in the projection direction, the mTRE in the projection
+   Various performance measures have been used in view of                       direction, mTREproj, is computed. This is done by averaging
+different registration tasks. LaRose et al. [23] categorized the                the component of the displacement vector that is normal to the
+measures as 2-D image space error, pose parameter error and                     X-ray plane
+3-D registration error. Two-dimensional image space error is the
+error computed using 2-D image space features (e.g., fiducials
+or contours), where small errors in 2-D can be caused by large
+errors in 3-D. The pose parameter error, which consists of the                                                                                              (2)
+six-dimensional vector ( , , ,            , , ), can give mis-
+leading results as it depends on the position of the center of rota-
+tion, because the rotational and translational components of the                where is the normal to the projection plane.
+transformation are not independent. Lastly, the 3-D registration                   In applications where 2-D–3-D registration is used for pro-
+error computes the pose position error in 3-D.                                  jecting 3-D information onto a 2-D image plane, 2-D error mea-
+   Since the presented standardized evaluation methodology                      sures are more appropriate than the mTRE. In this case, we use
+is meant for 2-D–3-D registration in general, different perfor-                 an error termed the mean projection distance (mPD) which is
+mance measures suited for different tasks are used.                             the error in the projection plane. More specifically, projection
+   A widely used 3-D error measure is the target registration                   distance is the distance between the projection of a 3-D point at
+error (TRE) [35], where the “targets” in the TRE calculation can                registration position and the projection of the same point at gold
+be predefined locations (either fiducials or landmarks), surface                standard position
+points [21], or arbitrary chosen points inside a region of interest.
+We propose to compute a mean TRE (mTRE) to determine the
+                                                                                                                                                            (3)
+3-D error of a registration. For points        in a fixed set of
+3-D points on a regular grid (i.e., uniformly distributed), the
+distance between the point      transformed with         , the gold             where         and         are the final perspective projection ma-
+standard registration, and the same point transformed with         ,            trices for the registration and the gold standard position respec-
+the transformation determined by the registration algorithm, is                 tively, and where the distance is calculated after division by the
+computed. The average distance between the points defines the                   homogeneous coordinate.
+mTRE                                                                               Rather than using the mean projection distance, some au-
+                                                                                thors have used the reprojection distance [36], which computes
+                                                                         (1)    the minimum distance between the line from the 2-D projected
+                                                                                point at the registered position to the X-ray source and the gold
+                                                                                standard 3-D position of that point. This line can also be de-
+The mTRE, and other errors described below, are depicted in                     scribed by the line through the 3-D point at the registered po-
+Fig. 3.                                                                         sition and the X-ray source. The mean reprojection distance
+   The 3-D registration error can be best used when the appli-                  (mRPD) is calculated as follows:
+cation is patient-to-image registration for navigation, because it
+computes the error on specific points of interest within the reg-
+istered volume where manipulations will take place.
+   However, when using a single X-ray image for assessing the                                                                                               (4)
+3-D position of an object, determining the 3-D spatial position
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1180                                                                            IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+Here,                   is the minimum distance between the                             for each translation is 0–2 mm. Since the region used to
+3-D point      at gold standard position and a line , where                             determine the starting mTREs is not necessarily cubic,
+                    represents a 3-D line through the 3-D point                         rotations around different axes may not have the same
+at the registered position and the X-ray source. Unlike the                             effect on the mTRE. This is taken into account in the fol-
+mPD, the reprojection distance is independent of the distance                           lowing way: the angle of rotation that results in an mTRE
+to the projection plane.                                                                of 1 mm for each individual rotation is calculated. This
+   The authors recommend that for evaluation of the perfor-                             angle is then linearly scaled to determine the maximum al-
+mance of 2-D–3-D registration using a single X-ray image the                            lowed rotation for the other intervals. In this calculation,
+mPD and mRPD are to be determined along with the more gen-                              the small angle approximation is used, i.e., the effective
+eral mTRE.                                                                              displacement is linearly related to the angle.
+                                                                                     3) Next, for each interval, transformations are generated,
+C. Capture Range and Failure Criteria                                                   where the transformation parameters are chosen ran-
+                                                                                        domly (uniformly distributed) from their predetermined
+   The capture range defines the range of starting positions from
+                                                                                        range. Subsequently, the mTRE of the composite trans-
+which an algorithm finds a sufficiently accurate transformation.
+                                                                                        formation is determined, and if that mTRE is within
+As shown in the previous section, accuracy can be determined
+                                                                                        the interval it is kept, otherwise the transformation is
+using various error measures. Starting ranges can also be deter-
+                                                                                        discarded.
+mined using these error measures, describing the starting range
+as the initial accuracy from where registrations are still suc-                      The last step is repeated until each interval contains a prede-
+cessful. Although the initial accuracy can be evaluated using                     termined number of starting positions.
+different error measures, we always determine the capture range
+using the initial mTRE, which enables direct comparison of re-                    E. Data Preparation
+ported capture ranges. Moreover, the initial mTRE is most infor-                     Most registration algorithms only use a part of the available
+mative about the initial misalignment. Since the capture range                    image data, to focus the registration on the object of interest and
+naturally starts from zero, it is reported by stating the maximum                 to reduce the amount of data, resulting in lower computational
+start mTRE value of this range. Two factors are involved to                       costs. Since some algorithms reduce data by using regions of in-
+calculate the capture range: the definition of a misregistration                  terest (ROIs) in the 2-D projection images and others by using
+(using either mTRE, mPD or mRPD), and the fraction of al-                         volumes of interest (VOIs) in the 3-D volume, it is not possible
+lowed misregistrations. Both these factors depend on the appli-                   to have exactly the same data input for both types of algorithms.
+cation of the 2-D–3-D registration method.                                        For the presented evaluation methodology the VOIs are manu-
+                                                                                  ally determined in the 3DRX volume, by determining a rectan-
+D. Starting Positions                                                             gular region of interest around the anatomy. The VOIs should at
+   Several approaches are possible for determining the initial                    least contain the anatomy that is used and relevant for the regis-
+distance to the gold standard of a starting position. Tomaževič                 tration. When performing inter-modality comparison the VOIs
+et al. [20] use a “normalized distance,” that relates rotations                   are transformed to the corresponding CT or MR dataset using
+to linear distances. Rohlfing et al. [14] use the effective mo-                   the gold standard image-based 3-D–3-D registration. Rectan-
+tion in the projection plane per parameter for normalization. We                  gular ROIs are also manually determined in the X-ray image
+choose to use the mTRE at the starting position as a measure                      so that they contain approximately the same anatomy as is con-
+for the initial distance to the gold standard, similar to Russakoff               tained in the VOIs. However, the ROIs have no direct relation to
+et al. [15]. The mTRE is determined over a fixed set of 3-D                       the VOIs in the 3-D volumes. Corresponding ROIs could have
+points uniformly distributed in an average-sized region (which                    been determined in the X-ray images by projecting the VOIs
+can differ per anatomy). By using the same quantity for initial                   in the 3-D volume to the 2-D image using the gold standard
+distance and final result, the effect of the algorithm is directly                calibration. However, the effect on the registration when using
+measurable. Of course, the effect on the end mPD or end mRPD                      slightly different ROIs is expected to be minimal. Moreover, for
+is not directly measurable when plotting them against the start                   algorithms that have both a data reduction in 2-D and in 3-D di-
+mTRE.                                                                             rectly related VOIs and ROIs should not be used as this would
+   The starting positions are offsets from the gold standard po-                  bias the registration.
+sition. Given our definition of capture range, and the use of the
+initial mTRE as the distance measure for the starting positions,                        III. EXPERIMENT 1: COMPARISON OF TWO METHODS
+the starting parameter values ( , , ,            , , ) must be
+generated such that several resulting transformations are within                  A. Methods
+several ranges of mTRE. This is achieved by the following.                           To illustrate the potential of the proposed evaluation frame-
+   1) Choosing intervals for the starting position distance, e.g.,                work, we applied it to compare two previously published
+       0–1, 1–2 mm, and determining the center of rotation,                       2-D–3-D registration methods, viz. a gradient-based and an
+       which generally is the center of the fixed set of 3-D                      intensity-based method. For both algorithms the original
+       points.                                                                    implementations were available, though the intensity-based
+   2) Then, for each interval, for each of the six transforma-                    algorithm had to be adapted so it could take multiple X-ray
+       tion parameters, the range is determined that will yield                   images as input.
+       an mTRE less than or equal to the interval upper bound,                       The gradient-based 2-D–3-D registration method [20] regis-
+       e.g., for a starting mTRE between 1 and 2 mm, the range                    ters 3-D volumes to 2-D images by searching for the best match
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                     1181
+
+
+
+
+Fig. 4. Top row from left to right: coronal planes with VOI for 3DRX, CT, and MR data, and an anterior-posterior X-ray image with ROI. Bottom row from left
+to right: transverse planes with VOI for 3DRX, CT, and MR data, and a lateral X-ray image with ROI.
+
+                           TABLE I                                                                           TABLE II
+    PARAMETER VALUES FOR THE REGISTRATION METHODS. THE “/” IS                       SUMMARY OF IMAGE DIMENSIONS AND VOXEL SIZES FOR THE IMAGES
+     USED WHEN THE PARAMETER VALUES ARE DIFFERENT FOR THE                          ACQUIRED OF TWO SPINE SEGMENTS USING FOUR DIFFERENT MODALITIES
+    TWO SPINAL SEGMENTS. “GB” REPRESENTS THE GRADIENT-BASED
+          METHOD AND “IB” THE INTENSITY-BASED METHOD
+
+
+
+
+between surface normals in the 3-D volume and back-projected                     which are expressed in radians, need an extra factor of 0.02 to
+gradients from the 2-D X-ray images. The surface normals and                     make the steps comparable to the translation steps, which are in
+their positions are extracted from the 3-D volume in a prepro-                   millimeters. The optimization uses a multi-resolution approach,
+cessing step. In this preprocessing step, the volume is blurred                  where initially coarse resolution 256 256 pixel DRR images
+with a Gaussian filter, isotropically resampled, and the locations               are generated, and then finer 512 512 pixel images. See Table I
+with a gradient magnitude larger than a predefined threshold are                 for a summary of the parameter values used, which were con-
+extracted. The gradient-based registration method needs the fol-                 sidered typical by the authors of the algorithm.
+lowing parameters: volume blur, X-ray image blur, sample step                       To select the gradients in the volume of interest, i.e., at the
+and a gradient threshold. Although the original authors have                     bone interface, an interactive windowing step is required for the
+only used their method for registration with multiple X-ray im-                  gradient-based method when using 3DRX and MR data. In order
+ages, we also applied it in registrations using only one X-ray                   to make the evaluation comparable, the same data was used for
+image. See Table I for the parameter values used in this evalua-                 the intensity-based method. Both methods were directly applied
+tion. The parameters were chosen such that correct points were                   to the CT data, whose intensity range was converted to comply
+extracted in the 3-D volume, which required some tuning espe-                    with the input criteria of the methods.
+cially for the MR volume.
+   The intensity-based registration method [12] compares digi-                   B. Image Data
+tally reconstructed radiographs (DRRs or simulated projections)                    Two defrosted segments of a spinal column, both fixed in foam,
+to X-ray images using a similarity measure called gradient dif-                  were imaged with three modalities: 3DRX, CT, and MR. The
+ference. The algorithm has two parameters: bone threshold and                    3DRX images were reconstructed using 100 projection images
+minimal step-size. The bone threshold is manually determined                     acquired with a clinical 3DRX system (Integris BV5000, Philips
+so that only voxels containing bone contribute to the DRRs. The                  Medical Systems). As mentioned before, the geometric relation
+minimal step-size is the smallest step that the algorithm takes in               and distortion correction for each of these images are known from
+the optimization procedure, which is a factor by which the posi-                 the standard 3DRX system calibration. Spinal segment 1 was
+tion parameter values can change in an iteration. The rotations,                 obtained with an image intensifier (II) size of 38 cm and spinal
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1182                                                                             IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+
+                                                                                                                     2
+Fig. 5. Results for 3DRX and CT to X-ray registration using two X-ray images. For brevity, all 450 registrations (150 3 vertebral bodies) and all 750 registrations
+       2
+(150 5 vertebral bodies) for both spinal column segments were labeled as spinal segment 1 and spinal segment 2, respectively.
+
+
+segment 2 with an II size of 31 cm. The CT volumes were ac-                        Systems) using a sagittal 3-D turbo spin echo acquisition, with a
+quired with a clinical multi-slice CT scanner (MX8000, IDT 16,                     turbo factor of 29, TR/TE of 1500 ms/90 ms.
+Philips Medical Systems). The MR volumes were acquired with                           Spinal segment 1 consists of 3 thoracolumbal vertebral bodies
+a clinical 1.5-Tesla MR scanner (Gyroscan NT, Philips Medical                      and segment 2 consists of 5 thoracic vertebral bodies. Some soft
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                         1183
+
+
+
+
+                                                                                                                                            2
+Fig. 6. Results for MR to X-ray registration using the gradient-based method using two X-ray images. For brevity, all 450 registrations (150 3 vertebral bodies)
+                             2
+and all 750 registrations (150 5 vertebral bodies) for both spinal column segments were labeled as spinal segment 1 and spinal segment 2, respectively.
+
+
+tissue around the spinal segments was still present. See Table II                 starting positions (offsets from the gold standard) were used
+for details on image sizes and resolutions.                                       for each vertebra.
+   The CT and MR volumes were registered to the corre-                               From the 100 acquired X-ray images per spinal segment two
+sponding 3DRX volumes to establish the gold standard for both                     images were selected, one anterior-posterior (AP) and one lat-
+CT to X-ray registration and MR to X-ray registration using the                   eral (LAT), which were used for the registration experiments
+previously described maximization of mutual information [26].                     for both 3DRX, CT, and MR to X-ray registration. For 3DRX
+   The rectangular VOIs used by the gradient-based method                         and CT, we also performed experiments using only one X-ray
+were manually determined in the 3DRX volumes for                                  image, which was AP for spinal segment 1 and LAT for spinal
+each vertebra. The size of these VOIs was approximately                           segment 2.
+100 50 100 voxels in segment 1 and 120 50 150 voxels                                 In this example evaluation, registrations were classified as
+in segment 2. The VOIs were transformed to the CT and MR                          successful when the end mTRE over the fixed set of 3-D points
+data using the gold standard image-based 3-D–3-D registration.                    (same as was used for the generation of the starting positions)
+In the X-ray images, the rectangular ROIs that were used by the                   was smaller than 2 mm. This threshold was also used in [20].
+intensity-based method were manually determined around the                        It is however application specific as the required accuracy for
+vertebral bodies (approximately 170 70 pixels). See Fig. 4                        spine procedures varies from 0.0 mm to 3.8 mm [37] in different
+for examples of the data with corresponding VOIs and ROIs.                        levels of the spine. The capture range was defined as the 95%
+For each of the eight vertebral bodies, centers of rotation were                  success range. When using a single X-ray image the accuracy
+determined in the world coordinate system (directly linked to                     evaluation was extended to include end mPD and end mRPD,
+the 3DRX data).                                                                   where success was also defined as an error smaller than 2 mm
+                                                                                  to illustrate the effect of different accuracy measures on the ob-
+C. Experiments and Evaluation                                                     served performance of an algorithm.
+   The starting positions were generated as described in
+                                                                                     IV. EXPERIMENT 2: EVALUATION OF THE GOLD STANDARD
+Section II, with 10 starting positions per 1 mm interval up to
+15 mm mTRE, resulting in 150 starting positions. Ten starting                        The results of the evaluation depend on the accuracy of
+positions per bin were chosen because we considered 80                            the gold standard. Earlier studies [30], [31] as discussed in
+(10 8 vertebral bodies) registrations per 1-mm bin sufficient                     Section II-A indicated that the calibration is very accurate.
+to assess the capture range. In this starting position generation                 Previous investigation shows that errors in multi-modality
+process, the mTRE was determined over a fixed set of 3-D                          3-D–3-D registration can be in the order of the voxel size of the
+points in an average vertebra-sized region of 95 45 95                            images [33]. To investigate how errors in the calibration and in
+voxels (size             ) (as described in Section II). For the                  the 3-D–3-D registration propagate into 2-D–3-D registration
+accuracy evaluation this fixed grid was also used. The same                       errors, a number of experiments was performed.
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1184                                                                            IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+
+                                                                                                                    2
+Fig. 7. Results for 3DRX and CT to X-ray registration using one X-ray image. For brevity, all 450 registrations (150 3 vertebral bodies) and all 750 registrations
+       2
+(150 5 vertebral bodies) for both spinal column segments were labeled as spinal segment 1 and spinal segment 2, respectively.
+
+
+   Errors in the calibration were simulated by adding 0.5 and                     calibration. These errors are larger than the expected gold stan-
+1.0 to the rotation angle (roll direction of C-arm), and 0.5 and                  dard error, as has been shown in previous studies [31].
+1.0 to the angulation angle (tilt direction of C-arm) of the cal-                   Errors in the 3-D–3-D registration were simulated by adding
+ibrated projection geometry determined in the standard system                     random transformations to the gold standard that introduce an
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                              1185
+
+
+
+
+                                                                                      2
+Fig. 8. Mean TREs in the projection direction. For brevity, all 450 registrations (150 3 vertebral bodies) and all 750 registrations (150   2 5 vertebral bodies) for
+both spinal column segments were labeled as spinal segment 1 and spinal segment 2, respectively.
+
+
+error of up to 1 mm mTRE (which is approximately the voxel                        2.8 GHz with 4GB memory. The algorithms were not optimized
+size). These error transformations were generated in a similar                    for speed.
+fashion as the 2-D–3-D starting positions. Ten 3-D–3-D error                         The results for registrations using two 2-D X-ray images are
+transformations were produced per bin of size 0.2 mm.                             presented in Fig. 5 (for CT and 3DRX) and in Fig. 6 (for MR).
+   For each of these specific simulated errors (both calibration                  Fig. 7 shows the results of registering CT and 3DRX to a single
+and 3-D–3-D registration errors) 100 registrations for one                        2-D X-ray image. Each of these figures presents the registration
+vertebral body in spinal segment 2 were performed using the                       results for both algorithms, except for Fig. 6, because only the
+gradient-based method. For the calibration error experiments                      gradient-based algorithm was used on MR. The intensity-based
+3DRX was registered to two X-ray projections, and for the                         method was not performed on the MR dataset, as no DRRs can
+3-D–3-D registration error experiments CT was registered to                       be generated from MR images. The end mTRE values for each
+two X-ray projections. The average registration errors (mean                      registration, the percentage of successful registrations, the av-
+mTRE) for successful registrations per bin were determined                        erage end mTRE per bin for all registrations and for successful
+and compared to the mean mTRE when using the real gold                            registrations are displayed. These evaluations are extended for
+standard.                                                                         the registrations based on a single X-ray image by also calcu-
+                                                                                  lating end mTREproj (Fig. 8) and end mPD and end mRPD
+                                                                                  (Fig. 9).
+                    V. RESULTS AND DISCUSSION                                        From the results for registrations performed using two X-ray
+                                                                                  images several conclusions can be drawn. The average error for
+A. Experiment 1: Comparison of Two Methods
+                                                                                  successful registrations is stable for the gradient-based method,
+  We performed 150 registrations for each of the eight vertebral                  while the intensity-based method has increasing difficulty in
+bodies, for each modality and for a different number of X-ray                     finding the optimal position when the initial offset from the
+images (either single plane or using two X-ray images simulta-                    gold standard position increases [Fig. 5(d),(h)]. Failure deter-
+neously). Therefore the following experiments were carried out:                   mination is most probably easier for the gradient-based method
+3DRX to one X-ray, 3DRX to two X-rays, CT to one X-ray,                           [Fig. 5(a),(e)] than for the intensity-based method [Fig. 5(b),(f)],
+CT to two X-rays, and MR to two X-rays. For two X-ray im-                         because the gradient-based registration seems to be either cor-
+ages, the average registration time was approximately 25 s for                    rect or incorrect. In a clinical situation, a failure can be visually
+the gradient-based method, running on a Windows 2000 Dell                         assessed, by displaying the DRR belonging to the registration
+Workstation PWS340 Intel Pentium 4, 1.7 GHz, 1.6 GB RAM,                          next to (or on top of) the X-ray image. For both methods the av-
+and approximately 9 min for the intensity-based method, run-                      erage error is larger for CT to X-ray registration than for 3DRX
+ning on a multi-user Linux Dell PowerEdge 1600, dual Xeon                         to X-ray registration.
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1186                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+
+Fig. 9. Mean projection distance (mPD), mean reprojection distance (mRPD), and mean target registration error (mTRE) for registrations for 3DRX and CT
+based on a single X-ray image.
+
+
+
+   The capture ranges for 3DRX and CT, respectively, end at                      mTREs of successful registrations for 3DRX and CT, re-
+6 mm and 3 mm for the gradient-based method and at 4 mm and                      spectively, are 0.46 mm and 0.53 mm for the gradient-based
+3 mm for the intensity-based method [Fig. 5(c),(g)]. Within the                  method and 0.84 mm and 0.84 mm for the intensity-based
+capture range the average end mTREs of successful registrations                  method [Fig. 7(d), (h)]. The intensity-based method seems to
+for 3DRX and CT, respectively, are 0.18 and 0.30 mm for the                      perform better (higher capture range) on one X-ray image than
+gradient-based method and 0.13 and 0.65 mm for the intensity-                    the gradient-based method. The results for both methods are
+based method.                                                                    significantly worse than when using two X-ray images. The
+   Better results for 3DRX to X-ray registration could be ex-                    main reason is difficulty in estimating the correct position of
+plained by greater similarity between the 2-D and 3-D modal-                     the 3-D volume in the projection direction.
+ities: both X-ray images and 3-D volume are produced using                          In order to assess whether the largest part of the error was
+X-rays at the same energy (around 60 keV), whereas CT uses                       in the direction of the normal to the projection plane, the end
+80 keV, and the 3DRX volume is reconstructed using the X-ray                     mTREproj was calculated as explained in Section II-B. In Fig. 8,
+projections. Another reason could be the difference between                      the end mTRE in the projection direction is plotted as a func-
+the gold standard for 3DRX and the gold standard for CT and                      tion of the total end mTRE for registrations based on one X-ray
+MR, where the 3-D–3-D registration could have introduced ad-                     image. From the graphs in Fig. 8 we can conclude that especially
+ditional errors.                                                                 for small end mTREs (thus accurate registrations) the major part
+   Results for MR to two X-ray image registration are displayed                  of the total end mTRE can be explained by the end mTRE in the
+in Fig. 6 for the gradient-based method. Since the gradient-                     projection direction only.
+based method is intended for more than one X-ray image, and                         In order to quantify the in-plane error and the reprojection
+since MR to X-ray registration is quite challenging, we decided                  distance, the end mPD and end mRPD were also calculated
+to only perform MR to X-ray registration using two X-ray im-                     for both registration methods for registrations using one X-ray
+ages. The capture range ends at 1 mm and within this range the                   image (as explained in Section II-B). The results are displayed
+average end mTRE of success is 0.45 mm. It must be noted that                    in Fig. 9, where results for spinal segments 1 and 2 are com-
+the gradient-based registration was not optimized for this MR                    bined and the end mTRE is shown as a reference. Only the av-
+protocol.                                                                        erages per bin of the successful registrations were displayed to
+   Results for the registrations based on one X-ray image are                    show the difference between the error measures more clearly.
+displayed in Fig. 7. The capture ranges for 3DRX and CT,                         For the mPD, the 3DRX capture ranges for the gradient-based
+respectively, end at 1 mm and 1 mm for the gradient-based                        method and the intensity-based method, respectively, end at:
+method and 1 mm and 2 mm for the intensity-based method                          5 mm (0.29-mm average mPD for success) and 6 mm (0.22-mm
+[Fig. 7(c), (g)]. Within the capture range the average end                       average mPD for success), the CT capture ranges, respectively,
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                        1187
+
+
+
+                            TABLE III                                                                       TABLE IV
+    SUMMARY OF THE RESULTS OF ALL REGISTRATION EXPERIMENTS.                        AVERAGE REGISTRATION ERRORS (MEAN MTRE IN MILLIMETERS) FOR
+   “GB” REPRESENTS THE GRADIENT-BASED METHOD AND ‘IB’ THE                          SUCCESSFUL REGISTRATIONS WHEN EXTRA ERRORS ARE INTRODUCED
+    INTENSITY-BASED METHOD, “ONE” AND “TWO” REPRESENT ONE                             TO THE CALIBRATED PROJECTION GEOMETRY. REGISTRATIONS
+  X-RAY IMAGE AND TWO X-RAY IMAGES, RESPECTIVELY, AND “E” AND                         WERE PERFORMED FOR 3DRX TO TWO X-RAY PROJECTIONS.
+      “C.R.” ARE ABBREVIATIONS FOR ERROR AND CAPTURE RANGE                               THE ORIGINAL GOLD STANDARD ERROR WAS 0.11 MM
+
+
+
+
+end at: 3 mm (0.42-mm average mPD for success) and 2 mm
+(0.61-mm average mPD for success). For the mRPD, the 3DRX
+capture ranges for the gradient-based method and the inten-
+sity-based method, respectively, end at: 5 mm (0.20-mm av-
+erage mRPD for success) and 6 mm (0.15-mm average mRPD
+for success), the CT capture ranges, respectively, end at: 5 mm
+(0.30-mm average mRPD for success) and 3 mm (0.52-mm av-
+erage mRPD for success). The results show that the capture
+ranges are much larger when the error in the projection direc-                 Fig. 10. Graph displaying the average result mTRE for successful registrations
+tion is not relevant. The most appropriate error measure to use                when an extra error is introduced in the 3-D–3-D registration. The registrations
+depends on the application.                                                    were performed for CT to two X-ray projections using the gradient-based
+                                                                               method. The original gold standard error was 0.29 mm.
+   Table III summarizes the main results for all 3DRX and CT
+experiments. The main results for MR to two X-ray projections
+experiments for the gradient-based method were a capture range                 B. Experiment 2: Evaluation of the Gold Standard
+of 1 mm with an average error for successful registrations of                     The obtained results depend on the gold standard which in
+0.45 mm. The evaluation method reveals that for both methods                   turn depends on the calibrated geometry of the system and the
+the capture ranges are limited. This could be a problem for fully              3-D–3-D registration (for MR and CT). As the reported mean
+automated 2-D–3-D registration. Manual initialization may be                   errors are small (end mTRE) for successful registrations over
+required to be within this capture range at the start of regis-                a large number of experiments, there is high confidence in the
+tration. By superimposing bony edge points in CT or MR on                      accuracy of the gold standard. However, to investigate the influ-
+X-ray images, an operator can find an initial registration. The                ence of errors in the geometry calibration and 3-D–3-D registra-
+achievable accuracy of manual initial registration should be in-               tion on the evaluation, additional experiments were performed
+vestigated further. The registration method may also be used in                by determining the mTRE for a modified gold standard, as de-
+situations where despite measures to limit movement, some mo-                  scribed in Section IV. The results of these experiments are dis-
+tion has occurred. In a previous study [38], it was shown that                 played in Table IV and Fig. 10.
+in many interventions the intraoperative movement is limited,                     The error for successful registrations on vertebral body 1
+which suggests that in these situations no further initialization              of segment 2 was on average 0.11 mm when using our gold
+is required. Nevertheless, the limited capture range remains a                 standard (with no additional errors) for registration of 3DRX
+potential problem.                                                             to two X-ray projections. Extra geometry calibration errors
+   It has been shown that the capture range depends strongly on                increase the resulting mTREs for successful registrations sig-
+the evaluation measure used, and this in turn depends on the                   nificantly (e.g., a change of 0.5 angulation already increases
+application. When the objective is to find the 3-D position of                 the mTRE from 0.11 to 0.51 mm). Thus, it can be concluded
+an object, we recommend the use of more than one projection                    that the calibration is very accurate, and that accurate calibra-
+and evaluation using the mTRE. When the objective is to dis-                   tion is essential.
+play 3-D information in 2-D, one projection is sufficient, and                    The error for successful registrations on vertebral body 1 of
+the performance can be adequately evaluated using the mPD or                   segment 2 was on average 0.29 mm when using our gold stan-
+the mRPD. For such applications a larger capture range will be                 dard (with no additional errors) for registration of CT to two
+obtained.                                                                      X-ray images. As expected, the addition of an error in 3-D–3-D
+   The evaluation also reveals that MR to X-ray registration ex-               registration decreases the accuracy of the registration. It can
+hibited larger errors and a smaller capture range than 3DRX and                be observed that even for small extra errors in 3-D–3-D reg-
+CT-based registration. This seems plausible as it is much more                 istration, the calculated 2-D–3-D registration error significantly
+difficult to relate the intensities of MR data and X-ray images.               increases. For example, for an extra 3-D–3-D mTRE error of
+Many more graphs and conclusions can be drawn from the gen-                    0.50 mm the 2-D–3-D error increases from 0.29 to 0.78 mm.
+erated data; this paper, however, only shows the potential of the              This indicates that the initial 3-D–3-D registration of CT to
+presented evaluation methodology.                                              3DRX was fairly accurate (less than a voxel). The extra error
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+1188                                                                          IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 24, NO. 9, SEPTEMBER 2005
+
+
+
+does not have a significant effect on the capture range, since the              using more than two X-ray images, since more X-ray images
+maximum extra 3-D–3-D error is 1 mm, and so it can only de-                     are available.
+crease the capture range by a maximum of 1 mm.                                     The 3DRX, CT, MR, and X-ray data, together with gold
+   In supplement to these experiments, we would like to make                    standard transformations, starting positions, ROIs, VOIs, cen-
+an additional remark. The error in the gold standard consists                   ters of rotation, and evaluation criteria as published in this
+of projection calibration errors, distortion correction errors, and             paper are available on the internet (http://www.isi.uu.nl/Re-
+3-D–3-D registration errors. Projection calibration and distor-                 search/Databases/). Since the described methodology uses a
+tion calculation are performed separately. While 3-D–3-D regis-                 calibrated 3DRX system, extension to other anatomies which
+tration is performed on whole segments, 2-D–3-D registration is                 have high contrast on X-ray (e.g., bone) is straightforward and
+performed on each vertebra separately. Moreover, the two eval-                  this data as well as patient data can be included in the database.
+uated 2-D–3-D registration methods use different optimization                   In the field of rigid 3-D–3-D registration, the availability of
+techniques, similarity criteria, and either ROIs or VOIs. There-                the Vanderbilt dataset has already shown the importance of a
+fore, the errors in 2-D–3-D registration and the errors in the                  common database, validation statistics, and error measure for
+gold standard should be independent. In the case of indepen-                    comparison of multiple algorithms [33]. Similarly, our aim is
+dent errors, the total error is the root of the sum of squared in-              to create a standardized dataset for 2-D–3-D registration which
+dividual errors. Together with the fact that the errors reported                can be used for future evaluations by other researchers.
+in Section V-A are small, these assumptions give us confidence
+that the gold standard is accurate.
+                                                                                                          ACKNOWLEDGMENT
+                         VI. CONCLUSION                                           The would like to thank Dr. R.L.A.W. Bleys of the Anatomy
+                                                                                department at the University Medical Center Utrecht for making
+   A standardized evaluation methodology for objective inter-
+                                                                                the spinal segments available. They would also like to thank
+method and inter-modality comparison of 2-D–3-D registration
+                                                                                W. van Wolferen, S. Plomp, and J. J. Verlaan for preparing the
+methods has been introduced. Objective and systematic com-
+                                                                                spinal segments for our research and W. Bartels, T. van Osch,
+parison is facilitated by providing a gold standard and using the
+same datasets, starting positions, regions of interest, centers of              and J. H. Seppenwoolde for helping with the MR acquisitions.
+rotation, error measures, capture range and failure criteria. Also,
+by measuring the error in the starting position and the registra-                                              REFERENCES
+tion error in the same way, the effect of an algorithm can be
+clearly seen.                                                                     [1] R. Bansal, L. Staib, Z. Chen, A. Rangarajan, J. Knisely, R. Nath, and J.
+                                                                                      S. Duncan, “A minimax entropy registration framework for patient setup
+   The calibration procedure used in generating the gold stan-                        verification in radiotherapy,” Comput. Aided Surg., vol. 4, pp. 287–304,
+dard is very accurate and the 3-D–3-D registration necessary to                       1999.
+obtain the gold standard for CT/MR only appears to introduce                      [2] Á Czopf, C. Brack, M. Roth, and A. Schweikard, “2D-3D registration
+                                                                                      of curved objects,” Periodica Polytechnica Ser. Elect. Eng., vol. 43, no.
+subvoxel errors. Our experiments showed that the total error                          1, pp. 19–41, 1999.
+(which consists of a calibration error and a 3-D–3-D registra-                    [3] J. Feldmar, N. Ayache, and F. Betting, “3D-2D projective registration of
+tion error) is similar to the error in 3-D–3-D registration. Thus,                    free-form curves and surfaces,” Comput. Vis. Image Understanding, vol.
+accurate 3-D–3-D registration, such as used in this gold stan-                        65, no. 3, pp. 403–424, 1997.
+                                                                                  [4] A. Guéziec, P. Kazanzides, B. Williamson, and R. H. Taylor,
+dard, is required.                                                                    “Anatomy-based registration of CT-scan and intraoperative X-ray
+   We demonstrated the potential of the described evaluation                          images for guiding a surgical robot,” IEEE Trans. Med. Imag., vol. 17,
+methodology by comparing two 2-D–3-D registration methods.                            pp. 715–728, Oct. 1998.
+                                                                                  [5] A. Hamadeh, S. Lavallee, and P. Cinquin, “Automated 3-dimensional
+Not surprisingly, the results show that the performance of each                       computed tomographic and fluoroscopic image registration,” Comput.
+method is significantly better when using two X-ray images,                           Aided Surg., vol. 3, no. 1, pp. 11–19, 1998.
+than when using only one X-ray image for finding the 3-D po-                      [6] Y. Kita, D. L. Wilson, and J. A. Noble, “Real-time registration of 3D
+sition of an object (quantified by the mTRE). Even for regis-                         cerebral vessels to X-ray angiograms,” in Lecture Notes in Computer
+                                                                                      Science, W. M. Wells, A. Colchester, and S. Delp, Eds. New York:
+trations based on two X-ray images the capture range of the al-                       Springer, 1998, vol. 1496, Medical Image Computing and Computer-
+gorithms is limited, but for successful registrations the attained                    Assisted Intervention (MICCAI 98), pp. 1125–1133.
+accuracy is quite high (0.18 and 0.30 mm mTRE for 3DRX                            [7] S. Lavallée and R. Szeliski, “Recovering the position and orientation of
+                                                                                      free-form objects from image contours using 3D distance maps,” IEEE
+and CT, respectively, with the gradient-based method and 0.13                         Trans. Pattern Anal. Mach. Intell., vol. 17, no. 4, pp. 378–390, Apr. 1995.
+mm mTRE and 0.65 mm mTRE for 3DRX and CT, respec-                                 [8] M. J. Murphy, “An automatic six-degree-of-freedom image registration
+tively, with the intensity-based method). For registrations based                     algorithm for image-guided frameless stereotaxic radiosurgery,” Med.
+on one X-ray image, the capture range of the intensity-based                          Phys., vol. 24, no. 6, pp. 857–866, 1997.
+                                                                                  [9] J. H. Hipwell, G. P. Penney, R. A. McLaughlin, K. Rhode, P. Summers,
+method is larger than for the gradient-based method, but the gra-                     T. C. Cox, J. V. Byrne, J. A. Noble, and D. J. Hawkes, “Intensity-based
+dient-based method has a larger capture range when using two                          2-D–3-D registration of cerebral angiograms,” IEEE Trans. Med. Imag.,
+X-ray images.                                                                         vol. 22, no. 11, pp. 1417–1426, Nov. 2003.
+                                                                                 [10] S. Jonić, P. E. Thévenaz, and M. Unser, “Multiresolution spline-based
+   A possible extension of the evaluation method is to investi-                       3D/2D registration of CT volume and C-arm images for computer-as-
+gate how the capture range is influenced by different choices of                      sisted surgery,” Proc. SPIE (Medical Imaging 2001: Image Processing),
+the parameters for each method, and thereby it can help in pa-                        vol. 4322, pp. 1101–1109, 2001.
+rameter tuning. The effect of a different success threshold on                   [11] L. Lemieux, R. Jagoe, D. R. Fish, N. D. Kitchen, and D. G. T. Thomas,
+                                                                                      “A patient-to-computed-tomography image registration method based
+the capture range can also be assessed, and another extension                         on digitally reconstructed radiographs,” Med. Phys., vol. 21, no. 11, pp.
+is to evaluate the performance of registration methods when                           1729–1760, 1994.
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+VAN DE KRAATS et al.: STANDARDIZED EVALUATION METHODOLOGY FOR 2-D–3-D REGISTRATION                                                                                1189
+
+
+
+ [12] G. P. Penney, J. Weese, J. A. Little, P. Desmedt, D. L. G. Hill, and D.       [26] F. Maes, A. Collignon, D. Vandermeulen, G. Marchal, and P. Suetens,
+      J. Hawkes, “A comparison of similarity measures for use in 2-D-3-D                 “Multimodality image registration by maximization of mutual informa-
+      medical image registration,” IEEE Trans. Med. Imag., vol. 17, no. 4, pp.           tion,” IEEE Trans. Med. Imag., vol. 16, no. 2, pp. 187–198, Apr. 1997.
+      586–595, Apr. 1998.                                                           [27] M. Grass, R. Koppe, E. Klotz, R. Proksa, M. Kuhn, H. Aerts, J. Op de
+ [13] G. P. Penney, P. G. Batchelor, D. L. G. Hill, D. J. Hawkes, and J. Weese,          Beek, and R. Kemkers, “Three-dimensional reconstruction of high con-
+      “Validation of a two- to three-dimensional registration algorithm                  trast objects using C-arm image intensifier projection data,” Computer-
+      for aligning preoperative CT images and intraoperative fluoroscopy                 ized Med. Imag. Graphics, vol. 23, no. 6, pp. 311–321, 1999.
+      images,” Med. Phys., vol. 28, no. 6, pp. 1024–1032, 2001.                     [28] R. Koppe, E. Klotz, J. Op de Beek, and H. Aerts, “3D vessel recon-
+ [14] T. Rohlfing, D. B. Russakoff, M. J. Murphy, and C. R. Maurer Jr., “An              struction based on rotational angiography,” in Computer Assisted Radi-
+      intensity-based registration algorithm for probabilistic images and its            ology, H. Lemke, K. Inamura, C. Jaffe, and V. Vannier, Eds. New York:
+      application for 2-D to 3-D image registration,” Proc. SPIE (Medical                Springer, 1995, pp. 101–107.
+      Imaging 2002: Image Processing), vol. 4683, pp. 581–591, 2002.                [29] V. Rasche, B. Schreiber, C. Graeff, T. Istel, H. Schomberg, M. Grass,
+ [15] D. B. Russakoff, T. Rohlfing, A. Ho, D. H. Kim, R. Shahidi, J. R. Adler            R. Koppe, E. Klotz, and G. Rose, “Performance of image intensifier-
+      Jr., and C. R. Maurer Jr. et al., “Evaluation of intensity-based 2D-3D             equipped X-ray systems for three-dimensional imaging,” in Computer
+      spine image registration using clinical gold-standard data,” in Lecture            Assisted Radiology and Surgery. ser. Int. Congr., H. Lemke, M. Vannier,
+      Notes in Computer Science, J. C. Gee et al., Eds. Berlin, Germany:                 K. Inamura, A. Farman, K. Doi, and J. Reiber, Eds. Amsterdam, The
+      Springer-Verlag, 2003, vol. 2717, WBIR 2003, pp. 151–160.                          Netherlands: Elsevier Science B.V., 2003, vol. 1256, pp. 187–192.
+ [16] D. Sarrut and S. Clippe, “Patient positioning in radiotherapy by regis-       [30] B. Movassaghi, V. Rasche, M. Grass, M. A. Viergever, and W. J.
+      tration of 2D portal to 3D CT images by a content-based research with              Niessen, “A quantitative analysis of 3-D coronary modeling from two
+      similarity measures,” in Computer Assisted Radiology and Surgery,                  or more projection images,” IEEE Trans. Med. Imag., vol. 23, no. 12,
+      H. Lemke, M. Vannier, K. Inamura, A. G. Farman, and K. Doi,                        pp. 1517–1531, Dec. 2004.
+      Eds. Amsterdam, The Netherlands: Elsevier Science B.V., 2000, pp.             [31] S. A. M. Baert, G. P. Penney, T. van Walsum, and W. J. Niessen, “Pre-
+      707–712.                                                                           calibration versus 2D-3D registration for 3D guide wire display in en-
+ [17] J. Weese, G. P. Penney, P. Desmedt, T. M. Buzug, D. L. G. Hill, and D. J.          dovascular interventions,” in Lecture Notes in Computer Science, C. Bar-
+      Hawkes, “Voxel-based 2-D/3-D registration of fluoroscopy images and                illot, D. Haynor, and P. Hellier, Eds. New York: Springer, 2004, pt. 2,
+      CT scans for image-guided surgery,” IEEE Trans. Inf. Technol. Biomed.,             vol. 3217, Medical Image Computing and Computer-Assisted Interven-
+      vol. 1, no. 4, pp. 284–293, Dec 1997.                                              tion-MICCAI 2004, pp. 577–584.
+ [18] J. Weese, R. Göcke, G. P. Penney, P. Desmedt, T. M. Buzug, and                [32] P. Haaker, E. Klotz, R. Koppe, and R. Linde, “Real-time distortion cor-
+      H. Schumann, “Fast voxel-based 2D/3D registration algorithm using                  rection of digital X-ray II/TV-systems: An application example for dig-
+      a volume rendering method based on the shear-warp factorization,”                  ital flashing tomosynthesis (DFTS),” Int. J. Cardiac Imag., vol. 6, no. 1,
+      Proc. SPIE (Medical Imaging 1999: Image Processing, vol. 3661, pp.                 pp. 39–45, 1990.
+      802–810, 1999.                                                                [33] J. West, J. M. Fitzpatrick, M. Y. Wang, B. M. Dawant, C. R. Maurer Jr.,
+ [19] M. Vermandel, N. Betrouni, G. Palos, J. Y. Gauvrit, C. Vasseur, and J.             R. M. Kessler, R. J. Maciunas, C. Barillot, D. Lemoine, A. Collignon, F.
+      Rousseau, “Registration, matching, and data fusion in 2D/3D medical                Maes, P. Suetens, D. Vandermeulen, P. A. van den Elsen, S. Napel, T. S.
+      imaging: Application to DSA and MRA,” in Lecture Notes in Com-                     Sumanaweera, B. Harkness, P. F. Hemler, D. L. G. Hill, D. J. Hawkes, C.
+      puter Science, R. Ellis and T. Peters, Eds: Springer-Verlag, 2003, vol.            Studholme, J. B. A. Maintz, M. A. Viergever, G. Malandain, X. Pennec,
+      2878, Medical Image Computing and Computer Assisted Intervention –                 M. E. Noz, G. Q. Maguire Jr., M. Pollack, C. A. Pelizzari, R. A. Robb, D.
+      MICCAI 2003, pp. 778–785.                                                          Hanson, and R. P. Woods, “Comparison and evaluation of retrospective
+ [20] D. Tomaževič, B. Likar, T. Slivnik, and F. Pernuš, “3-D/2-D registration        intermodality brain image registration techniques,” J. Comput. Assist.
+      of CT and MR to X-ray images,” IEEE Trans. Med. Imag., vol. 22, no.                Tomogr., vol. 21, no. 4, pp. 554–566, 1997.
+      11, pp. 1407–1416, Nov. 2003.                                                 [34] E. B. van de Kraats, T. van Walsum, J. J. Verlaan, F. C. Oner, M. A.
+ [21] H. Livyatan, Z. Yaniv, and L. Joskowicz, “Gradient-based 2-D/3-D rigid             Viergever, and W. J. Niessen, “Noninvasive magnetic resonance to three-
+      registration of fluoroscopic X-ray to CT,” IEEE Trans. Med. Imag., vol.            dimensional rotational X-ray registration of vertebral bodies for image-
+      22, no. 11, pp. 1395–1406, Nov. 2003.                                              guided spine surgery,” Spine, vol. 29, no. 3, pp. 293–297, 2004.
+ [22] R. A. McLaughlin, J. Hipwell, D. J. Hawkes, J. A. Noble, J. V. Byrne,         [35] J. M. Fitzpatrick and J. B. West, “The distribution of target registration
+      and T. Cox, “A comparison of 2D-3D intensity-based registration and                error in rigid-body point-based registration,” IEEE Trans. Med. Imag.,
+      feature-based registration for neurointerventions,” in Lecture Notes in            vol. 20, no. 9, pp. 917–927, Sep. 2001.
+      Computer Science, T. Dohi and R. Kikinis, Eds: Springer, 2002, pt. 2,         [36] Y. Masutani, T. Dohi, F. Yamane, H. Iseki, and K. Takakura, “Interactive
+      vol. 2489, Medical Image Computing and Computer-Assisted Interven-                 virtualized display system for intravascular neurosurgery,” in Lecture
+      tion – MICCAI 2002, pp. 517–524.                                                   Notes in Computer Science, J. Troccaz, W. Grimson, and R. Mösges,
+ [23] D. A. LaRose, J. Bayouth, and T. Kanade, “Evaluating 2D/3D registra-               Eds: Springer, 1997, vol. 1205, CVRMed-MRCAS ’97, pp. 427–435.
+      tion accuracy,” in Computer Assisted Radiology and Surgery, H. Lemke,         [37] Y. R. Rampersaud, D. A. Simon, and K. T. Foley, “Accuracy require-
+      M. Vannier, K. Inamura, A. Farman, and K. Doi, Eds. Amsterdam, The                 ments for image-guided spinal pedicle screw placement,” Spine, vol. 26,
+      Netherlands: Elsevier Science B.V., 2000, pp. 147–152.                             no. 4, pp. 352–359, 2001.
+ [24] D. Tomaževič, B. Likar, and F. Pernuš, “’Gold standard’ 2D/3D regis-       [38] J. V. Byrne, C. Colomina, J. Hipwell, T. Cox, J. A. Noble, G. P. Penney,
+      tration of X-ray to CT and MR images,” in Lecture Notes in Computer                and D. J. Hawkes, “An assessment of a technique for 2D-3D registration
+      Science, T. Dohi and R. Kikinis, Eds. New York: Springer, 2002, pt. 2,             of cerebral intra-arterial angiography,” Br. J. Radiol., vol. 77, no. 914, pp.
+      vol. 2489, Medical Image Computing and Computer-Assisted Interven-                 123–128, 2004.
+      tion – MICCAI 2002, pp. 461–468.
+ [25] L. Brunie, S. Lavallée, J. Troccaz, P. Cinquin, and M. Bolla, “Pre- and
+      intra-irradiation multimodal image registration: Principles and first ex-
+      periments,” Radiotheraphy Oncol., vol. 29, no. 3, pp. 244–252, 1993.
+
+
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:56:26 UTC from IEEE Xplore. Restrictions apply.
+

@@ -1,0 +1,878 @@
+          IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022                                                                   453
+
+
+
+
+   Fluoroscopic Navigation for a Surgical Robotic
+    System Including a Continuum Manipulator
+                   Cong Gao , Student Member, IEEE, Henry Phalen , Student Member, IEEE,
+                      Shahriar Sefati , Member, IEEE, Justin Ma , Student Member, IEEE,
+                    Russell H. Taylor , Life Fellow, IEEE, Mathias Unberath , Member, IEEE,
+                                      and Mehran Armand , Member, IEEE
+
+
+   Abstract—We present an image-based navigation solu-                          a great amount of research energy. However, similar applica-
+tion for a surgical robotic system with a Continuum Manip-                      tions in orthopedic surgery have been limited. The stiffness
+ulator (CM). Our navigation system uses only fluoroscopic                       needed for cutting and debriding harder tissues such as bone
+images from a mobile C-arm to estimate the CM shape and
+pose with respect to the bone anatomy. The CM pose and                          contrasts with the shape-compliance inherent to CMs, presenting
+shape estimation is achieved using image intensity-based                        design challenges and further complicating the shape sensing
+2D/3D registration. A learning-based framework is used to                       and control of CMs. Despite these challenges, CMs may be
+automatically detect the CM in X-ray images, identifying                        very useful in the surgical treatment of bone defects, such as
+landmark features that are used to initialize and regularize
+                                                                                femoroacetabular impingement (FAI), metastatic bone disease,
+image registration. We also propose a modified hand-eye
+calibration method that numerically optimizes the hand-eye                      severe osteoporosis in areas including the pelvis/acetabulum,
+matrix during image registration. The proposed navigation                       femoral neck, peri- and sub-trochanteric regions, and traumatic
+system for CM positioning was tested in simulation and                          fracture repair. For example, osteonecrosis in the femoral head
+cadaveric studies. In simulation, the proposed registration                     is treated with a procedure called core decompression, which
+achieved a mean error of 1.10 ± 0.72 mm between the CM                          consists of using a drill to remove the 8–10 mm cylindrical
+tip and a target entry point on the femur. In cadaveric exper-
+iments, the mean CM tip position error was 2.86 ± 0.80 mm                       core from an osteonecrotic lesion [10]. Complete removal of
+after registration and repositioning of the CM. The results                     a lesion in the femoral head requires access by drilling through
+suggest that our proposed fluoroscopic navigation is feasi-                     the narrow femoral neck, and then debriding a larger volume of
+ble to guide the CM in orthopedic applications.                                 necrotic bone beyond this access point. High accuracy is needed
+   Index Terms—Continuum manipulators, X-ray, 2D/3D reg-                        to remove minimal healthy bone so as to maintain structural
+istration, image-based navigation.                                              integrity and stability, especially in the narrowest regions of the
+                                                                                femoral neck. However, to debride a larger volume once having
+                          I. INTRODUCTION                                       passed through the narrow femoral neck, significant dexterity
+      ONTINUUM manipulators (CMs) have the potential to                         of the tool is required. CMs with embedded shape sensing
+C     advance minimally-invasive surgical procedures due to
+their high dexterity and enhanced accessibility [2]. Robotic
+                                                                                have been demonstrated to meet these requirements [11], [12].
+                                                                                Further, registration and navigation of a robotic system with rigid
+systems equipped with CMs have been studied in the context                      tools for treatment of femoroplasty has been demonstrated [13].
+of soft environment surgical applications such as percutaneous                  We extend these works to demonstrate registration and naviga-
+intracardiac surgery [3], fetoscopic interventions [4], laryngeal               tion of a CM relative to the femoral bony anatomy.
+surgery [5], gastroscopy [6] and endoscopic orifice surgery [7]–                   We present a fluoroscopic image-based navigation solu-
+[9]. The application of CMs for soft tissue surgery has attracted               tion for a surgical robotic system including a CM for or-
+                                                                                thopedic applications. The CM is mounted on a 6-Degree-
+   Manuscript received February 5, 2021; revised June 7, 2021; ac-              of-Freedom (DOF) positioning rigid-link robot, resulting in a
+cepted July 7, 2021. Date of publication July 16, 2021; date of cur-            redundant robotic system. Due to its dexterity, it remains a
+rent version December 23, 2021. This work was supported by NIH
+R01EB016703, NIH R01EB023939, NIH R21EB020113 and NSF Grant                     challenging task to control and steer the CM inside the patient
+no. DGE-1746891. (Corresponding author: Cong Gao)                               body. An effective navigation system is essential to assist robotic
+   Cong Gao is with the Department of Computer Science, Johns Hop-              interventions including CMs. The key challenge is the estimation
+kins University, Baltimore, MD 21211 USA (e-mail: cgao11@jhu.edu).
+   Henry Phalen, Shahriar Sefati, and Justin Ma are with the Department         of the CM-to-bone relationship.
+of Mechanical Engineering, Johns Hopkins University, USA.                          Optical tracking systems are commonly used for navigation in
+   Russell H. Taylor and Mathias Unberath are with the Department of            orthopedic surgeries [14], [15]. In our previous implementation,
+Computer Science, Johns Hopkins University, USA.
+   Mehran Armand is with the Department of Orthopaedic Surgery,                 we used optical tracking in the control of the CM [16]. How-
+Johns Hopkins University, USA, with the Department of Mechanical                ever, optical tracker based navigation systems require external
+Engineering, Johns Hopkins University, USA, with the Department of              markers pinned or screwed into the patient’s bone to track
+Computer Science, Johns Hopkins University, USA, and also with the
+Johns Hopkins Applied Physics Laboratory, USA.                                  the real-time pose of the bone relative to the CM, introducing
+   Digital Object Identifier 10.1109/TBME.2021.3097631                          additional invasiveness to the procedure. Furthermore, optical
+
+                  0018-9294 © 2021 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+                                See https://www.ieee.org/publications/rights/index.html for more information.
+
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+454                                                                  IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+                                                                                  The addition of internal sensing units have been studied for
+                                                                               estimating the CM shape to assist navigation, such as the Fiber
+                                                                               optic technologies like FBGs [1], [21], [22]. As shown in Fig. 1,
+                                                                               our CM has embedded FBG units, which provides real-time
+                                                                               curvature sensing of the CM. However, external forces, such as
+                                                                               those occurring when the CM interacts with hard tissues, can
+                                                                               make shape estimates from the FBG signal unreliable [1]. In
+                                                                               addition, the relative pose from the CM to the patient anatomy
+                                                                               cannot be bridged by internal sensing units. This motivates the
+                                                                               use of external imaging to close the loop of navigation. In this
+                                                                               work, the FBG signals serve as an initial curvature estimation
+                                                                               of the CM for image-based registration.
+                                                                                  Otake et al. first applied fluoroscopic image-based 2D/3D reg-
+                                                                               istration to estimate the CM pose and shape [23]. However, there
+                                                                               were several major limitations: 1) the algorithm was only tested
+                                                                               with simulation and camera images instead of real fluoroscopic
+                                                                               images; 2) the registration was manually initialized close to the
+Fig. 1. Concept of the proposed fluoroscopic image-based navigation            global optima; 3) the method only used a single-view image
+for the CM. Key frames are illustrated as red cross arrows. The blue
+                                        Carm and T Carm are rigid pose
+arrows illustrate the transformations. TBone
+                                                                               method, which leads to large ambiguity.
+                                                   CM
+estimations of the CM and the bone anatomy in the C-arm coordinate                In this paper, we integrate C-arm x-ray image-based nav-
+          ee
+frame. TCM is the hand-eye matrix. Top right: Continuum manipulator            igation into a surgical robotic system with a CM (Fig. 1).
+and the integrated FBG with triangulation configuration [1].
+                                                                               The contributions are summarized as follows: 1) learning-based
+                                                                               CM detection and localization for CM pose initialization; 2)
+                                                                               image-based 2D/3D registration methods for CM shape and
+tracking systems require a clear line-of-sight, adding complexity              pose estimation; 3) a modified hand-eye calibration method that
+to surgical workflow.                                                          numerically optimizes the hand-eye matrix during the multiple
+   Fluoroscopy is an effective way to monitor both CMs and                     CM 2D/3D registration.
+tissue intraoperatively, which has been applied to intracardiac
+navigation [17], percutaneous interventions [18], and orthopedic                                          II. METHODOLOGY
+surgeries [19]. Fluoroscopic imaging has the following advan-
+                                                                                  Fig. 2 presents the overall concepts of the proposed nav-
+tages in orthopedic procedures: 1) C-arm X-ray machines are
+                                                                               igation system. It consists of three stages: 1) Pre-operative
+widely used in orthopedic rooms; 2) it is low-cost, fast, and
+                                                                               calibration: The transformation from the CM model reference
+supplies accurate imaging of deep-seated structures with high
+                                                                               frame to the rigid-link robot end-effector frame is calibrated
+resolution; 3) unlike optical tracking, it can show changes in
+                                                                               using X-ray image-based hand-eye calibration (Fig. 2(a)). 2)
+bones during surgical operations, for example in fracture reduc-
+                                                                               Detection and Initialization: Distinct features of the CM are
+tion in trauma surgery. A general disadvantage of fluoroscopy is
+                                                                               automatically detected in 2D X-ray images. An initial 3D pose
+that it adds to the radiation exposure of the patient and surgeon.                             Carm
+                                                                               of the CM ((TCM       )ini ) is estimated using centerline-based
+However, in current practice, orthopaedic surgeons always use
+                                                                               2D/3D registration (Fig. 2(b)). 3) Registration and Navigation:
+fluoroscopy for verification, whether navigation with optical                                                                          Carm
+                                                                               An accurate 3D pose and shape estimation of the CM (TCM      ) is
+tracking is used or not, to gain “direct” visualization of the
+                                                                               achieved by intensity-based 2D/3D registration using X-ray im-
+anatomy. As such, the use of fluroroscopy for navigation is
+                                                                               ages and 3D CM model. The pose of the bone anatomy (TFCarm emur )
+intended to replace its use for these manual verification images,
+                                                                               is also estimated using intensity-based 2D/3D registration. The
+resulting in similar radiation exposure compared to a traditional
+                                                                               patient is anaesthetized and remains stationary during the pre-
+procedure.
+                                                                               operative registration phase. After registration, the rigid-link
+   Fluoroscopic 2D/3D registration of the femur has been studied
+                                                                               robot performs navigation, moving the CM according to patient-
+by Gao et al. in the application of femoroplasty [20]. In cadaver
+                                                                               specific planning (Fig. 2(c)).
+studies, a mean error of 2.64 ± 1.10 mm was achieved between
+the target point and a rigid drilling/injection device attached
+to the robot [13]. This demonstrates the feasibility to guide a                A. CM Model
+surgical robotic device with a fixed tool using this registration                 The CM used in the surgical robotic system is constructed
+approach with respect to the femur. In this paper, we investigate              from a hollow superelastic nitinol tube with 27 alternating
+the further challenge of using a CM. Estimating the CM shape                   notches on two sides, using a 4 mm diameter lumen as a flexible
+and pose from fluoroscopic images, which is essentially a 2D/3D                instrument channel, with an outside diameter of 6 mm and a
+registration problem, is challenging. This is because the CM                   total length of 35 mm. It achieves flexibility and compliance
+is dexterous and its size is small relative to the C-arm X-ray                 in the direction of bending while preserving high stiffness in
+projection geometry. This leads to severe ambiguities in 2D/3D                 the perpendicular direction to the bending plane [24]–[26]. Two
+registration.                                                                  stainless steel cables are embedded through channels on two
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FLUOROSCOPIC NAVIGATION FOR A SURGICAL ROBOTIC SYSTEM INCLUDING A CONTINUUM MANIPULATOR                                                     455
+
+
+
+
+Fig. 2. Illustration of the proposed image-based navigation for the CM. Key frames are shown with red cross arrows. (a) Pre-operative hand-eye
+calibration of the CM. The hand-eye matrix TCMee is represented by the curved arrow. (b) CM feature detection and centerline-based initialization.
+2D landmark heatmaps and corresponding 3D landmarks are shown in red and green. 2D and 3D centerlines are shown in yellow and pink,
+                                                Carm )
+respectively. The CM initial pose estimation (TCM      ini is marked with a blue arrow. (c) Scheme of 2D/3D registration of the CM and the femur
+bone anatomy. The registration transformations are described in Section II-C in detail. An example navigation position after registration is illustrated
+with transparency.
+
+
+opposing sides of the CM wall to provide bidirectional planar
+motion [24], [25]. FBG fibers are integrated into the CM wall
+channels. The 3D shape of the CM can be inferred in real-time
+from FBG readings [27], [28].
+   The CM kinematics configuration is determined by the notch
+joint angles. Following previous work on kinematic modeling of
+this CM [23], we assume that the joint angle changes smoothly
+from one joint to the next. Angles are parameterized as a cubic
+spline of n equally distributed control points, τi , along the central
+axis of the CM (n = 5). The model of the CM used in the
+simulation is built from component volumetric models that are
+aligned according to the CM kinematic model. The origin of
+the CM model base reference frame is at the center of the
+structure between the first notch and the base. The y-z plane
+defines the CM bending plane and the x axis is perpendicular to                 Fig. 3. CM Model. (a) Basic model components including base, notch
+                                                                                and top segments. (b) An example CM configuration. The notch joint
+the bending plane. Fig. 3 illustrates how the CM model is built                 angle is illustrated as τi . The cubic spline control points are shown aside
+and defines the reference frame.                                                as c1 , c2 , . . ., c5 . The CM base reference frame is shown in RGB cross
+                                                                                arrows. (c) An example flexible tool model. (d) Integrated CM with flexible
+                                                                                tool inside.
+
+
+                                                                                Inspired by [32], the 2D centerline is extracted using morpho-
+B. CM Detection and Pose Initialization                                         logical processing of the segmentation mask (Fig. 4(d)). Fig. 4
+   The small size, symmetric structure, and dexterity of the                    illustrates these features in an example 2D image and 3D model.
+CM make it particularly challenging to estimate its pose and                       Due to the unavailability of annotated real X-ray images to
+shape using a fluoroscopic image. To this end, we propose to                    train ConvNets, we rely on DeepDRR [33], a framework for
+exploit semantic prior information on the imaged object, i. e. the              the physics-based rendering of Digitally Reconstructed Radio-
+CM, to heavily constrain rigid initialization and the deformable                graphs (DRRs) from 3D CT, to generate simulation images
+registration. We train a convolutional neural network (ConvNet)                 for network training [34]. DeepDRR uses voxel representation,
+to segment the CM in X-ray images and simultaneously detect its                 so the CM surface model is voxelized with high resolution
+start and end point using multi-task learning [29]–[31], yielding               to preserve details of the notches. The ConvNet architecture
+an estimate of the projection domain centerline of the CM. Our                  is a U-Net inspired encoder-decoder structure with concurrent
+segmentation target region covers the 27 alternating notches                    segmentation and landmark heatmap network paths [30]. We
+which discern the CM from other surgical tools (Fig. 4(a)).                     chose Dice loss to train the segmentation task and the standard
+The two landmarks are defined as 1) the origin of the CM base                   l2 loss for the localization task.
+reference frame and 2) the center of the distal plane of the last                  The detected semantic features combined with the known
+notch, i. e. start and end point of CM centerline (Fig. 4(c)).                  C-arm projection geometry and the CM curvature estimation
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+456                                                                    IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+                                                                                 distance between each detected landmark position from image
+                                                                                 I and the projected landmark position from the 3D model.
+                                                                                    Given K images (Ik ) as input, using J CM model segment
+                                                                                 volumes (Vj , j ∈ {1..J}, J = 27), a DRR operator (P), simi-
+                                                                                 larity metric (S), and regularizer over plausible poses (R), the
+                                                                                                                             Carm
+                                                                                 registration recovers the CM rigid pose (TCM      ) and deforma-
+                                                                                 tion control points (τi ) by solving the following optimization
+                                                                                 problem:
+                                                                                                             ⎛        ⎛                     ⎞⎞
+                                                                                                      K               J
+                                                                                            min            S ⎝I k , P ⎝          Carm
+                                                                                                                           Vj ; TCM    , τi ⎠⎠
+                                                                                       Carm ∈SE(3),τ
+                                                                                      TCM            i
+                                                                                                          k=1                  j=1
+
+                                                                                                                  Carm
+                                                                                                             + R(TCM   , τi ), i ∈ {1..5}              (1)
+                                                                                    We use patch-based normalized gradient cross correla-
+                                                                                 tion (Grad-NCC) as similarity score [35]. The 2D image is
+                                                                                 first cropped to a 500 × 500 region of interest (ROI) using
+                                                                                 the two landmark locations and downsampled 4 times in each
+Fig. 4. (a) 3D segmentation label and landmark positions on an ex-               dimension. The optimization strategy is selected as “Covariance
+ample CM model. (b) An example simulation image using DeepDRR.                   Matrix Adaptation: Evolutionary Search” (CMA-ES) due to its
+(c) Overlay of the 2D segmentation mask and landmark heatmaps on
+the cropped image in (b). (d) Extraction of the 2D centerline from a
+                                                                                 robustness to local minima [36]. The two detected landmarks
+segmentation mask consists of dilation, edge and distance map com-               are incorporated into a reprojection regularizer defined as
+putation, and finally, shortest path extraction. (e) A simplified illustration
+                                                                                                          1                                          2
+                                                                                                              K
+of the centerline-based 2D/3D registration geometry.
+                                                                                      Carm                           (k,l)     Carm             (k,l) 
+                                                                                   R(TCM   , τi ) =              P(p 3D    ; T CM   , τ i ) − p 2D     ,
+                                                                                                         2σl2
+                                                                                                                k=1
+from FBG readings enable an initial 3D pose estimation of the                                        i ∈ {1..5}, l ∈ {A, B}                            (2)
+CM using centerline-based 2D/3D registration. Since two 2D
+landmarks only determine 4 of the required 6 DOF of the CM                          The registration produces the rigid pose of the CM in the
+                                                                                                    Carm
+base rigid transformation, the other two DOFs can be decom-                      C-arm frame (TCM         )regi and the deformation control point
+posed as the depth distance of the 3D CM base landmark (dA )                     values (τi ).
+and the rotation angle (θ) about the axis passing through the two                   Depending on the number of images being used, image-based
+3D CM landmarks (Fig. 4(e)). We then perform an optimization                     2D/3D registration can be classified as single-view (K = 1)
+search of these two variables (dA , θ) by minimizing the distance                or multi-view registration (K > 1). Single-view intensity-based
+between the extracted centerline and the reprojection of the 3D                  2D/3D registration suffers from depth ambiguity as 3D features
+model centerline. Once the global optimal (dA , θ) is found, the                 are condensed along the ray-casting line during projection.
+                                        Carm                                     Since our CM object is deformable and symmetric, it also has
+rigid CM pose in the C-arm frame (TCM        ) can be determined,
+which is used as the initialization of the intensity-based regis-                the problem of axial rotation ambiguity. Multiple view 2D/3D
+tration. Since the centerline feature is approximate, we expect                  registration, however, jointly registers several images in which
+to see some ambiguity in depth and rotation which is going to                    the relative orientation of objects and the imaging device varies,
+be resolved using intensity-based registration.                                  which is effective to remedy the single-view ambiguity [37].
+                                                                                    There are two different ways to introduce multiple projec-
+                                                                                 tion geometries: One is moving the C-arm to multiple views
+C. Image-Based 2D/3D Registration                                                to register a static CM pose, which we phrase as multi-view
+   Pose estimation of both the bone anatomy and the CM is                        registration (Fig. 5(a)). The other one is moving the CM to
+achieved using purely image-based 2D/3D registration. Image-                     multiple poses under a single C-arm view, which we phrase
+based 2D/3D registration of the CM estimates both the rigid pose                 as multiple CM registration (Fig. 5(b)). One key challenge of
+                                                 Carm
+of the CM relative to the C-arm source frame (TCM      ∈ SE(3))                  using multiple images is the relative geometry estimation among
+and the deformable kinematics configuration (τi , i ∈ {1..5}).                   these poses, which is essentially a calibration problem. Grupp
+                              Carm
+The initial estimation of TCM        is from the centerline-based                et al. used the pelvis as a “fiducial” to estimate the multi-view
+registration, and the initial τi are from the FBG readings. Our                  C-arm geometries in the application of osteotomy, and achieved
+proposed intensity-based registration of the CM is performed by                  accurate pose estimation of the pelvis fragment with an average
+optimizing an image similarity score, combined with a landmark                   fragment pose error of 2.2◦ /2.2 mm [37]. Thus, we chose to
+reprojection penalty. DRRs are created by calculating ray casting                use the pelvis registration to estimate the relative C-arm view
+line integrals through the CM model onto a 2D image plane                        geometry for multi-view CM registration.
+following the C-arm projection geometry. The similarity score                       To keep the pelvis as a fiducial and the femur in the field of
+is calculated between each DRR and the intraoperative image I.                   view, the multiple C-arm view geometries need to be close in ro-
+The landmark reprojection penalty is defined as the sum of l2                    tation, limiting the differences in image appearance. In multiple
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FLUOROSCOPIC NAVIGATION FOR A SURGICAL ROBOTIC SYSTEM INCLUDING A CONTINUUM MANIPULATOR                                                   457
+
+
+
+
+Fig. 5. (a): Illustration of multi-view registration. Three example C-arm view source frames are noted with red cross arrows. (b): Illustration of
+multiple CM registration. The transformations are marked separately on the right and described in Section II-C.
+
+
+CM registration, however, the CM poses can be more diverse
+by moving the rigid-link robot. Relative CM pose geometries
+can be calculated using the rigid-link robot forward kinemat-
+       Rbase                                    ee
+ics (Tee     ) and the hand-eye matrix (TCM        ). Calibration of the
+hand-eye matrix is discussed in the following Section II-D.
+   As shown in Fig. 5(b), given M static rigid-link robot forward
+               Rbase     Rbase            Rbase
+kinematics Tee   1
+                      , Tee2
+                                , . . ., TeeM
+                                                and a hand-eye matrix
+  ee
+TCM , the CM poses in the static rigid-link robot base frame are
+  Rbase       Rbase      ee
+TCM   m
+         = Tee       · TCM   m
+                               , m ∈ {1..M } with the fact that all
+configurations share the same hand-eye matrix. We then define a
+central reference frame with respect to the robot base frame. The
+reference frame is chosen to be the average position of multiple
+CM base origins. Its orientation is identity and its translation
+is the mean translation of all CM poses. The transformation
+                                                                  Carm
+from the reference frame to the C-arm frame is noted as Tref           .
+                                                              ref
+Each CM pose with respect to the reference frame (TCMm ) can
+be derived by the reference frame definition. We assume the CM
+shape is fixed during registration. Since the C-arm frame is static,
+  Carm
+Tref     determines all the CM rigid poses in the C-arm frame.                  Fig. 6. Illustration of the hand-eye calibration transformations. The
+Following the formulation of (1), the multiple CM registration                  image-based hand-eye calibration loop is shown in blue. The purple ar-
+                                                                                row shows the image-based hand-eye transformation TCM  ee . The optical
+can be defined using:                                                           tracker-based hand-eye calibration loop is shown in green, and TOee is
+                                                                                                                                                   s
+                               ⎛           ⎛                     ⎞⎞             the optical tracker-based hand-eye matrix.
+                        M
+                                            J
+          min                S ⎝Im , P ⎝               Carm
+                                                 Vj ; Tref  , τi ⎠ ⎠
+    Carm ∈SE(3),τ
+   Tref           i
+                      m=1                   j=1
+
+                           Carm
+                                                                                   The registration produces the pose of the reference frame
+                      + R(Tref  , τi ), i ∈ {1..5}                       (3)       Carm
+                                                                                (Tref   )regi . Each individual pose of the CM in the C-arm
+                                                                                                                   Carm           Carm
+                                                                                frame can be calculated using (TCM    i
+                                                                                                                        )regi = (Tref  )regi ·
+   The similarity score, image cropping and downsampling, and                     ref
+optimization strategy are the same as multi-view registration.                  TCMm , m ∈ {1..M }.
+The landmarks of all CMs are reprojected and incorporated to
+the regularizer, which can be described as
+                                                                                D. Hand-Eye Calibration
+                    1                                     2
+                         M
+     Carm                       (m,l)                (m,l)                       In order to navigate the CM using the surgical robotic system,
+  R(Tref  , τi ) =          P(p 3D    ; θ  ,
+                                           C iτ ) − p 2D  ,
+                   2σl2 m=1                                                     the transformation from the CM model frame to the rigid-link
+                                                                                                             ee
+                                                                                robot end effector frame, TCM   , needs to be calibrated, which is
+                   i ∈ {1..5}, l ∈ {A, B}                                (4)    essentially a hand-eye calibration problem. Fig. 6 illustrates the
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+458                                                                  IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+hand-eye calibration transformations. The conventional hand-                   E. CM Navigation
+eye calibration method collects the calibration data at each indi-
+                                                                                  Given the registration pose estimation of the femur
+vidual frame, building matrices A from the robot kinematics and
+                                                                               ((TFCarm                         Carm
+                                                                                    emur )regi ) and the CM ((TCM )regi ), the relative trans-
+B from sensor readings. If A system of linear equations AX =
+                                                                               formation of the registration CM frame with respect to the femur
+XB can be defined where X is the hand-eye matrix. However,
+                                                                               anatomy is
+in this application, X will be inaccurate because B is ambiguous
+due to severe single-view 2D/3D registration ambiguity. Follow-                           (TFCM              Carm             Carm −1
+                                                                                              emur )regi = (TF emur )regi · (TCM )regi              (7)
+ing the multiple CM registration method as described in Sec-
+                                                                                 Given a target CM pose relative to the femur, (TFCM
+                                                                                                                                   emur )tar ,
+tion II-C, we propose a modified hand-eye calibration method
+                                                                               we can calculate a target rigid-link robot forward kinematics
+that numerically optimizes the hand-eye matrix during the mul-
+                                                             ee                using:
+tiple CM registration. Specifically, the hand-eye matrix TCM      is
+                                                                                       Rbase          ee −1
+now included as a target variable in the optimization problem                        (Tee    )tar = (TCM ) · (TFCM     −1
+                                                                                                                 emur )tar
+defined in (3). The intuition is that the collection of multiple
+calibration CM poses can be regarded as a CM object group, then                                        · (TFCM             ee     Rbase
+                                                                                                             emur )regi · TCM · (Tee    )regi       (8)
+  Carm                                                 ee
+Tref     controls the central pose of the group and TCM    controls            where (Tee Rbase
+                                                                                                )regi is the rigid-link robot forward kinemat-
+the relative poses between the CM objects within the group.                    ics during registration, and TCM   ee
+                                                                                                                       is the hand-eye matrix.
+  Carm          ee
+Tref      and TCM    are sufficient to determine all the CM rigid              The CM can be navigated to patient-specific planned posi-
+poses in the static C-arm frame. The hand-eye calibration can be               tions/trajectories by the rigid-link robot according to the target
+formulated as                                                                  kinematics.
+                             ⎛        ⎛                          ⎞⎞
+                       M              J
+                                                                                                 III. EXPERIMENTS AND RESULTS
+         min               S ⎝Ik , P ⎝ Vj ; TrefCarm      ee
+                                                      , TCM  , τi⎠⎠
+ Carm ,T ee ∈SE(3),τ
+Tref    CM           i
+                         m=1              j=1                                     We verified our navigation system with a series of simulation
+                                                                               studies and cadaveric experiments, including CM detection,
+                              Carm    ee
+                         + R(Tref  , TCM , τi ), i ∈ {1..5}             (5)    2D/3D registration, hand-eye calibration, and robot navigation.
+                                                                               Lower torso CT scan images of a female cadaveric specimen
+and the regularizer is defined as                                              were acquired for fluoroscopic simulation and anatomy reg-
+                                                                               istration. The CT voxel spacing is 1.0 × 1.0 × 0.5 mm with
+                            1                                     2         dimensions 512 × 512 × 1056. Pelvis and femur volumes were
+                                 M
+   Carm    ee                           (m,l)                (m,l) 
+R(Tref  , TCM , τi ) =              P(p 3D    ; θ  ,
+                                                   C iτ ) − p 2D  ,           segmented and pelvis anatomical landmarks were annotated
+                           2σl2 m=1
+                                                                               using the method described in [13]. We manually annotated a
+                         i ∈ {1..5}, l ∈ {A, B}                         (6)    drilling/injection entry point on the greater trochanter surface
+                                                                               based on the biomechanical analysis. The simulation environ-
+   The registration directly produces the hand-eye matrix TCM   ee
+                                                                    ,          ment was set up to approximate a Siemens CIOS Fusion C-Arm,
+which integrates the CM model frame to the rigid-link robot                    which has image dimensions of 1536 × 1536, isotropic pixel
+end effector frame. There is no need for a fiducial marker in the              spacing of 0.194 mm/pixel, a source-to-detector distance of
+system as the CM itself is functioning as a fiducial via the model-            1020 mm, and a principal point at the center of the image.
+to-image registration that connects the C-arm camera frame to
+the robot kinematics.                                                          A. CM Detection
+   We move the rigid-link robot to various static configurations                  Given the CT scan image, we manually defined a rigid trans-
+within its workspace and the C-arm capture range to collect                    formation such that the CM model was enclosed in the femur,
+the calibration data. The C-arm is static during the calibration               simulating applications in core decompression and fracture re-
+data collection procedure. At each static configuration, we take               pair [11], [38]. Projection using DeepDRR was based on voxel
+an X-ray image of the CM and the rigid-link robot kinematics.                  representations of the CT and CM. The CM surface model
+The CM curvature is kept constant during the calibration data                  was voxelized with high resolution to preserve details of the
+collection.                                                                    notches. The CM model voxel HU value was set to 2000 to match
+   In order to validate the accuracy of the hand-eye calibration,              measurements from real fluoroscopic acquisition. At positions
+we put two rigid bodies with reflective markers on the CM tip                  where the CT volume exhibited overlap with the CM, CT values
+segment and shaft. The optical tracker simultaneously tracks                   were ignored to simulate drilling. We used DeepDRR to generate
+these two rigid bodies for validation. At each static configura-               1) realistic X-ray images, 2) 2D segmentation masks of the CM
+tion, we also take the optical tracker readings. Thus, we can                  end-effector, and 3) 2D locations of two key landmarks. 3D
+perform an additional standard hand-eye calibration using the                  CM segmentations and landmark locations were determined by
+accurate optical tracking result. In this case as shown in Fig. 6,             the simulated CM rigid transformation and joint angles, which
+the shaft marker pose in the optical tracker frame, TOtracker
+                                                           s
+                                                                 , is          were then projected to 2D as training labels following the C-arm
+                                                             Rbase
+used to define the A matrix, and the robot kinematics Tee          is          projection geometry. We generated in total 300 CM models
+used to define the B matrix.                                                   for training and testing. We uniformly sampled the control
+
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FLUOROSCOPIC NAVIGATION FOR A SURGICAL ROBOTIC SYSTEM INCLUDING A CONTINUUM MANIPULATOR                                                  459
+
+
+
+
+Fig. 7. Representative examples of segmentation and landmark de-
+tection performance on synthetic and real ex vivo data in the top and
+bottom rows, respectively. The predicted segmentation mask is shown
+as green overlay while the estimated landmark locations appear as red
+blobs.
+
+
+
+point values in [−7.9◦ , 7.9◦ ], source-to-isocenter distance in
+[400 mm, 500 mm], rotation angle of LAO/RAO in [0◦ , 360◦ ];
+CRAN/CUAD in [75◦ , 105◦ ], and the volume translation of
+±20 mm in x, y and z axis. We included 5 half-body CT scans
+(512 × 512 × 2590 voxel, 0.853 mm3 /voxel) in the experiment.
+We used 4 CTs for training and the other one for testing. 10 000
+images were generated for training and validation with a split
+of 10:1. 4000 images were generated for testing. We also tested
+the performance on 100 real Xray images, where we manually                     Fig. 8. Example of simulation images. Red: single-view image. Blue:
+                                                                               multi-view images. Green: Multiple CM pose images. Upper right: CM
+labeled the groundtruth mask and landmarks to compare. These                   base and C-arm coordinate frames used to report the registration error
+real X-ray images covered three different CM application sce-                  are marked with RGB cross arrows using an example projection geom-
+narios: 1) clean background images during hand-eye calibration;                etry. The femur entry point and the CM tip point are marked using red
+                                                                               spheres.
+2) the CM above cadaver with soft tissue as background during
+registration; 3) the CM inserted to a drilled femur. The learning
+rate was initialized with 0.001 and decayed by 0.1 every 10
+                                                                               mean and STD of +20 ± 3◦ and −15 ± 3◦ . Random movements
+epochs.
+                                                                               of the pelvis were sampled uniformly to simulate patient pose
+   The segmentation accuracy was calculated using the DICE
+                                                                               variations, including translations from 0 to 10 mm and rotations
+score of the prediction mask and the groundtruth mask. Land-
+                                                                               from −10 to 10 in degrees with respect to a randomly assigned
+mark detection accuracy was reported with the pixel l2 distance
+                                                                               unit vector in pelvis volume center. Rotations of femur were
+norm. We first tested the network output on the simulation
+                                                                               sampled from random rotations with respect to the center of
+dataset using groundtruth projection. The mean DICE score
+                                                                               femoral head (FH). The axis of rotation was sampled uniformly
+was 0.993 ± 0.002 and the mean l2 distance error was 0.449 ±
+                                                                               between −15 and 15 degrees. The CM was simulated at random
+0.525 mm. The mean DICE score on real X-ray was 0.920 ±
+                                                                               positions above the specimen femur head. Perturbed movements
+0.068 and the mean l2 distance error was 2.62 ± 1.05 mm.
+                                                                               of the CM with respect to the C-arm included translations from
+Fig. 7 presents the qualitative results. The performance on real
+                                                                               −30 to 30 mm and rotations from −30 to 30 in degrees with
+data is sufficient to initialize the registration. Thus, we did
+                                                                               respect to a randomly assigned unit vector in the CM base
+not consider using the real X-rays to retrain the network for
+                                                                               reference frame (Fig. 8). To test the joint registration of multiple
+improved accuracy.
+                                                                               CM poses using a static C-arm view, we randomly sampled four
+                                                                               CM poses with constant curvature in the AP view including
+B. 2D/3D Registration Simulation Study                                         translations from -10 to 10 mm and rotations between -30 and
+   We tested a series of CM 2D/3D registration workflows, in-                  30 degrees with respect to randomly assigned unit vector in the
+cluding centerline-based 2D/3D registration, single-view 2D/3D                 CM reference frame for each registration. Fig. 8 shows example
+registration, multi-view 2D/3D registration and multiple CM                    simulation images for each registration workflow.
+2D/3D registration. We performed 1000 simulation studies                          Registration accuracy was assessed based on the the follow-
+with randomized geometries for each registration workflow                      ing metrics: 1) CM tip position in the C-arm frame (pCM         t
+                                                                                                                                            Carm );
+and report the registration accuracy based on our simu-                        2) entry point position in the C-arm frame (pent       Carm ); rela-
+lated “groundtruth ” poses of the objects and the registration                 tive distance between the CM tip and the entry point in the
+                                                                                                           CMt
+results.                                                                       C-arm frame (pent Carm − pCarm ); 3) CM base rigid registra-
+                                                                                                                               CMbase
+   The single-view image is approximately anterior/posterior                   tion transformation in the C-arm frame (TCarm           ). We com-
+(AP). Multi-view images included a perturbed AP view and                       puted the l2 distance error for items 1-3 above compared to
+two views at random rotations about the C-arm orbit with a                     the groundtruth point position in the C-arm frame. CM base
+
+
+          Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+460                                                                  IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+registration error was reported in the CM base reference
+                                  CMbase           CMbase −1
+frame using δTCMbase = (TCarm            )regi · (TCarm  )gt . We
+also computed the CM notch (joint) rotation error compared
+to groundtruth notch rotation angles. The femur entry point
+annotation is shown in Fig. 8.
+    1) Centerline-Based Initialization: We used the CM detec-
+tion results to test our centerline-based 2D/3D registration algo-
+rithm on the AP view simulation images. We assumed the initial
+curvature readings were added with a uniformly distributed
+random noise of [−0.5◦ , 0.5◦ ] to the groundtruth control point
+values. We uniformly sampled 1000 points in the search space of
+dA and θ, and chose the lowest point as global minimum for CM
+pose estimation. We compared the output with the groundtruth
+values. dA had a mean error of 29.27 ± 21.02 mm, and θ with
+30.78◦ ± 22.13◦ .
+    2) Single-View Registration: We first performed a single-
+view pelvis registration and then the femur registration was
+initialized using the pelvis registration outcome as described
+in [20]. We used the centerline-based registration result in the
+above section to initialize the intensity-based 2D/3D registra-
+tion of the CM. The CM curvature noise model is the same                       Fig. 9. Upper: Hand-eye calibration setup with UR-10, C-arm polaris
+with the centerline-based registration settings. Thus the regis-               tracker and markers. Lower: Two example calibration X-ray images. 2D
+                                                                               overlay of cropped X-ray (back-ground) and DRR-derived CM edges in
+tration started at a deflected shape estimation and optimized the              green.
+n + 6 (n = 5) DoF until convergence. We achieved a mean error
+of 1.17 ± 0.98 mm for the CM tip position and 1.88 ± 1.39
+for the relative distance between CM tip and femur bone                        two rigid bodies were simultaneously tracked by an NDI Po-
+entry point.                                                                   laris (Northern Digital Inc., Waterloo, Ontario, Canada) system.
+    3) Multi-View Registration: Multiple C-arm pose geometry                   We used a 6-DOF UR-10 (Universal Robots, Odense, Denmark)
+was estimated using the pelvis registration result of each individ-            as the rigid-link robot. We manually commanded the UR-10 to
+ual view. The femur registration was initialized by pelvis regis-              60 different configurations. At each configuration, we took an
+tration and jointly optimized using multi-view images. The CM                  X-ray image using a 30 cm flat panel detector Siemens CIOS Fu-
+                                                                                                                                                Rbase
+registration was initialized using the AP view centerline-based                sion C-Arm, recorded the UR-10 forward kinematics (Tee                 )
+                                                                                                                        tracker      tracker
+registration result and also jointly optimized with multi-view                 and two polaris marker positions (TOt             , T Os      ).
+images. The mean CM tip position error was 0.64 ± 0.45 mm                         We performed the proposed multi-view hand-eye calibration
+                                                                                                       ee
+and the mean relative error was 0.62 ± 0.39 mm.                                method and found TCM         . In order to validate its accuracy, we
+    4) Multiple CM Registration: The femur registration was                    solved another hand-eye calibration using the optical track-
+performed using the same method as in multi-view registration.                 ing data of marker (Os ). The relative frame transformations
+However, the CM registration was performed using multiple CM                   (TOtracker
+                                                                                    t
+                                                                                          )i · (TOtracker
+                                                                                                   t
+                                                                                                          )j and (TeeRbase
+                                                                                                                           )i · (TeeRbase
+                                                                                                                                          )j are the A
+pose configurations with the static AP view. We assumed that                   and B matrices of the hand-eye equation AX = Y B, and TOees is
+the relative CM poses were known and the CM curvature was                      the X hand-eye matrix. We then transformed the CM tip position
+constant among multiple poses. We set the reference frame of                   into the robot base frame using both the optical tracking and
+multiple CM poses using the method described in Section II-E.                  image-based registration hand-eye results. This can be formu-
+The registration optimized the reference frame pose and the CM                 lated as:
+control points resulting in n + 6 (n = 5) DoF until convergence.                  pO        Rbase
+                                                                                                  · TOees · (TOtracker )−1 · TOtracker · pO t
+                                                                                   Rbase = Tee
+                                                                                     t
+                                                                                                                s               t
+                                                                                                                                                    (9)
+We achieved a mean CM tip position error of 0.99 ± 0.55 mm
+and a mean relative error of 1.29 ± 0.78 mm.                                      pCM       Rbase
+                                                                                   Rbase = Tee
+                                                                                      t              ee
+                                                                                                  · TCM     Carm −1
+                                                                                                        · (TCM       Carm
+                                                                                                                ) · TCM t
+                                                                                                                          · pCMt (10)
+   Registration errors are presented in Table I. A histogram of
+                                                                               where pOt is the origin point of the Ot marker and pCMt is the
+the error metrics is shown in Fig. 10. These results are further
+                                                                               tip point of the CM model. We then computed the l2 distance
+discussed in the discussion section.
+                                                                               error between pO  t         CMt
+                                                                                                Rbase and pRbase . We achieved a mean error of
+                                                                               2.15 ± 0.50 mm.
+C. Hand-Eye Calibration
+                                                                               D. Cadaveric Study
+   We collected X-ray images using the surgical robotic system
+for hand-eye calibration. Fig. 9 shows our data collection setup.                We used two cadaveric specimens for our study (Fig. 11). A
+Two rigid bodies with 4 optical markers each were used for                     female Specimen1, including lower torso, pelvis, and femurs,
+validation. Marker (Os ) was fixed rigidly to the shaft of the CM.             was used for testing registration and robot positioning. A right
+Marker (Ot ) was rigidly attached to the last segment of CM. The               femur of Specimen2 was used for testing registration when the
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FLUOROSCOPIC NAVIGATION FOR A SURGICAL ROBOTIC SYSTEM INCLUDING A CONTINUUM MANIPULATOR                                                    461
+
+
+
+                                                                      TABLE I
+                                                     SIMULATION RESULTS OF REGISTRATION ERRORS
+
+
+
+
+Fig. 10. Top: Histogram plot of CM tip error (in orange) and CM tip to femur entry point relative error (in blue) in the AP view C-arm frame. Bottom:
+Box plot of CM base registration error in translation and rotation of all axes.
+
+
+CM was inserted to the femoral head. To obtain the groundtruth                  CM tip position, (pCMCarm )gt , in the C-arm frame was calculated
+                                                                                                        t
+
+poses for the femur anatomy, metallic BBs were implanted into                   by solving the PnP problem using corresponding fiducials in
+the femoral head as shown in Fig. 11. For Specimen1, the                        X-ray and marker configurations. The CM tip position error was
+BBs were implanted closer to the trochanter and the femoral                     reported using the l2 distance between estimated tip position
+head center region in order to accurately estimate the femoral                  from registration (pCM                  CMt
+                                                                                                      Carm )est and (pCarm )gt . Groundtruth fe-
+                                                                                                          t
+
+head pose. For Specimen2, the BBs were evenly distributed                                                     F EMent
+                                                                                mur entry point position, (pCarm )gt , was calculated from the
+around the femoral head. We took CT scans of both Specimen1                     PnP solution using the corresponding BBs. l2 distance between
+and Specimen2. The 3D locations of the BBs were manually                        estimated ((pF EMent                            F EMent
+                                                                                             Carm )est ) and groundtruth ((pCarm )gt ) femur
+labeled in the CT scans of the specimens. The 2D BB locations                   entry point was reported as femur entry point error. We also
+were manually annotated in the X-ray images.                                    calculated the relative error between the entry point and the CM
+   We performed the registration workflow five times using                      tip using
+Specimen1 with varying C-arm geometries and specimen poses.
+Each registration workflow had three images for femur reg-
+                                                                                         ((pF EMent      CMt             F EMent
+                                                                                             Carm )gt − (pCarm )gt ) − ((pCarm )est
+istration and four images for CM registration. An example
+set of images is shown in Fig. 12. After each registration,                                              − (pCM
+                                                                                                             Carm )est )2
+                                                                                                                t
+                                                                                                                                                      (11)
+we commanded the UR-10 to another configuration and took
+another X-ray image to check the CM reposition accuracy.                        We achieved a mean CM tip position error of 2.86 ± 0.80 mm
+The optical fiducials were detected in the X-ray image using                    and a mean relative error between CM tip and femur entry point
+Hough transform circle detection. The optcial marker (Ot ) was                  of 3.17 ± 0.86 mm. Table II presents the error metrics of each
+attached to the tip segment of the CM. Thus, the groundtruth                    individual trial.
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+462                                                                  IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+                                                                               is integrated into the rigid-link robot kinematics configuration
+                                                                               using a modified hand-eye calibration method. The proposed
+                                                                               navigation system performs single-view or multi-view registra-
+                                                                               tions for both the CM and the bone. Our simulation study shows
+                                                                               sub-millimeter accuracy in determining the relative translation
+                                                                               error between the CM tip position and the femur entry point.
+                                                                               The mean CM base rotation error and the mean CM notch
+                                                                               rotation error are less than 0.2 degrees. The cadaver study results
+                                                                               suggest a mean translation error of 3.17 mm and a maximum
+                                                                               error of 4.10 mm between the two points, which is sufficient for
+                                                                               osteonecrosis lesion removal (less than 1 cm), and is feasible to
+                                                                               guide the CM for orthopedic applications.
+                                                                                  Estimating CM pose and curvature using 2D/3D registration is
+                                                                               a challenging problem. Our centerline feature-based registration
+                                                                               yields large mean error of 30.78◦ ± 22.13◦ in θ (Fig. 4 e), be-
+                                                                               cause the centerline feature has strong symmetric property which
+                                                                               leads to ambiguity when doing rotations. Due to its dexterity,
+                                                                               the CM projection image itself has distinct appearance, which
+                                                                               is suitable for intensity-based 2D/3D registration. However, the
+                                                                               problem of ambiguity along the projection line direction still
+Fig. 11. Upper Left: Specimen1 experiment setup with C-arm, UR-10,             exists in single-view intensity-based 2D/3D registration, which
+polaris tracker and CM. Upper Right: Specimen2 experiment setup with           has large TransX (depth translation) and RotY (axial rotation)
+UR10 and CM inserted to the femur head. Middle: Examples of BB                 errors in simulation studies (Fig. 10).
+locations. Bottom: Examples of Polaris fiducial detection results.
+                                                                                  Multi-view 2D/3D registration, however, combines the in-
+                           TABLE II
+                                                                               formation of CM appearance under multiple projection geome-
+          CADAVER SPECIMEN1 RESULTS OF ERROR METRICS                           tries, which fundamentally improves single-view ambiguity.
+                                                                               We compared two different methods of introducing multiple
+                                                                               views: multi-view registration and multiple CM registration.
+                                                                               In simulation, although the mean translation error of multiple
+                                                                               CM registration (1.00 mm) is higher than multi-view regis-
+                                                                               tration (0.52 mm), the mean axial rotation error is signifi-
+                                                                               cantly smaller (0.12◦ compared to 0.88◦ ) and the mean CM
+   For Specimen2, we drilled two pathways inside the femoral                   notch (joint) rotation error is also smaller (0.18◦ compared
+head using the CM. One pathway was curved and the other one                    to 0.22◦ ). Thus, multiple CM registration is preferable over
+was straight. The CT scan was taken after the pathways were                    multi-view registration for the CM because the rotation accuracy
+drilled. Three multiple view X-ray images were taken at several                is more important to navigate the positioning robot. Another
+positions along the insertion of the CM into the end of the bone               advantage of the multiple CM registration is that motion of
+pathways (Fig. 12). We then performed registration of the CM                   the CM can be automated as opposed to the C-arm motion.
+and the femur. We manually annotated both the straight and                     Multi-view registration is useful when the CM is inserted in-
+the curved pathway endpoints in the CT scan. The registration                  side the bone and cannot move freely (Fig. 12). Multi-view
+accuracy was reported using the l2 distance between CM tip                     registration can provide an accurate CM tip position estimation
+positions and the CT pathway end points in the CT coordinate                   with respect to the bone, which is essential for orthopedic
+frame. We achieved a tip position error of 2.88 mm of the                      applications.
+curved pathway registration and 2.65 mm of the straight pathway                   To further demonstrate the relationship between the CM
+registration. Fig. 12 illustrates overlay images of the registration           tip error and the registration ambiguity, we create corre-
+convergence stage on Specimen2.                                                lation plots of the CM tip position error, (||(pCM         Carm )gt −
+                                                                                                                                              t
+
+                                                                                  CMt
+                                                                               (pCarm )est ||2 ), and the CM base origin depth error in the C-arm
+                          IV. DISCUSSION                                                      CMbase
+                                                                               frame, ( (||(yCarm              CMbase
+                                                                                                      )gt − (yCarm    )est ||2 )). All three methods
+   Our studies suggest the feasibility of applying purely fluoro-              show strong correlation between the CM tip error and the
+scopic image-based registration for the CM navigation. This is                 CM base depth error (correlation coefficient >0.8) (Fig. 13).
+of interest because fluoroscopy is the most common imaging                     Single-view registration has the lowest correlation of 0.82,
+modality for orthopedic applications. Our navigation system                    which suggests part of the CM tip error comes from the rotation
+automates the detection of distinct CM features in fluoroscopic                ambiguity. Multiple CM registration has the highest correlation
+images, which provides an initial CM pose estimation in 3D. Ac-                coefficient of 0.99. This is because the joint registration of mul-
+curate pose estimation is achieved using intensity-based 2D/3D                 tiple CM poses balances the rotational ambiguity of registering
+registration of the fluoroscopic image to the CM model. To nav-                a single CM, but the depth ambiguity still arises from using a
+igate robotic interventions, the model-based registration result               single view.
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FLUOROSCOPIC NAVIGATION FOR A SURGICAL ROBOTIC SYSTEM INCLUDING A CONTINUUM MANIPULATOR                                                      463
+
+
+
+
+Fig. 12. 2D overlay examples of fluoroscopic images (background) and DRR-derived edges in green when registration is converged. Top:
+Cadaveric Specimen1 CM registration results and position overlay after reposition (in red). The original full size image is placed at background
+and the cropped CM registration image is placed at foreground lower left corner. Bottom: Cadaveric Specimen2 CM registration results of each
+C-arm view for the straight and curved pathway insertions.
+
+
+                                                                                acquired at high frequency in real-time for safety reasons. The
+                                                                                internal sensing units, like the FBG sensors, can provide real-
+                                                                                time CM curvature sensing with high frequency (100 Hz) [1],
+                                                                                but the measurements may be inaccurate, and the tool to tissue
+                                                                                relationship can not be directly visualized. Thus, to better control
+                                                                                the CM, the image-based navigation needs to be combined with
+                                                                                the use of internal sensing units.
+                                                                                   The feasibility of fusing data from FBG sensors and over-
+Fig. 13. Scatter plots of the correlation matrix between CM tip position
+                                                                                head camera to control the CM motion was previously investi-
+error and CM base TransX error of three registration methods. Correla-          gated [39]. The future work includes the study of combining the
+tion coefficients are marked on the upper left of each plot.                    FBG sensor data with our fluoroscopic image-based registration
+                                                                                to perform intra-operative CM control.
+
+   The accuracy of the cadaveric experiments is less than the                                                V. CONCLUSION
+simulation study. There are several potential reasons: 1) the
+                                                                                   We present a fluoroscopic navigation system for a surgical
+CM appearance in real fluoroscopic images is different from
+                                                                                robotic system including a continuum manipulator, which auto-
+simulated DRR images due to spectrum and exposure; 2) the
+                                                                                matically detects the CM in fluoroscopic image and uses purely
+UR kinematics introduces joint configuration errors due to robot
+                                                                                image-based 2D/3D registration to estimate the poses of CM
+going out of calibration; 3) the gravity parameter of the CM and
+                                                                                and bone anatomy. The registration is integrated into the robot
+the actuation unit not compensated in the UR kinematics; 4) the
+                                                                                kinematics to guide CM navigation. Our navigation system was
+BB injection, Polaris fiducial detection, manual annotation and
+                                                                                evaluated through intensive simulation and cadaveric specimen
+segmentation are likely to introduce errors.
+                                                                                studies. The results showed the feasibility to apply the proposed
+   One drawback of the fluoroscopic navigation is the radiation
+                                                                                navigation system for CM navigation in robot assisted ortho-
+exposure to the patient. Our approach requires six to seven
+                                                                                pedic applications. In the future, we will conduct individual
+X-rays to register the patient and the CM. This is usually not
+                                                                                calibration experiments to further locate the sources of errors.
+excessive as compared to other orthopedic applications. How-
+ever, the pose of patient anatomy can be different after regis-
+tration due to tool/bone interactions, such as drilling/milling or                                        ACKNOWLEDGMENT
+injection. In this case, additional X-rays are required to correct                The author would like to thank Dr. Liuhong Ma for his help
+the registration and update the robot navigation planning. If                   with the cadaveric experiments.
+needed, additional registrations can keep track of the tool pose
+during surgical operation, which can account for movement of                                                  REFERENCES
+the anatomy, or unmodeled interaction behavior. The process
+                                                                                 [1] S. Sefati, R. Hegeman, F. Alambeigi, I. Iordachita, and M. Armand, “FBG-
+of re-registration will require only 2-3 additional X-ray shots.                     based position estimation of highly deformable continuum manipulators:
+Unlike other navigation systems which can perform real-time                          Model-dependent vs. data-driven approaches,” in Proc. Int. Symp. Med.
+tracking (e.g. optical tracking), fluoroscopic images cannot be                      Robot., 2019, pp. 1–6.
+
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+464                                                                       IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 69, NO. 1, JANUARY 2022
+
+
+
+ [2] J. Burgner-Kahrs, D. C. Rucker, and H. Choset, “Continuum robots for           [22] S. Sefati, S. Sefati, I. Iordachita, R. H. Taylor, and M. Armand, “Learning
+     medical applications: A survey,” IEEE Trans. Robot., vol. 31, no. 6,                to detect collisions for continuum manipulators without a prior model,”
+     pp. 1261–1280, Dec. 2015.                                                           in Proc. Int. Conf. Med. Image Comput. Comput.-Assist. Inter., Springer,
+ [3] A. H. Gosline et al., “Percutaneous intracardiac beating-heart surgery              2019, pp. 182–190.
+     using metal MEMS tissue approximation tools,” Int. J. Robot. Res., vol. 31,    [23] Y. Otake, R. J. Murphy, M. Kutzer, R. H. Taylor, and M. Armand,
+     no. 9, pp. 1081–1093, 2012.                                                         “Piecewise-rigid 2D-3D registration for pose estimation of snake-like ma-
+ [4] G. Dwyer et al., “A continuum robot and control interface for surgical              nipulator using an intraoperative X-ray projection,” Proc. SPIE, vol. 9036,
+     assist in fetoscopic interventions,” IEEE Robot. Automat. Lett., vol. 2,            pp. 185–190, 2014.
+     no. 3, pp. 1656–1663, Jul. 2017.                                               [24] M. D. Kutzer, S. M. Segreti, C. Y. Brown, M. Armand, R. H. Taylor,
+ [5] H. Wang, X. Wang, W. Yang, and Z. Du, “Design and kinematic modeling                and S. C. Mears, “Design of a new cable-driven manipulator with a
+     of a notch continuum manipulator for laryngeal surgery,” Int. J. Control            large open lumen: Preliminary applications in the minimally-invasive
+     Automat. Syst., vol. 18, pp. 2966–2973, 2020.                                       removal of osteolysis,” in Proc. IEEE Int. Conf. Robot. Automat., 2011,
+ [6] F. Campisano et al., “Teleoperation and contact detection of a waterjet-            pp. 2913–2920.
+     actuated soft continuum manipulator for low-cost gastroscopy,” IEEE            [25] R. J. Murphy, M. D. Kutzer, S. M. Segreti, B. C. Lucas, and M. Armand,
+     Robot. Automat. Lett., vol. 5, no. 4, pp. 6427–6434, Oct. 2020.                     “Design and kinematic characterization of a surgical manipulator with a
+ [7] N. Simaan, R. M. Yasin, and L. Wang, “Medical technologies and chal-                focus on treating osteolysis,” Robotica, vol. 32, no. 6, pp. 835–840, 2014.
+     lenges of robot-assisted minimally invasive intervention and diagnostics,”     [26] M. Armand, M. D. Kutzer, C. Y. Brown, R. H. Taylor, and E. Basafa,
+     Annu. Rev. Control, Robot., Auton. Syst., vol. 1, no. 1, pp. 465–490, 2018.         “Cable-driven morphable manipulator,” U.S. Patent 9,737,687 Aug. 22,
+ [8] M. Hwang and D.-S. Kwon, “Strong continuum manipulator for flexible                 2017 .
+     endoscopic surgery,” IEEE/ASME Trans. Mechatronics, vol. 24, no. 5,            [27] S. Sefati, F. Alambeigi, I. Iordachita, M. Armand, and R. J. Murphy,
+     pp. 2193–2203, Oct. 2019.                                                           “FBG-based large deflection shape sensing of a continuum manipulator:
+ [9] X. Ma, C. Song, P. W. Chiu, and Z. Li, “Autonomous flexible endoscope for           Manufacturing optimization,” in Proc. IEEE SENSORS, 2016, pp. 1–3.
+     minimally invasive surgery with enhanced safety,” IEEE Robot. Automat.         [28] S. Sefati, C. Gao, I. Iordachita, R. H. Taylor, and M. Armand, “Data-driven
+     Lett., vol. 4, no. 3, pp. 2607–2613, Jul. 2019.                                     shape sensing of a surgical continuum manipulator using an uncalibrated
+[10] A. J. Johnson, M. A. Mont, A. K. Tsao, and L. C. Jones, “Treatment of               fiber bragg grating sensor,” IEEE Sensors J., vol. 21, no. 3, pp. 3066–3076,
+     femoral head osteonecrosis in the United States: 16-year analysis of the            Feb. 1, 2021.
+     nationwide inpatient sample,” Clin. Orthopaedics Related Res., vol. 472,       [29] I. Laina et al., “Concurrent segmentation and localization for tracking of
+     no. 2, pp. 617–623, 2014.                                                           surgical instruments,” in Proc. Int. Conf. Med. Image Comput. Comput.-
+[11] F. Alambeigi et al., “A curved-drilling approach in core decompression              Assist. Interv., Springer, 2017, pp. 664–672.
+     of the femoral head osteonecrosis using a continuum manipulator,” IEEE         [30] C. Gao, M. Unberath, R. Taylor, and M. Armand, “Localizing dex-
+     Robot. Automat. Lett., vol. 2, no. 3, pp. 1480–1487, Jul. 2017.                     terous surgical tools in X-ray for image-based navigation,” 2019,
+[12] M. Bakhtiarinejad, F. Alambeigi, A. Chamani, M. Unberath, H. Khanuja,               arXiv:1901.06672.
+     and M. Armand, “A biomechanical study on the use of curved drilling            [31] R. B. Grupp et al., “Automatic annotation of hip anatomy in fluoroscopy
+     technique for treatment of osteonecrosis of femoral head,” in Compu-                for robust and efficient 2D/3D registration,” Int. J. Comput. Assist. Radiol.
+     tational Biomechanics for Medicine. Berlin, Germany: Springer, 2020,                Surg., vol. 15, no. 5, pp. 759–769, 2020.
+     pp. 87–97.                                                                     [32] M. Unberath, O. Taubmann, M. Hell, S. Achenbach, and A. Maier, “Sym-
+[13] C. Gao et al., “Fiducial-free 2D/3D registration for robot-assisted femoro-         metry, outliers, and geodesics in coronary artery centerline reconstruction
+     plasty,” IEEE Trans. Med. Robot. Bionics, vol. 2, no. 3, pp. 437–446,               from rotational angiography,” Med. Phys., vol. 44, no. 11, pp. 5672–5685,
+     Aug. 2020.                                                                          2017.
+[14] Y. Otake et al., “An image-guided femoroplasty system: Development and         [33] M. Unberath et al., “DeepDRR-A catalyst for machine learning in
+     initial cadaver studies,” Proc. SPIE, vol. 7625, pp. 223–234, 2010.                 fluoroscopy-guided procedures,” in Proc. Int. Conf. Med. Image Comput.
+[15] M. de Preux et al., “Clinical use of computer-assisted orthopedic surgery           Comput.-Assist. Interv., Springer, 2018, pp. 98–106.
+     in horses,” Vet. Surg., vol. 49, no. 6, pp. 1075–1087, 2020.                   [34] M. Unberath et al., “Enabling machine learning in X-ray-based procedures
+[16] S. Sefati et al., “A surgical robotic system for treatment of pelvic osteol-        via realistic simulation of image formation,” Int. J. Comput. Assist. Radiol.
+     ysis using an FBG-equipped continuum manipulator and flexible instru-               Surg., vol. 14, no. 9, pp. 1517–1528, 2019.
+     ments,” IEEE/ASME Trans. Mechatronics, vol. 26, no. 1, pp. 369–380,            [35] R. B. Grupp, M. Armand, and R. H. Taylor, “Patch-based image simi-
+     Feb. 2021.                                                                          larity for intraoperative 2D/3D pelvis registration during periacetabular
+[17] Y. Ganji, F. Janabi-Sharifi, and A. N. Cheema, “Robot-assisted catheter             osteotomy,” in OR 2.0 Context-Aware Operating Theaters, Computer
+     manipulation for intracardiac navigation,” Int. J. Comput. Assist. Radiol.          Assisted Robotic Endoscopy, Clinical Image-Based Procedures, and Skin
+     Surg., vol. 4, no. 4, pp. 307–315, 2009.                                            Image Analysis. Berlin, Germany: Springer, 2018, pp. 153–163.
+[18] M. H. Loser and N. Navab, “A new robotic system for visually controlled        [36] N. Hansen and A. Ostermeier, “Completely derandomized self-adaptation
+     percutaneous interventions under CT fluoroscopy,” in Proc. Int. Conf. Med.          in evolution strategies,” Evol. Comput., vol. 9, no. 2, pp. 159–195, 2001.
+     Image Comput. Comput.-Assist. Interv., Springer, 2000, pp. 887–896.            [37] R. B. Grupp et al., “Pose estimation of periacetabular osteotomy fragments
+[19] W. Zixiang, S. Hongxun, Y. Zhou, and H. Zhang, “Robot-assisted ortho-               with intraoperative X-ray navigation,” IEEE Trans. Biomed. Eng., vol. 67,
+     pedic surgery,” in Digital Orthopedicss. Berlin, Germany: Springer, 2018,           no. 2, pp. 441–452, Feb. 2020.
+     pp. 425–447.                                                                   [38] F. Alambeigi et al., “Inroads toward robot-assisted internal fixation of
+[20] C. Gao, R. B. Grupp, M. Unberath, R. H. Taylor, and M. Armand,                      bone fractures using a bendable medical screw and the curved drilling
+     “Fiducial-free 2D/3D registration of the proximal femur for robot-assisted          technique,” in Proc. 7th IEEE Int. Conf. Biomed. Robot. Biomechatronics,
+     femoroplasty,” Proc. SPIE, vol. 11315, pp. 350–355, 2020.                           2018, pp. 595–600.
+[21] V. Mishra, N. Singh, U. Tiwari, and P. Kapur, “Fiber grating sensors in        [39] F. Alambeigi et al., “SCADE: Simultaneous sensor calibration and defor-
+     medicine: Current and emerging applications,” Sensors Actuators A: Phys.,           mation estimation of FBG-equipped unmodeled continuum manipulators,”
+     vol. 167, no. 2, pp. 279–290, 2011.                                                 IEEE Trans. Robot., vol. 36, no. 1, pp. 222–239, Feb. 2020.
+
+
+
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 01:28:47 UTC from IEEE Xplore. Restrictions apply.
+

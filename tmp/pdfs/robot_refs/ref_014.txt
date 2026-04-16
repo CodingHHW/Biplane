@@ -1,0 +1,1181 @@
+Machine Vision and Applications (2020) 31:8
+https://doi.org/10.1007/s00138-020-01060-x
+
+    ORIGINAL PAPER
+
+
+
+Deep learning in medical image registration: a survey
+Grant Haskins1 · Uwe Kruger1 · Pingkun Yan1
+
+Received: 26 February 2019 / Revised: 20 December 2019 / Accepted: 14 January 2020 / Published online: 29 January 2020
+© Springer-Verlag GmbH Germany, part of Springer Nature 2020
+
+
+Abstract
+The establishment of image correspondence through robust image registration is critical to many clinical tasks such as image
+fusion, organ atlas creation, and tumor growth monitoring and is a very challenging problem. Since the beginning of the
+recent deep learning renaissance, the medical imaging research community has developed deep learning-based approaches
+and achieved the state-of-the-art in many applications, including image registration. The rapid adoption of deep learning
+for image registration applications over the past few years necessitates a comprehensive summary and outlook, which is the
+main scope of this survey. This requires placing a focus on the different research areas as well as highlighting challenges
+that practitioners face. This survey, therefore, outlines the evolution of deep learning-based medical image registration in
+the context of both research challenges and relevant innovations in the past few years. Further, this survey highlights future
+research directions to show how this field may be possibly moved forward to the next level.
+
+Keywords Image registration · Deep learning · Medical imaging · Convolutional neural networks
+
+
+1 Introduction                                                              research [4]. Ever since the success of AlexNet in the Ima-
+                                                                            geNet challenge of 2012 [3], deep learning has allowed for
+Image registration is the process of transforming different                 state-of-the-art performance in many computer vision tasks
+image datasets into one coordinate system with matched                      including, but not limited to: object detection [84], feature
+imaging contents, which has significant applications in                     extraction [37], segmentation [87], image classification [3],
+medicine. Registration may be necessary when analyzing a                    image denoising [112], and image reconstruction [115].
+pair of images that were acquired from different viewpoints,                   Initially, deep learning was successfully used to aug-
+at different times, or using different sensors/modalities                   ment the performance of iterative, intensity-based registra-
+[41,122]. Until recently, image registration was mostly per-                tion [18,36,96]. Soon after this initial application, several
+formed manually by clinicians. However, many registration                   groups investigated the intuitive application of reinforce-
+tasks can be quite challenging and the quality of manual                    ment learning to registration [62,71,76]. Further, demand
+alignments is highly dependent upon the expertise of the                    for faster registration methods later motivated the devel-
+user, which can be clinically disadvantageous. To address                   opment of deep learning-based one-step transformation
+the potential shortcomings of manual registration, automatic                estimation techniques and challenges associated with procur-
+registration has been developed. Although other methods for                 ing/generating ground truth data have recently motivated
+automatic image registration have been extensively explored                 many groups to develop unsupervised frameworks for one-
+prior to (and during) the deep learning renaissance, deep                   step transformation estimation [23,61]. One of the hurdles
+learning has changed the landscape of image registration                    associated with this framework is the familiar challenge
+                                                                            of image similarity quantification [38,106]. Recent efforts
+                                                                            that use information theory-based similarity metrics [23],
+This work was partially supported by NIH/NIBIB under awards
+R21EB028001 and R01EB027898, and NIH/NCI under a                            segmentations of anatomical structures [44], and genera-
+Bench-to-Bedside award.                                                     tive adversarial network-like frameworks [30] to address this
+                                                                            challenge have shown promising results.
+B Pingkun Yan                                                                  Figure 1 shows the various categorizations of differ-
+     yanp2@rpi.edu
+                                                                            ent deep learning-based registration methods. On the other
+1    Department of Biomedical Engineering, Rensselaer                       hand, Fig. 2 shows the observed growing interest in deep
+     Polytechnic Institute, Troy, NY 12180, USA
+
+
+                                                                                                                              123
+8   Page 2 of 18                                                                                                                       G. Haskins et al.
+
+
+
+
+Fig. 1 An overview of deep learning-based medical image registration broken down by approach type. The popular research directions are written
+in bold
+
+Fig. 2 An overview of the                                350
+number of deep learning-based                                         Unsupervised Transformation Estimation                 # DL med imaging papers
+image registration works and                             300          Supervised Transformation Estimation
+deep learning-based medical                                                                                                  # DL Reg papers
+                                                         250          Deep Iterative Registration
+imaging works. The red line
+represents the trend line for
+                                                         200
+medical imaging-based
+approaches, and the blue line
+                                      Number of Papers
+
+
+
+
+represents the trend line for deep
+learning-based medical image                             35
+registration approaches. The
+dotted line represents                                   30
+extrapolation (color figure                              25
+online)
+                                                         20
+                                                         15
+                                                         10
+                                                          5
+
+                                                                                                                                      year
+                                                               2012   2013       2014         2015     2016    2017   2018
+
+
+learning-based registration methods according to the number                          neural networks, it is important to provide insight into the
+of published papers in recent years. As the trends visualized                        different types of neural networks that can be used for vari-
+in Figs. 1 and 2 suggest, this field is moving very quickly                          ous applications, the notable architectures that were recently
+to surmount the hurdles associated with deep learning-                               invented to tackle engineering problems, and the variety of
+based medical image registration and several groups have                             strategies that are used for training neural networks. There-
+already enjoyed significant successes for their applications                         fore, this deep learning introduction section is divided into
+[44,65,96].                                                                          three sections: neural network types, network architectures,
+   Therefore, the purpose of this article is to comprehen-                           and training paradigms and strategies. Note that there are
+sively survey the field of deep learning-based medical image                         many publicly available libraries that can be used to build
+registration, highlight common challenges that practitioners                         the networks described in the section, for example Tensor-
+face, and discuss future research directions that may address                        Flow [1], MXNet [16], Keras [20], Caffe [49], and PyTorch
+these challenges. Deep learning belongs to a class of machine                        [82]. Detailed discussion of deep learning-based medical
+learning that uses neural networks with a large number of lay-                       image analysis and various deep learning research direc-
+ers to learn representations of data [34,91]. When discussing                        tions is outside of the scope of this article. Comprehensive
+
+
+
+123
+Deep learning in medical image registration: a survey                                                                         Page 3 of 18   8
+
+
+Table 1 Deep iterative
+                                       References       Learning               Transform      Modality      ROI              Model
+registration methods overview
+                                       [29]             Metric                 Deformable     CT            Thorax           9-layer CNN
+                                       [10]             Metric                 Deformable     CT            Lung             FCN
+                                       [96]             Metric                 Deformable     MR            Brain            5-layer CNN
+                                       [18]             Metric                 Deformable     CT/MR         Head             5-layer DNN
+                                       [92]             Metric                 Rigid          MR/US         Abdominal        5-layer CNN
+                                       [36]             Metric                 Rigid          MR/US         Prostate         14-layer CNN
+                                       [75]             Metric                 Rigid          MR/US         Fetal brain      LSTM/STN
+                                       [55]             RL agent               Deformable     MR            Prostate         8-layer CNN
+                                       [62]             RL agent               Rigid          CT/CBCT       Spine/cardiac    8-layer CNN
+                                       [76]             Multiple RL agents     Rigid          X-ray/CT      Spine            Dilated FCN
+                                       [71]             RL agent               Rigid          MR/CT         Spine            Dueling network
+                                       RL denotes reinforcement learning
+
+
+review articles that survey the application of deep learning                 2.1 Deep similarity-based registration
+to medical image analysis [59,63], reinforcement learning
+[51], and the application of GANs to medical image analy-                    In this section, methods that use deep learning to learn a sim-
+sis [52] are recommended to the interested readers. In this                  ilarity metric are surveyed. This similarity metric is inserted
+article, the surveyed methods were divided into the follow-                  into a classical intensity-based registration framework with
+ing three categories: Deep Iterative Registration, Supervised                a defined interpolation strategy, transformation model, and
+Transformation Estimation, and Unsupervised Transforma-                      optimization algorithm. A visualization of this overall frame-
+tion Estimation. Following a discussion of the methods that                  work is given in Fig. 3. The solid lines represent data flows
+belong to each of the aforementioned categories, future                      that are required during training and testing, while the dashed
+research directions and current trends are discussed in Sect. 6.             lines represent data flows that are required only during train-
+                                                                             ing. Note that this is the case for the remainder of the figures
+                                                                             in this article as well.
+
+2 Deep iterative registration
+                                                                             2.1.1 Overview of works
+Automatic intensity-based image registration requires both
+a metric that quantifies the similarity between a moving                     Although manually crafted similarity metrics perform rea-
+image and a fixed image and an optimization algorithm that                   sonably well in the unimodal registration case, deep learning
+updates the transformation parameters such that the simi-                    has been used to learn superior metrics. This section will first
+larity between the images is maximized. Prior to the deep                    discuss approaches that use deep learning to augment the per-
+learning renaissance, several manually crafted metrics were                  formance of unimodal intensity-based registration pipelines
+frequently used for such registration applications, includ-                  before multimodal registration.
+ing: sum of squared differences (SSD), cross-correlation
+(CC), mutual information (MI) [72,106], normalized cross-
+correlation (NCC), and normalized mutual information                         2.1.1.1 Unimodal registration Wu et al. [109,110] were the
+(NMI). Early applications of deep learning to medical image                  first to use deep learning to obtain an application-specific
+registration are direct extensions of the intensity-based reg-               similarity metric for registration. They extracted the features
+istration framework [96,109,110]. Several groups later used                  that are used for unimodal, deformable registration of 3D
+a reinforcement learning paradigm to iteratively estimate                    brain MR volumes using a convolutional-stacked autoen-
+a transformation [55,62,71,76] because this application is                   coder (CAE). They subsequently performed the registration
+more consistent with how practitioners perform registra-                     using gradient descent to optimize the NCC of the two sets of
+tion.                                                                        features. This method outperformed diffeomorphic demons
+    A description of both types of methods is given in Table 1.              [104] and HAMMER [94]-based registration techniques.
+We will survey earlier methods that used deep similarity-                        Recently, Eppenhof et al. [29] estimated registration error
+based registration in Sect. 2.1 and then some more recently                  for the deformable registration of 3D thoracic CT scans
+developed methods that use deep reinforcement learning-                      (inhale–exhale) in an end-to-end capacity. They used a 3D
+based registration in Sect. 2.2.                                             CNN to estimate the error map for inputted inhale–exhale
+
+
+                                                                                                                                   123
+8   Page 4 of 18                                                                                                   G. Haskins et al.
+
+Fig. 3 A visualization of the
+registration pipeline for works                                    Backprop                  Ground
+                                                                                Loss
+that use deep learning to                                                                     Truth
+quantify image similarity in an
+intensity-based registration         Fixed
+framework                            Image
+                                                                                            Transform       Image
+                                                                                                                          Output
+                                                                                            Parameters     Resampler
+                                    Moving
+                                    Image                   CNN               Optimizer
+
+
+
+
+pairs of thoracic CT scans. Like the above method, only            rithm because of the learned metric’s lack of convexity. This
+learned features were used in this work.                           registration framework outperformed MIND-optimization-
+   Instead, Blendowski et al. [10] proposed the combined use       based [38] and MI-optimization-based registration.
+of both CNN-based descriptors and manually crafted MRF-               In stark contrast to the above methods, Wright et al. [75]
+based self-similarity descriptors for lung CT registration.        used LSTM spatial co-transformer networks to iteratively
+Although the manually crafted descriptors outperformed the         register MR and US volumes group-wise. The recurrent
+CNN-based descriptors, optimal performance was achieved            spatial co-transformation occurred in three steps: image
+using both sets of descriptors. This indicates that, in the uni-   warping, residual parameter prediction, parameter com-
+modal registration case, deep learning may not outperform          position. They demonstrated that their method is more
+manually crafted methods. However, it can be used to obtain        capable of quantifying image similarity than a previous mul-
+complementary information.                                         timodal image similarity quantification method that uses
+                                                                   self-similarity context descriptors [39].
+2.1.1.2 Multimodal registration The advantages of the
+application of deep learning to intensity-based registration       2.1.2 Discussion and assessment
+are more obvious in the multimodal case, where manually
+crafted similarity metrics have had very little success.           Recent works have confirmed the ability of neural networks
+    Cheng et al. [17,18] recently used a stacked denoising         to assess image similarity in multimodal medical image reg-
+autoencoder to learn a similarity metric that assesses the         istration. The results achieved by the approaches described
+quality of the rigid alignment of CT and MR images. They           in this section demonstrate that deep learning can be suc-
+showed that their metric outperformed NMI-optimization-            cessfully applied to challenging registration tasks. However,
+based and local cross-correlation (LCC)-optimization-based         the findings from [10] suggest that learned image similarity
+for their application.                                             metrics may be best suited to complement existing similarity
+    In an effort to explicitly estimate image similarity in the    metrics in the unimodal case. Further, it is difficult to use
+multimodal case, Simonovsky et al. [96] used a CNN to learn        these iterative techniques for real-time registration.
+the dissimilarity between aligned 3D T1 and T2 weighted
+brain MR volumes. Given this similarity metric, gradient           2.2 Reinforcement learning-based registration
+descent was used in order to iteratively update the param-
+eters that define a deformation field. This method was able        In this section, methods that use reinforcement learning for
+to outperform MI-optimization-based registration and set the       their registration applications are surveyed. Here, a trained
+stage for deep intensity-based multimodal registration.            agent is used to perform the registration as opposed to a
+    Additionally, Sedghi et al. [92] performed the rigid reg-      pre-defined optimization algorithm. A visualization of this
+istration of 3D US/MR (modalities with an even greater             framework is given in Fig. 4. Reinforcement learning-based
+appearance difference than MR/CT) abdominal scans by               registration typically involves a rigid transformation model.
+using a 5-layer neural network to learn a similarity metric        However, it is possible to use a deformable transformation
+that is then optimized by Powell’s method. This approach           model.
+also outperformed MI-optimization-based registration.                 Liao et al. [62] were the first to use reinforcement
+    Haskins et al. [36] learned a similarity metric for multi-     learning-based registration to perform the rigid registration
+modal rigid registration of MR and transrectal US (TRUS)           of cardiac and abdominal 3D CT images and cone-beam CT
+volumes by using a CNN to predict target registration error        (CBCT) images. They used a greedy supervised approach
+(TRE). Instead of using a traditional optimizer like the above     for end-to-end training with an attention-driven hierarchical
+methods, they used an evolutionary algorithm to explore the        strategy. Their method outperformed MI-based registration
+solution space prior to using a traditional optimization algo-     and semantic registration using probability maps.
+
+
+123
+Deep learning in medical image registration: a survey                                                                                     Page 5 of 18    8
+
+Fig. 4 A visualization of the
+                                                                               States &                            Agent
+registration pipeline for works                         Environment
+                                                                               Rewards
+that use deep reinforcement
+learning to implicitly quantify           Fixed
+image similarity for image                Image
+registration. Here, an agent
+                                                             Image
+learns to map states to actions
+                                                            Resampler
+based on rewards that it receives
+from the environment                                                                               Feature      Features     Q-learning
+                                                                               Actions    States                                             Actions
+                                                                                                   Extraction
+                                          Moving            Transform
+                                          Image             Parameters
+
+
+
+Fig. 5 A visualization of
+supervised single-step                                                         Backprop                                    Ground
+                                                                                                      Loss
+registration                                                                                                                Truth
+
+                                          Fixed
+                                          Image
+                                                                                                   Transform                Image
+                                                                                                                                                 Output
+                                                                                                   Parameters              Resampler
+                                         Moving
+                                         Image
+                                                                      CNN
+
+
+
+
+   Shortly after, Kai et al. [71] used a reinforcement learn-                  The use of reinforcement learning is intuitive for medical
+ing approach to perform the rigid registration of MR/CT                     image registration applications. One of the principle chal-
+chest volumes. This approach is derived from Q-learning                     lenges for reinforcement learning-based registration is the
+and leverages contextual information to determine the depth                 ability to handle high-resolution deformation fields. There
+of the projected images. The network used in this method                    are no such challenges for rigid registration. Because of the
+is derived from the dueling network architecture [108].                     intuitive nature and recency of these methods, we expect
+Notably, this work also differentiates between terminal and                 that such approaches will receive more attention from the
+non-terminal rewards. This method outperforms registration                  research community in the next few years.
+methods that are based on iterative closest points (ICP),
+landmarks, Hausdorff distance, Deep Q Networks, and the                     3 Supervised transformation estimation
+Dueling Network [108].
+   Instead of training a single agent like the above methods,               Despite the early success of the previously described approa-
+Miao et al. [76] used a multi-agent system in a reinforcement               ches, the transformation estimation in these methods is
+learning paradigm to rigidly register X-ray and CT images of                iterative, which can lead to slow registration. [36]. This is
+the spine. They used an auto-attention mechanism to observe                 especially true in the deformable registration case where the
+multiple regions and demonstrate the efficacy of a multi-                   solution space is high dimensional [59]. This motivated the
+agent system. They were able to significantly outperform                    development of networks that could estimate the transfor-
+registration approaches that used a state-of-the-art similarity             mation that corresponds to optimal similarity in one step.
+metric given by [22].                                                       However, fully supervised transformation estimation (the
+   As opposed to the above rigid registration-based works,                  exclusive use of ground truth data to define the loss function)
+Krebs et al. [55] used a reinforcement learning-based                       has several challenges that are highlighted in this section.
+approach to perform the deformable registration of 2D and                      A visualization of supervised transformation estimation is
+3D prostate MR volumes. They used a low-resolution defor-                   given in Fig. 5, and a description of notable works is given
+mation model for the registration and fuzzy action control to               in Table 2. This section first discusses methods that use fully
+influence the stochastic action selection. The low-resolution               supervised approaches in Sect. 3.1 and then discusses meth-
+deformation model is necessary to restrict the dimensionality               ods that use dual/weakly supervised approaches in Sect. 3.2.
+of the action space. This approach outperformed registration
+performed using the Elastix toolbox [53] and LCC Demons                     3.1 Fully supervised transformation estimation
+[69]-based registration techniques.
+                                                                            In this section, methods that used full supervision for single-
+                                                                            step registration are surveyed. Using a neural network to
+
+
+                                                                                                                                              123
+8   Page 6 of 18                                                                                                              G. Haskins et al.
+
+
+Table 2 Supervised transformation estimation methods
+References         Supervision                               Transform        Modality        ROI               Model
+
+[114]              Real transforms                           Deformable       MR              Brain             FCN
+[13]               Real transforms                           Deformable       MR              Brain             9-layer CNN
+[70]               Real transforms                           Deformable       MR              Abdominal         CNN
+[86]               Real transforms                           Deformable       MR              Cardiac           SVF-net
+[99]               Synthetic transforms                      Deformable       CT              Chest             RegNet
+[28]               Synthetic transforms                      Deformable       CT              Lung              U-net
+[103]              Synthetic transforms                      Deformable       MR              Brain/Cardiac     FlowNet
+[47]               Synthetic transforms                      Deformable       MR              Brain             GoogleNet
+[102]              Synthetic transforms                      Deformable       CT/US           Liver             DVFNet
+[113]              Real + synthetic transforms               Deformable       MR              Brain             FCN
+[97]               Synthetic transforms                      Rigid            MR              Brain             6-layer CNN 10-layer FCN
+[90]               Synthetic transforms                      Rigid            MR              Brain             11-layer CNN ResNet-18
+[119]              Synthetic transforms                      Rigid            X-ray           Bone              17-layer CNN PDA module
+[78]               Synthetic transforms                      Rigid            X-ray/DDR       Bone              6-layer CNN
+[15]               Synthetic transforms                      Rigid            MR              Brain             AIRNet
+[44]               Segmentations                             Deformable       MR/US           Prostate          30-layer FCN
+[40]               Segmentations + similarity metric         Deformable       MR/US           Prostate          U-net GAN
+[42]               Segmentations + adversarial loss          Deformable       MR/US           Prostate          GAN
+[31]               Real transforms + similarity metric       Deformable       MR              Brain             U-net
+[111]              Synthetic transforms + adversarial loss   Rigid            MR/US           Prostate          GAN
+Bold values rows use Diffeomorphisms
+
+
+perform registration as opposed to an iterative optimizer sig-            is the case for the next three approaches that are described
+nificantly speeds up the registration process.                            as well. This approach outperformed MI, CC, and gradient
+                                                                          correlation (GC)-optimization-based registration approaches
+3.1.1 Overview of works                                                   with respect to both accuracy and computational efficiency.
+                                                                          The improved computational efficiency is due to the use of
+Several registration application requires deformable trans-               a forward pass through a neural network instead of an opti-
+formation models that often prohibit the use of traditional               mization algorithm to perform the registration.
+convolutional neural networks because of the computational                    Recently, Chee et al. [15] used a CNN to predict the trans-
+expense associated with using FC-layers to make predictions               formation parameters used to rigidly register 3D brain MR
+in highly dimensional solution spaces [55]. Because the net-              volumes. In their framework, affine image registration net-
+works that are used to predict deformation fields are fully               work (AIRNet), the MSE between the predicted and ground
+convolutional, the dimensionality of the solution space asso-             truth affine transforms is used to train the network. They
+ciated with a deformation field does not introduce additional             were able to outperform MI-optimization-based registration
+computational constraints [114]. This section will first dis-             for both the unimodal and multimodal cases.
+cuss approaches that use a rigid transformation model and                     That same year, Salehi et al. [90] used a deep residual
+then discuss approaches that use a deformable transforma-                 regression network, a correction network, and a bivariant
+tion model.                                                               geodesic distance-based loss function to rigidly register T1
+                                                                          and T2 weighted 3D fetal brain MRs for atlas construction.
+                                                                          The use of the residual network to initially register the image
+3.1.1.1 Rigid registration Miao et al. [77,78] were the first
+                                                                          volumes prior to the forward pass through the correction net-
+to use deep learning to predict rigid transformation parame-
+                                                                          work allowed for an enhancement of the capture range of
+ters. They used a CNN to predict the transformation matrix
+                                                                          the registration. This approach was evaluated for both slice-
+associated with the rigid registration of 2D/3D X-ray atten-
+                                                                          to-volume registration and volume-to-volume registration.
+uation maps and 2D X-ray images. Hierarchical regression
+                                                                          They validated the efficacy of their geodesic loss term and
+is proposed in which the six transformation parameters are
+                                                                          outperformed NCC-optimization-based registration.
+partitioned into three groups. Ground truth data were syn-
+thesized in this approach by transforming aligned data. This
+
+
+123
+Deep learning in medical image registration: a survey                                                               Page 7 of 18   8
+
+
+    Additionally, Zheng et al. [119] proposed the integra-             Recently, Jun et al. [70] used a CNN to perform the
+tion of a pairwise domain adaptation module (PDA) into a            deformable registration of abdominal MR images to com-
+pre-trained CNN that performs the rigid registration of preop-      pensate for the deformation that is caused by respiration.
+erative 3D X-ray images and intraoperative 2D X-ray images          This approach achieved registration results that are superior
+using a limited amount of training data. Domain adaptation          to those obtained using non-motion corrected registrations
+was used to address the discrepancy between synthetic data          and local affine registration. Recently, unlike many of the
+that was used to train the deep model and real data.                other approaches discussed in this paper, Yang et al. [113]
+    Sloan et al. [97] used a CNN that is used to regress the        quantified the uncertainty associated with the deformable
+rigid transformation parameters for the registration of T1 and      registration of 3D T1 and T2 weighted brain MRs using a
+T2 weighted brain MRs. Both unimodal and multimodal reg-            low-rank Hessian approximation of the variational Gaussian
+istration were investigated in this work. The parameters that       distribution of the transformation parameters. This method
+constitute the convolutional layers that were used to extract       was evaluated on both real and synthetic data.
+low-level features in each image were only shared in the               Just as deep learning practitioners use random transforma-
+unimodal case. In the multimodal case, these parameters             tions to enhance the diversity of their dataset, Sokooti et al.
+were learned separately. This approach also outperformed            [99] used random DVFs to augment their dataset. They used
+MI-optimization-based image registration.                           a multi-scale CNN to predict a deformation field. This defor-
+                                                                    mation is used to perform intra-subject registration of 3D
+                                                                    chest CT images. This method used late fusion as opposed to
+3.1.1.2 Deformable registration Unlike the previous sec-            early fusion, in which the patches are concatenated and used
+tion, methods that use both real and synthesized ground truth       as the input to the network. The performance of their method
+labels will be discussed. Methods that use clinical/publicly        is competitive with B-Spline-based registration [99].
+available ground truth labels for training are discussed first.        Such approaches have notable, but also limited ability to
+This ordering is reflective of the fact that simulating realistic   enhance the size and diversity of datasets. These limitations
+deformable transformations is more difficult than simulating        motivated the development of more sophisticated ground
+realistic rigid transformations.                                    truth generation. The rest of the approaches described in this
+   First, Yang et al. [114] predicted the deformation field         section use simulated ground truth data for their applications.
+with an FCN that is used to register 2D/3D intersubject                For example, Eppenhof et al. [28] used a 3D CNN to per-
+brain MR volumes in a single step. A U-net-like architec-           form the deformable registration of inhale–exhale 3D lung
+ture [87] was used in this approach. Further, they used large       CT image volumes. A series of multi-scale, random trans-
+diffeomorphic metric mapping to provide a basis, used the           formations of aligned image pairs eliminate the need for
+initial momentum values of the pixels of the image volumes          manually annotated ground truth data while also maintaining
+as the network input, and evolved these values to obtain            realistic image appearance. Further, as is the case with other
+the predicted deformation field. This method outperformed           methods that generate ground truth data, the CNN can be
+semi-coupled dictionary learning-based registration [11].           trained using relatively few medical images in a supervised
+   The following year, Rohe et al. [86] also used a U-net           capacity.
+[87] inspired network to estimate the deformation field used           Unlike the above works, Uzunova et al. [103] gener-
+to register 3D cardiac MR volumes. Mesh segmentations are           ated ground truth data using statistical appearance models
+used to compute the reference transformation for a given            (SAMs). They used a CNN to estimate the deformation field
+image pair, and SSD between the prediction and ground truth         for the registration of 2D brain MRs and 2D cardiac MRs
+is used as the loss function. This method outperformed LCC          and adapt FlowNet [26] for their application. They demon-
+Demons-based registration [69].                                     strated that training FlowNet using SAM-generated ground
+   That same year, Cao et al. [13] used a CNN to map input          truth data resulted in superior performance to CNNs trained
+image patches of a pair of 3D brain MR volumes to their             using either randomly generated ground truth data or ground
+respective displacement vector. The totality of these displace-     truth data obtained using the registration method described
+ment vectors for a given image constitutes the deformation          in [27].
+field that is used to perform the registration. Additionally,           Unlike the other methods in this section that use random
+they used the similarity between inputted image patches             transformations or manually crafted methods to generate
+to guide the learning process. Further, they used equalized         ground truth data, Ito et al. [47] used a CNN to learn plau-
+active-point-guided sampling strategy that makes it so that         sible deformations for ground truth data generation. They
+patches with higher gradient magnitudes and displacement            evaluated their approach on the 3D brain MR volumes in the
+values are more likely to be sampled for training. This method      ADNI dataset and outperformed the MI-optimization-based
+outperforms SyN [6] and Demons [104]-based registration             approach proposed in [45].
+methods.
+
+
+                                                                                                                        123
+8   Page 8 of 18                                                                                                              G. Haskins et al.
+
+Fig. 6 A visualization of deep
+                                                                                Ground
+single-step registration where                                                  Truth                                       Possible Metrics:
+the agent is trained using dual                                                                                                 NCC
+supervision. The loss function is                                                                                               NMI
+                                                                    Backprop
+determined using both a metric                                                   Loss                 Metric                    SSD
+that quantifies image similarity
+and ground truth data
+                                     Fixed
+                                     Image
+                                                                                        Transform     Image
+                                                                                                                                        Output
+                                                                                        Parameters   Resampler
+                                    Moving
+                                    Image
+                                                              CNN
+
+
+
+Fig. 7 A visualization of an                                                                                       Backprop
+adversarial image registration
+framework. Here, the generator
+is trained using output from the     Fixed
+                                                                                                                              Ground Truth
+discriminator. The discriminator     Image
+                                                                        Transform          Image
+                                                                                                                              Registration
+
+takes the form of a learned                                             Parameters       Resampler                                           Loss
+metric here                         Moving                                                                                     Generated
+                                                                                                                              Registration
+                                    Image
+
+                                                        Generator                                         Discriminator
+                                                                                                                 Backprop
+
+
+
+
+3.1.2 Discussion and assessment                                     3.2.1 Overview of works
+
+Supervised transformation estimation has allowed for real-          First, this section will discuss methods that use dual super-
+time, robust registration across applications. However, such        vised and then will discuss methods that use weak super-
+works are not without their limitations. Firstly, the quality       vision. Recently, Fan et al. [31] used hierarchical, dual-
+of the registrations using this framework is dependent on           supervised learning to predict the deformation field for 3D
+the quality of the ground truth registrations. The quality of       brain MR registration. They amend the traditional U-Net
+these labels is, of course, dependent upon the expertise of         architecture [87] by using “gap-filling” (i.e., inserting convo-
+the practitioner. Furthermore, these labels are fairly difficult    lutional layers after the U-type ends or the architecture) and
+to obtain because there are relatively few individuals with         coarse-to-fine guidance. This approach leveraged both the
+the expertise necessary to perform such registrations. Trans-       similarity between the predicted and ground truth transfor-
+formations of training data and the generation of synthetic         mations, and the similarity between the warped and fixed
+ground truth data can address such limitations. However, it is      images to train the network. The architecture detailed in
+important to ensure that simulated data is sufficiently similar     this method outperformed the traditional U-Net architec-
+to clinical data. These challenges motivated the development        ture, and the dual supervision strategy is verified by ablating
+of partially supervised/unsupervised approaches, which will         the image similarity loss function term. A visualization
+be discussed next.                                                  of dual-supervised transformation estimation is given in
+                                                                    Fig. 6.
+                                                                        On the other hand, Yan et al. [111] used a framework that
+3.2 Dual/weakly supervised transformation                           is inspired by the GAN [35] to perform the rigid registration
+    estimation                                                      of 3D MR and TRUS volumes. In this work, the generator
+                                                                    was trained to estimate a rigid transformation. While, the dis-
+Dual supervision refers to the use of both ground truth data        criminator was trained to discern between images that were
+and some metric that quantifies image similarity to train           aligned using the ground truth transformations and images
+a model. On the other hand, weak supervision refers to              that were aligned using the predicted transformations. Both
+using the overlap of segmentations of corresponding anatom-         Euclidean distance to ground truth and an adversarial loss
+ical structures to design the loss function. This section will      term are used to construct the loss function in this method.
+discuss the contributions of such works in Sect. 3.2.1 and          Note that the adversarial supervision strategy that was used in
+then discuss the overall state of this research direction in        this approach is similar to the ones that are used in a number
+Sect. 3.2.2.                                                        of unsupervised works that will be described in the next sec-
+
+
+123
+Deep learning in medical image registration: a survey                                                                    Page 9 of 18    8
+
+Fig. 8 A visualization of deep
+                                           Fixed                                   Label
+single-step registration where
+                                           Label                                 Similarity
+the agent is trained using label
+                                                                                               Image
+similarity (i.e., weak                                                                        Resampler
+supervision). Manually                    Moving                      Backprop
+                                                                                   Loss
+annotated data (segmentations)            Label
+are used to define the loss
+function used to train the
+                                           Fixed
+network
+                                           Image
+                                                                                              Transform       Image
+                                                                                                                                Output
+                                                                                              Parameters     Resampler
+                                          Moving
+                                          Image
+                                                                CNN
+
+
+
+
+tion. A visualization of adversarial transformation estimation        supervision, promising results have been obtained. However,
+is given in Fig. 7.                                                   at the same time, those techniques require a large amount
+    Unlike the above methods that used dual supervision, Hu           of detailed annotated images for training. Partially/weakly
+et al. [43,44] recently used label similarity to train their          supervised transformation estimation methods alleviated the
+network to perform MR-TRUS registration. In their initial             limitations associated with the trustworthiness and expense
+work, they used two neural networks: local-net and global-            of ground truth labels. However, they still require manually
+net to estimate the global affine transformation with 12              annotated data (e.g., ground truth and/or segmentations). On
+degrees of freedom and the local dense deformation field,             the other hand, weak supervision allows for similarity quan-
+respectively [43]. The local-net uses the concatenation of            tification in the multimodal case. Further, partial supervision
+the transformation of the moving image given by the global-           allows for the aggregation of methods that can be used to
+net and the fixed image as its input. However, in their later         assess the quality of a predicted registration. As a result,
+work [44], they combine these networks in an end-to-end               there is growing interest in these research areas.
+framework. This method outperformed NMI-optimization-
+based and NCC-based registration. A visualization of weakly
+supervised transformation estimation is given in Fig. 8. In
+another work, Hu et al. [42] simultaneously maximized label           4 Unsupervised transformation estimation
+similarity and minimized an adversarial loss term to predict
+the deformation for MR-TRUS registration. This regulariza-            Despite the success of the methods described in the previ-
+tion term forces the predicted transformation to result in the        ous sections, the difficult nature of the acquisition of reliable
+generation of a realistic image. Using the adversarial loss as a      ground truth remains a significant hindrance [103]. This has
+regularization term is likely to successfully force the transfor-     motivated a number of different groups to explore unsu-
+mation to be realistic given proper hyper parameter selection.        pervised approaches [24,61]. One key innovation that has
+The performance of this registration framework was inferior           been useful to these works is the spatial transformer net-
+to the performance of their previous registration framework           work (STN) [48]. Several methods use an STN to perform
+described above. However, they showed that adversarial reg-           the deformations associated with their registration applica-
+ularization is superior to standard bending energy-based              tions [32,58]. This section discusses unsupervised methods
+regularization. Similar to the above method, Hering et al.            that utilize image similarity metrics (Sect. 4.1) and feature
+[40] built upon the progress made with respect to both dual           representations of image data (Sect. 4.2) to train their net-
+and weak supervision by introducing a label and similar-              works. A description of notable works is given in Table 3.
+ity metric-based loss function for cardiac motion tracking
+via the deformable registration of 2D cine-MR images. Both
+segmentation overlap and edge-based normalized gradient               4.1 Similarity metric-based unsupervised
+fields distance were used to construct the loss function in               transformation estimation
+this approach. Their method outperformed a multilevel reg-
+istration approach similar to the one proposed in [88].               4.1.1 Standard methods
+
+3.2.2 Discussion and assessment                                       This section begins by discussing approaches that use a com-
+                                                                      mon similarity metric with common regularization strategies
+Direct transformation estimation marked a major break-                to define their loss functions. Later in the section, approaches
+through for deep learning-based image registration. With full         that use more complex similarity metric-based strategies
+
+
+                                                                                                                             123
+8   Page 10 of 18                                                                                                          G. Haskins et al.
+
+
+Table 3 Unsupervised transformation estimation methods
+References      Loss function                            Transform       Modality                   ROI                  Model
+
+[50]            SSD                                      Deformable      CT                         Chest                Multi-scale CNN
+[33]            UB SSD                                   Deformable      MR                         Brain                19-layer FCN
+[118]           MSD                                      Deformable      MR                         Brain                ICNet
+[95]            MSE                                      Deformable      SEM                        Neurons              11-layer CNN
+[21]            MSE                                      Deformable      MR                         Brain                VoxelMorph
+[93]            MSE                                      Deformable      MR                         Cardiac cine         8-layer FCNet
+[58]            CC                                       Deformable      MR                         Brain                FAIM
+[61]            NCC                                      Deformable      MR                         Brain                8-layer FCN
+[12]            NCC                                      Deformable      CT, MR                     Pelvis               U-Net
+[24]            NCC                                      Deformable      MR                         Cardiac cine         DIRNet
+[23]            NCC                                      Deformable      MR                         Cardiac cine         DLIR
+[32]            NCC                                      Deformable      X-ray, MR                  Bone cardiac cine    U-Net STN
+[101]           L2 distance + image gradient             Deformable      MR, US                     Brain                FCN
+[81]            Predicted TRE                            Deformable      CT                         Head/neck            FCN
+[30]            BCE                                      Deformable      MR                         Brain                GAN
+[73]            NMI + SSIM + VGG outputs                 Deformable      MR, FA/color fundus        Cardiac retinal      GAN
+[74]            NMI + SSIM + VGG outputs + BCE           Deformable      X-ray                      Bone                 GAN
+[117]           MSE AE output                            Deformable      ssEM                       Neurons              CAE STN
+[110]           MSE stacked AE outputs                   Deformable      MR                         Brain                Stacked AE
+[109]           NCC of ISA outputs                       Deformable      MR                         Brain                Stacked ISA
+[56]            Log likelihood                           Deformable      MR                         Brain                cVAE STN
+[67]            SSD MIND + PCANet outputs                Deformable      CT, MR                     Chest brain          FCN PCANet
+[54]            SSD VGG outputs                          Rigid           MR                         Brain                CNN MLP
+Bold values rows use diffeomorphisms
+
+Fig. 9 A visualization of deep
+single-step registration where                                         Backprop
+                                                                                                                         Possible Metrics:
+the network is trained using a                                                      Loss                      Metric         NCC
+                                                                                                                             NMI
+metric that quantifies image
+                                                                                                                             SSD
+similarity. Therefore, the             Fixed
+approach is unsupervised               Image
+                                                                                           Transform          Image
+                                                                                           Parameters        Resampler            Output
+                                       Moving
+                                       Image
+                                                                 CNN
+
+
+
+
+are discussed. A visualization of standard similarity metric-          Advanced Neuroimaging Tools (ANTs)-based registration
+based transformation estimation is given in Fig. 9.                    [7] and the deep learning methods proposed by Sokooti et al.
+   Inspired to overcome the difficulty associated with obtain-         [99] (discussed previously) and Yoo et al. [117] (discussed
+ing ground truth data, Li et al. [60,61] trained an FCN to             in the next section).
+perform deformable intersubject registration of 3D brain                  Further, de Vos et al. [24] used NCC to train an FCN
+MR volumes using “self-supervision.” NCC between the                   to perform the deformable registration of 4D cardiac cine-
+warped and fixed images and several common regulariza-                 MR volumes. A DVF is used in this method to deform the
+tion terms (e.g., smoothing constraints) constitute the loss           moving volume. Their method outperforms registration that
+function in this method. Although many manually defined                is performed using the Elastix toolbox [53].
+similarity metrics fail in the multimodal case (with the occa-            In another work, de Vos et al. [23] use a multistage, multi-
+sional exception of MI), they are often suitable for the               scale approach to perform unimodal registration on several
+unimodal case. The method detailed in this work outperforms            datasets. NCC and a bending-energy regularization term are
+
+
+
+123
+Deep learning in medical image registration: a survey                                                            Page 11 of 18   8
+
+
+used to train the networks that predict an affine transfor-       a velocity field. Squaring and rescaling layers are used to
+mation and subsequent coarse-to-fine deformations using a         integrate the velocity field to obtain the predicted defor-
+B-Spline transformation model. In addition to validating their    mation. MSE is used as the similarity metric that, along
+multistage approach, they show that their method outper-          with a regularization term, defines the loss function. Their
+forms registration that is performed using the Elastix toolbox    method outperforms ANT-based registration [7] and the deep
+[53] with and without bending energy.                             learning-based method described in [8].
+   The unsupervised deformable registration framework                 Shortly after, Kuang et al. [58] used a CNN and STN
+used by Ghosal et al. [33] minimizes the upper bound of           inspired framework to perform the deformable registration
+the SSD (UB SSD) between the warped and fixed 3D brain            of T1-weighted brain MR volumes. The loss function is com-
+MR images. The design of their network was inspired by            posed of a NCC term and a regularization term. This method
+the SKIP architecture [68]. This method outperforms log-          uses Inception modules, a low capacity model, and residual
+demons-based registration.                                        connections instead of skip connections. They compare their
+   Shu et al. [95] used a coarse-to-fine, unsupervised defor-     method with VoxelMorph (the method proposed by Balakr-
+mable registration approach to register images of neurons that    ishnan et al., described above) [9] and uTIlzReg GeoShoot
+are acquired using a scanning electron microscope (SEM).          [105] using the LBPA40 and Mindboggle 101 datasets and
+The mean squared error (MSE) between the warped and fixed         demonstrate superior performance with respect to both.
+volumes is used as the loss function here. Their approach is          Building upon the progress made by the previously
+competitive with and faster than the sift flow framework [64].    described metric-based approaches, Ferrante et al. [32] used
+   Sheikhjafari et al. [93] used learned latent representa-       a transfer learning-based approach to perform unimodal reg-
+tions to perform the deformable registration of 2D cardiac        istration of both X-ray and cardiac cine images. In this work,
+cine-MR volumes. Deformation fields are thus obtained by          the network is trained on data from a source domain using
+embedding. This latent representation is used as the input        NCC as the primary loss function term and tested in a tar-
+to a network that is composed of eight fully connected lay-       get domain. They used a U-net like architecture [87] and
+ers to obtain the transformation. The sum of absolute errors      an STN [48] to perform the feature extraction and trans-
+(SAE) is used as the loss function. Here, the registration        formation estimation, respectively. They demonstrated that
+performance was seen to be influenced by the B-Spline             transfer learning using either domain as the source or the
+grid spacings. This method outperforms a moving mesh              target domain produces effective results. This method outper-
+correspondence-based method described in [83].                    formed registration obtained using the Elastix toolbox [53]
+   Stergios et al. [100] used a CNN to both linearly and          with parameters determined using grid search.
+locally register inhale–exhale pairs of lung MR volumes.              Although applying similarity metric-based approaches to
+Therefore, both the affine transformation and the deforma-        the multimodal case is difficult, Sun et al. [101] proposed
+tion are jointly estimated. The loss function is composed of      an unsupervised method for 3D MR/US brain registration
+an MSE term and regularization terms. Their method out-           that uses a 3D CNN that consists of a feature extractor and
+performs several state-of-the-art methods that do not utilized    a deformation field generator. This network is trained using
+ground truth data, including Demons [69], SyN [6], and a          a similarity metric that incorporates both pixel intensity and
+deep learning-based method that uses an MSE loss term.            gradient information. Further, both image intensity and gra-
+Further, the inclusion of the regularization terms is validated   dient information are used as inputs into the CNN.
+by an ablation study.
+   The successes of deep similarity metric-based unsuper-         4.1.2 Extensions
+vised registration motivated Neylon et al. [81] to use a neural
+network to learn the relationship between image similarity        Cao et al. [12] also applied similarity metric-based training
+metric values and TRE when registering CT image vol-              to the multimodal case. Specifically, they used intra-modality
+umes. This is done in order to robustly assess registration       image similarity to supervise the multimodal deformable reg-
+performance. The network was able to achieve subvoxel             istration of 3D pelvic CT/MR volumes. The NCC between
+accuracy in 95% of cases. Similarly inspired, Balakrishnan        the moving image that is warped using the ground truth
+et al. [8,9] proposed a general framework for unsupervised        transformation and the moving image that is warped using
+image registration, which can be either unimodal or multi-        the predicted transformation is used as the loss function.
+modal theoretically. The neural networks are trained using        This work utilizes “dual” supervision (i.e., the intra-modality
+a selected, manually defined image similarity metric (e.g.,       supervision previously described is used for both the CT and
+NCC, NMI, etc.).                                                  the MR images). This is not to be confused with the dual
+   In a follow-up paper, Dalca et al. [21] casted defor-          supervision strategies described earlier.
+mation prediction as variational inference. Diffeomorphic             Inspired by the limiting nature of the asymmetric transfor-
+integration is combined with a transformer layer to obtain        mations that typical unsupervised methods estimate, Zhang et
+
+
+                                                                                                                      123
+8   Page 12 of 18                                                                                                G. Haskins et al.
+
+
+al. [118] used their network inverse-consistent deep network       Finally, instead of predicting a deformation field given
+(ICNet) to learn the symmetric diffeomorphic transforma-        a fixed parameterization as the other methods in this sec-
+tions for each of the brain MR volumes that are aligned         tion do, Jiang et al. [50] used a CNN to learn an optimal
+into the same space. Different from other works that use        parameterization of an image deformation using a multi-grid
+standard regularization strategies, this work introduces an     B-Spline method and L1-norm regularization. They use this
+inverse-consistent regularization term and an anti-folding      approach to parameterize the deformable registration of 4D
+regularization term to ensure that a highly weighted smooth-    CT thoracic image volumes. Here, SSD is used as the sim-
+ness constraint does not result in folding. Finally, the MSD    ilarity metric and L-BFGS-B is used as the optimizer. The
+between the two images allows this network to be trained in     convergence rate using the parameterized deformation model
+an unsupervised manner. This method outperformed SyN-           obtained using the proposed method is faster than the one
+based registration [6], Demons-based registration [69], and     obtained using a traditional L1-norm regularized multi-grid
+several deep learning-based approaches.                         parameterization.
+    The next three approaches described in this section
+used a GAN for their applications. Unlike the GAN-based         4.1.3 Discussion and assessment
+approaches described previously, these methods use neither
+ground truth data nor manually crafted segmentations. Maha-     Image similarity-based unsupervised image registration has
+patra et al. [73] used a GAN to implicitly learn the density    received a lot of attention from the research community
+function that represents the range of plausible deformations    recently because it bypasses the need for expert labels of
+of cardiac cine images and multimodal retinal images (reti-     any kind. This means that the performance of the model
+nal color fundus images and fluorescein angiography (FA)        will not depend on the expertise of the practitioner. Further,
+images). In addition to NMI, structural similarity index mea-   extensions of the original similarity metric-based method
+sure (SSIM), and a feature perceptual loss term (determined     that introduce more sophisticated similarity metrics (e.g.,
+by the SSD between VGG outputs), the loss function is com-      the discriminator of a GAN) and/or regularization strategies
+prised of conditional and cyclic constraints, which are based   have yielded promising results. However, it is still diffi-
+on recent advances involving the implementation of adversar-    cult to quantify image similarity for multimodal registration
+ial frameworks. Their approach outperforms registration that    applications. As a result, the scope of unsupervised, image
+is performed using the Elastix toolbox [53] and the method      similarity-based works is largely confined to the unimodal
+proposed by de Vos et al. [24].                                 case. Given that multimodal registration is often needed in
+    Further, Fan et al. [30] used a GAN to perform unsu-        many clinical applications, we expect to see more papers in
+pervised deformable image registration of 3D brain MR           the near future that will tackle this challenging problem.
+volumes. Unlike most other unsupervised works that use
+a manually crafted similarity metric to determine the loss      4.2 Feature-based unsupervised transformation
+function and unlike the previous approach that used a               estimation
+GAN to ensure that the predicted deformation is realistic,
+this approach uses a discriminator to assess the quality of     In this section, methods that use learned feature representa-
+the alignment. This approach outperforms diffeomorphic          tions to train neural networks are surveyed. Like the methods
+demons and SyN registration on every dataset except for         surveyed in the previous section, the methods surveyed in
+MGH10. Further, the use of the discriminator for supervision    this section do not require ground truth data. In this section,
+of the registration network is superior to the use of ground    approaches that create unimodal registration pipelines are
+truth data, SSD, and CC on all datasets.                        presented first. Then, an approach that tackles multimodal
+    Different from the hitherto previously described works      image registration is discussed. A visualization of featured-
+(not just the GAN-based ones), Mahapatra et al. [74] pro-       based transformation estimation is given in Fig. 10.
+posed simultaneous segmentation and registration of chest
+X-rays using a GAN framework. The network takes three           4.2.1 Unimodal registration
+inputs: reference image, floating image, and the segmentation
+mask of the reference image and outputs the segmentation        Yoo et al. [117] used an STN to register serial-section elec-
+mask of the transformed image, and the deformation field.       tron microscopy images (ssEMs). An autoencoder is trained
+Three discriminators are used to assess the quality of the      to reconstruct fixed images and the L2 distance between
+generated outputs (deformation field, warped image, and seg-    reconstructed fixed images and corresponding warped mov-
+mentation) using cycle consistency and a dice metric. The       ing images is used along with several regularization terms to
+generator is additionally trained using NMI, SSIM, and a        construct the loss function. This approach outperforms the
+feature perceptual loss term.                                   bUnwarpJ registration technique [5] and the Elastic registra-
+                                                                tion technique [89].
+
+
+123
+Deep learning in medical image registration: a survey                                                                   Page 13 of 18         8
+
+Fig. 10 A visualization of
+feature-based unsupervised                                                                                                Possible Metrics:
+                                                                                  Backprop                                    NCC
+                                                                                             Loss            Metric
+image registration. Here, a                                                                                                   NMI
+feature extractor is used to map          Fixed                                                                               SSD
+inputted images to a feature              Image
+space to facilitate the prediction                       Feature                               Transform     Image
+                                                        Extractor                                                                 Output
+of transformation parameters             Moving                                                Parameters   Resampler
+                                         Image
+                                                                            CNN
+
+
+
+
+   In the same year, Liu et al. [67] proposed a tensor-based        to determine an optimal transformation has generated sig-
+MIND method using a principle component analysis-based              nificant interest from the research community recently.
+network (PCANet) [14] for both unimodal and multimodal              Along with the previously discussed unsupervised image
+registration. Both inhale–exhale pairs of thoracic CT vol-          registration method, we expect feature-based unsupervised
+umes and multimodal pairs of brain MR images are used for           registration to continue to generate significant interest from
+experimental validation of this approach. MI- and residual          the research community. Further, extension to the multimodal
+complexity (RC)-based [79], and the original MIND-based             case (especially for applications that use image with sig-
+[38] registration techniques were outperformed by the pro-          nificant appearance differences) is likely to be a prominent
+posed method.                                                       research focus in the next few years.
+   Krebs et al. [56,57] performed the registration of 2D brain
+and cardiac MRs and bypassed the need for spatial regular-
+ization using a stochastic latent space learning approach. A        5 Research trends and future directions
+conditional variational autoencoder [25] is used to ensure that
+the parameter space follows a prescribed probability distribu-      In this section, we summarize the current research trends and
+tion. The negative log likelihood of the fixed image given the      future directions of deep learning in medical image registra-
+latent representation and the warped volume and KL diver-           tion. As we can see from Fig. 2, some research trends have
+gence of the latent distribution from a prior distribution is       emerged. First, deep learning-based medical image registra-
+used to define the loss function. This method outperforms           tion seems to be following the observed trend for the general
+the Demons technique [69] and the deep learning method              application of deep learning to medical image analysis. Sec-
+described in [8].                                                   ond, unsupervised transformation estimation methods have
+                                                                    been garnering more attention recently from the research
+4.2.2 Multimodal registration                                       community. Further, deep learning-based methods consis-
+                                                                    tently outperform traditional optimization-based techniques
+Unlike all of the other methods described in this section, Kori     [80]. Based on the observed research trends, we speculate that
+et al. perform feature extraction and affine transformation         the following research directions will receive more attention
+parameter regression for the multimodal registration of 2D          in the research community.
+T1 and T2 weighted brain MRs in an unsupervised capacity
+using pre-trained networks [54]. The images are binarized,          5.1 Deep adversarial image registration
+and then, the Dice score between the moving and the fixed
+images is used as the cost function. As the appearance dif-         We further speculate that GANs will be used more frequently
+ference between these two modalities is not significant, the        in deep learning-based image registration in the next few
+use of these pre-trained models can be reasonably effective.        years. As described above, GANs can serve several different
+                                                                    purposes in deep learning-based medical image registration:
+4.2.3 Discussion and assessment                                     using a discriminator as a learned similarity metric, ensur-
+                                                                    ing that predicted transformations are realistic, and using a
+Performing multimodal image registration in an unsuper-             GAN to perform image translation to transform a multimodal
+vised capacity is significantly more difficult than performing      registration problem into a unimodal registration problem.
+unimodal image registration because of the difficulty asso-            GAN-like frameworks have been used in several works
+ciated with using manually crafted similarity metrics to            to directly train transformation predicting neural networks.
+quantify the similarity between the two images, and gen-            Several recent works [30,111] use a discriminator to dis-
+erally using the unsupervised techniques described above            cern between aligned and misaligned image pairs. Although
+to establish/detect voxel-to-voxel correspondence. The use          the training paradigm borrows from an unsupervised training
+of unsupervised learning to learn feature representations           strategy, the discriminator requires pre-aligned image pairs.
+
+
+                                                                                                                             123
+8   Page 14 of 18                                                                                                         G. Haskins et al.
+
+
+Therefore, it will have limited success in multimodal or chal-    the reconstructed image domain. Therefore, it is reasonable
+lenging unimodal applications where it is difficult to register   to expect that registration pipelines that take raw data as input
+images. Because discriminators are trained to assign all mis-     and output registered, reconstructed images can be developed
+aligned image pairs the same label, they will likely be unable    within the next few years.
+to model a spectrum of misalignments. Despite this limita-
+tion, the application of GANs to medical image registration
+is still quite promising and will be described below.             6 Conclusion
+    Unconstrained deformation field prediction can result in
+warped moving images with unrealistic organ appearances.          In this article, the recent works that use deep learning to
+A common approach is to add the L2 norm of the predicted          perform medical image registration have been examined. As
+deformation field, its gradient, or its Laplacian to the loss     each application has its own unique challenges, the creation
+function. However, the use of such regularization terms may       of the deep learning-based frameworks must be carefully
+limit the magnitude of the deformations that neural networks      designed. Many deep learning-based medical image regis-
+are able to predict. Therefore, Hu et al. [42] explored the use   tration applications share similar challenges including the
+of a GAN-like framework to produce realistic deformations.        lack of a robust similarity metric for multimodal applications,
+Constraining the deformation prediction using a discrimina-       in which there are significant image appearance differences
+tor results in superior performance relative to the use of L2     and/or different fields of view (e.g., MR-TRUS registration)
+norm regularization in that work.                                 [36], the lack of availability of large datasets, the challenge
+    Lastly, GANs can be used to map medical images in             associated with obtaining segmentations and ground truth
+a source domain (e.g., MR) to a target domain (e.g., CT)          registrations, and quantifying the uncertainty of a model’s
+[19,46,66,116], regardless of whether or not paired training      prediction. Application-specific similarity metrics, patch-
+data are available [121]. This image appearance reduction         wise frameworks, unsupervised approaches, and variational
+technique would be advantageous because many unimodal             autoencoder inspired registration frameworks are examples
+unsupervised registration methods use similarity metrics that     of popular solutions to these challenges. Furthermore, despite
+often fail in the multimodal case. If image translation is        the sophistication of many of the methods discussed in this
+performed as a preprocessing step, then commonly used sim-        survey, resampling and interpolation are often not among the
+ilarity metrics could be used to define the loss function of      components of registration that are learned by the neural net-
+transformation predicting networks.                               work. While researchers started to pay attention to this aspect
+                                                                  [2], we expect more works to incorporate these components
+5.2 Reinforcement learning-based registration                     into their deep learning-based methods as the field continues
+                                                                  to mature. Recent successes have demonstrated the impact
+We also project that reinforcement learning will also be more     of the application of deep learning to medical image regis-
+commonly used for medical image registration in the next          tration. This trend can be observed across medical imaging
+few years because it is very intuitive and can mimic the man-     applications. Many future exciting works are sure to build on
+ner in which physicians perform registration. It should be        the recent progress that has been outlined in this paper.
+noted that there are some unique challenges associated with
+deep learning-based medical image registration: including
+the dimensionality of the action space in the deformable reg-
+                                                                  References
+istration case. However, we believe that such limitations are
+surmountable because there is already one proposed method           1. Abadi, M., Barham, P., Chen, J., Chen, Z., Davis, A., Dean, J.,
+that uses reinforcement learning-based registration with a             Devin, M., Ghemawat, S., Irving, G., Isard, M., et al.: Tensorflow:
+deformable transformation model [55].                                  a system for large-scale machine learning. In: OSDI, vol. 16, pp.
+                                                                       265–283 (2016)
+                                                                    2. Ali, S., Rittscher, J.: Conv2Warp: an unsupervised deformable
+5.3 Raw imaging domain registration                                    image registration with continuous convolution and warping. In:
+                                                                       Suk, H.-I., Liu, M., Yan, P., Lian, C. (eds.) Machine Learning in
+This article has focused on surveying methods performing               Medical Imaging, pp. 489–497. Springer International Publishing,
+                                                                       Cham (2019)
+registration using reconstructed images. However, we spec-          3. Alom, M.Z., Taha, T.M., Yakopcic, C., Westberg, S., Hasan,
+ulate that it is possible to incorporate reconstruction into           M., Van Esesn, B.C., Awwal, A.A.S., Asari, V.K.: The history
+an end-to-end deep learning-based registration pipeline. In            began from alexnet: a comprehensive survey on deep learning
+2016, Wang [107] postulated that deep neural networks could            approaches. Preprint (2018). arXiv:1803.01164
+                                                                    4. Ambinder, E.P.: A history of the shift toward full computerization
+be used to perform image reconstruction. Further, several
+                                                                       of medicine. J. Oncol. Pract. 1(2), 54–56 (2005)
+works [85,98,115,120] recently demonstrated the ability of          5. Arganda-Carreras, I., Sorzano, C.O., Marabini, R., Carazo, J.M.,
+deep learning to map data points in the raw data domain to             Ortiz-de Solorzano, C., Kybic, J.: Consistent and elastic regis-
+
+
+123
+Deep learning in medical image registration: a survey                                                                              Page 15 of 18   8
+
+
+     tration of histological sections using vector-spline regularization.       affine and deformable image registration. Med. Image Anal. 52,
+     In: International Workshop on Computer Vision Approaches to                128–143 (2018)
+     Medical Image Analysis, pp. 85–95. Springer, Berlin (2006)             24. de Vos, B.D., Berendsen, F.F., Viergever, M.A., Staring, M.,
+  6. Avants, B.B., Epstein, C.L., Grossman, M., Gee, J.C.: Symmetric            Išgum, I.: End-to-end unsupervised deformable image registra-
+     diffeomorphic image registration with cross-correlation: evaluat-          tion with a convolutional neural network. In: Deep Learning in
+     ing automated labeling of elderly and neurodegenerative brain.             Medical Image Analysis and Multimodal Learning for Clinical
+     Med. Image Anal. 12(1), 26–41 (2008)                                       Decision Support, pp. 204–212. Springer, Berlin (2017)
+  7. Avants, B.B., Tustison, N.J., Song, G., Cook, P.A., Klein, A., Gee,    25. Doersch, C.: Tutorial on variational autoencoders. Preprint
+     J.C.: A reproducible evaluation of ants similarity metric perfor-          (2016). arXiv:1606.05908
+     mance in brain image registration. Neuroimage 54(3), 2033–2044         26. Dosovitskiy, A., Fischer, P., Ilg, E., Hausser, P., Hazirbas, C.,
+     (2011)                                                                     Golkov, V., Van Der Smagt, P., Cremers, D., Brox, T.: Flownet:
+  8. Balakrishnan, G., Zhao, A., Sabuncu, M.R., Guttag, J., Dalca,              learning optical flow with convolutional networks. In: Proceed-
+     A.V.: An unsupervised learning model for deformable medical                ings of the IEEE International Conference on Computer Vision,
+     image registration. In: Proceedings of the IEEE Conference on              pp. 2758–2766 (2015)
+     Computer Vision and Pattern Recognition, pp. 9252–9260 (2018)          27. Ehrhardt, J., Schmidt-Richberg, A., Werner, R., Handels, H.: Vari-
+  9. Balakrishnan, G., Zhao, A., Sabuncu, M.R., Guttag, J., Dalca,              ational registration. In: Bildverarbeitung für die Medizin 2015, pp.
+     A.V.: Voxelmorph: A learning framework for deformable medical              209–214. Springer, Berlin (2015)
+     image registration. Preprint (2018). arXiv:1809.05231                  28. Eppenhof, K.A., Pluim, J.P.: Pulmonary CT registration through
+ 10. Blendowski, M., Heinrich, M.P.: Combining MRF-based                        supervised learning with convolutional neural networks. IEEE
+     deformable registration and deep binary 3D-CNN descriptors for             Trans. Med. Imaging 38, 1097–1105 (2018)
+     large lung motion estimation in COPD patients. Int. J. Comput.         29. Eppenhof, K.A.J., Pluim, J.P.: Error estimation of deformable
+     Assisted Radiol. Surg. 14, 1–10 (2018)                                     image registration of pulmonary CT scans using convolutional
+ 11. Cao, T., Singh, N., Jojic, V., Niethammer, M.: Semi-coupled                neural networks. J. Med. Imaging 5(2), 024003 (2018b)
+     dictionary learning for deformation prediction. In: 2015 IEEE          30. Fan, J., Cao, X., Xue, Z., Yap, P.-T., Shen, D.: Adversarial sim-
+     12th International Symposium on Biomedical Imaging (ISBI),                 ilarity network for evaluating image alignment in deep learning
+     pp. 691–694. IEEE, New York (2015)                                         based registration. In: International Conference on Medical Image
+ 12. Cao, X., Yang, J., Wang, L., Xue, Z., Wang, Q., Shen, D.: Deep             Computing and Computer-Assisted Intervention, pp. 739–746.
+     learning based inter-modality image registration supervised by             Springer, Berlin (2018)
+     intra-modality similarity. Preprint (2018). arXiv:1804.10735           31. Fan, J., Cao, X., Yap, P.-T., Shen, D.: Birnet: brain image registra-
+ 13. Cao, X., Yang, J., Zhang, J., Nie, D., Kim, M., Wang, Q., Shen,            tion using dual-supervised fully convolutional networks. Preprint
+     D.: Deformable image registration based on similarity-steered              (2018). arXiv:1802.04692
+     CNN regression. In: International Conference on Medical Image          32. Ferrante, E., Oktay, O., Glocker, B., Milone, D.H.: On the adapt-
+     Computing and Computer-Assisted Intervention, pp. 300–308.                 ability of unsupervised CNN-based deformable image registration
+     Springer, New York (2017)                                                  to unseen image domains. In: International Workshop on Machine
+ 14. Chan, T.-H., Jia, K., Gao, S., Lu, J., Zeng, Z., Ma, Y.: Pcanet:           Learning in Medical Imaging, pp. 294–302. Springer, Berlin
+     A simple deep learning baseline for image classification? IEEE             (2018)
+     Trans. Image Process. 24(12), 5017–5032 (2015)                         33. Ghosal, S., Ray, N.: Deep deformable registration: enhancing
+ 15. Chee, E., Wu, J.: Airnet: self-supervised affine registration for          accuracy by fully convolutional neural net. Pattern Recogn. Lett.
+     3D medical images using neural networks. Preprint (2018).                  94, 81–86 (2017)
+     arXiv:1810.02583                                                       34. Goodfellow, I., Bengio, Y., Courville, A., Bengio, Y.: Deep learn-
+ 16. Chen, T., Li, M., Li, Y., Lin, M., Wang, N., Wang, M., Xiao, T., Xu,       ing, vol. 1. MIT Press, Cambridge (2016)
+     B., Zhang, C., Zhang, Z.: Mxnet: a flexible and efficient machine      35. Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-
+     learning library for heterogeneous distributed systems. Preprint           Farley, D., Ozair, S., Courville, A., Bengio, Y.: Generative
+     (2015). arXiv:1512.01274                                                   adversarial nets. In: Ghahramani, Z., Welling, M., Cortes, C.,
+ 17. Cheng, X., Zhang, L., Zheng, Y.: Deep similarity learning for              Lawrence, N.D., Weinberger, K.Q. (eds.) Advances in Neural
+     multimodal medical images. In: International Conference on                 Information Processing Systems 27, pp. 2672–2680. Curran Asso-
+     Medical Image Computing and Computer-Assisted Intervention                 ciates, Inc. (2014). http://papers.nips.cc/paper/5423-generative-
+     (2016)                                                                     adversarial-nets.pdf
+ 18. Cheng, X., Zhang, L., Zheng, Y.: Deep similarity learning for mul-     36. Haskins, G., Kruecker, J., Kruger, U., Xu, S., Pinto, P.A., Wood,
+     timodal medical images. Comput. Methods Biomech. Biomed.                   B.J., Yan, P.: Learning deep similarity metric for 3D MR–TRUS
+     Eng. Imaging Vis. 6(3), 248–252 (2018)                                     image registration. Int. J. Comput. Assist. Radiol. Surg. 14, 417–
+ 19. Choi, Y., Choi, M., Kim, M., Ha, J.-W., Kim, S., Choo, J.: Stargan:        425 (2019)
+     unified generative adversarial networks for multi-domain image-        37. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for
+     to-image translation. In: Proceedings of the IEEE Conference on            image recognition. In: Proceedings of the IEEE Conference on
+     Computer Vision and Pattern Recognition, pp. 8789–8797 (2018)              Computer Vision and Pattern Recognition, pp. 770–778 (2016)
+ 20. Chollet, F., et al.: Keras (2015). https://keras.io                    38. Heinrich, M.P., Jenkinson, M., Bhushan, M., Matin, T., Glee-
+ 21. Dalca, A.V., Balakrishnan, G., Guttag, J., Sabuncu, M.R.: Unsu-            son, F.V., Brady, M., Schnabel, J.A.: Mind: modality independent
+     pervised learning for fast probabilistic diffeomorphic registration.       neighbourhood descriptor for multi-modal deformable registra-
+     Preprint (2018). arXiv:1805.04605                                          tion. Med. Image Anal. 16(7), 1423–1435 (2012)
+ 22. De Silva, T., Uneri, A., Ketcha, M., Reaungamornrat, S., Klein-        39. Heinrich, M.P., Jenkinson, M., Papież, B. W., Brady, M., Schn-
+     szig, G., Vogt, S., Aygun, N., Lo, S., Wolinsky, J., Siewerdsen, J.:       abel, J.A.: Towards realtime multimodal fusion for image-guided
+     3D–2D image registration for target localization in spine surgery:         interventions using self-similarities. In: International Conference
+     investigation of similarity metrics providing robustness to content        on Medical Image Computing and Computer-Assisted Interven-
+     mismatch. Phys. Med. Biol. 61(8), 3009 (2016)                              tion, pp. 187–194. Springer, Berlin (2013)
+ 23. de Vos, B.D., Berendsen, F.F., Viergever, M.A., Sokooti, H., Star-     40. Hering, A., Kuckertz, S., Heldmann, S., Heinrich, M.: Enhancing
+     ing, M., Išgum, I.: A deep learning framework for unsupervised             label-driven deep deformable image registration with local dis-
+
+
+                                                                                                                                        123
+8   Page 16 of 18                                                                                                                    G. Haskins et al.
+
+
+    tance metrics for state-of-the-art cardiac motion tracking. Preprint        Analysis and Multimodal Learning for Clinical Decision Support,
+    (2018). arXiv:1812.01859                                                    pp. 101–109. Springer, Berlin (2018)
+41. Hill, D.L., Batchelor, P.G., Holden, M., Hawkes, D.J.: Medical          58. Kuang, D., Schmah, T.: Faim—a convnet method for unsu-
+    image registration. Phys. Med. Biol. 46(3), R1–R45 (2001)                   pervised 3D medical image registration. Preprint (2018).
+42. Hu, Y., Gibson, E., Ghavami, N., Bonmati, E., Moore, C.M.,                  arXiv:1811.09243
+    Emberton, M., Vercauteren, T., Noble, J.A., Barratt, D.C.: Adver-       59. Lee, J.-G., Jun, S., Cho, Y.-W., Lee, H., Kim, G.B., Seo, J.B., Kim,
+    sarial deformation regularization for training image registration           N.: Deep learning in medical imaging: general overview. Korean
+    neural networks. Preprint (2018). arXiv:1805.10665                          J. Radiol. 18(4), 570–584 (2017)
+43. Hu, Y., Modat, M., Gibson, E., Ghavami, N., Bonmati, E., Moore,         60. Li, H., Fan, Y.: Non-rigid image registration using fully con-
+    C.M., Emberton, M., Noble, J.A., Barratt, D.C., Vercauteren, T.:            volutional networks with deep self-supervision. Preprint (2017).
+    Label-driven weakly-supervised learning for multimodal defor-               arXiv:1709.00799
+    marle image registration. In: 2018 IEEE 15th International              61. Li, H., Fan, Y.: Non-rigid image registration using self-supervised
+    Symposium on Biomedical Imaging (ISBI 2018), pp. 1070–1074.                 fully convolutional networks without training data. In: 2018 IEEE
+    IEEE, New York (2018)                                                       15th International Symposium on Biomedical Imaging (ISBI
+44. Hu, Y., Modat, M., Gibson, E., Li, W., Ghavami, N., Bonmati,                2018), pp. 1075–1078. IEEE, New York (2018)
+    E., Wang, G., Bandula, S., Moore, C.M., Emberton, M., et al.:           62. Liao, R., Miao, S., de Tournemire, P., Grbic, S., Kamen, A., Mansi,
+    Weakly-supervised convolutional neural networks for multimodal              T., Comaniciu, D.: An artificial agent for robust image registration.
+    image registration. Med. Image Anal. 49, 1–13 (2018c)                       In: AAAI, pp. 4168–4175 (2017)
+45. Ikeda, K., Ino, F., Hagihara, K.: Efficient acceleration of mutual      63. Litjens, G., Kooi, T., Bejnordi, B.E., Setio, A.A.A., Ciompi, F.,
+    information computation for nonrigid registration using CUDA.               Ghafoorian, M., van der Laak, J.A., Van Ginneken, B., Sánchez,
+    IEEE J. Biomed. Health Inf. 18(3), 956–968 (2014)                           C.I.: A survey on deep learning in medical image analysis. Med.
+46. Isola, P., Zhu, J.-Y., Zhou, T., Efros, A.A.: Image-to-image transla-       Image Anal. 42, 60–88 (2017)
+    tion with conditional adversarial networks. arXiv Preprint (2017)       64. Liu, C., Yuen, J., Torralba, A.: Sift flow: dense correspondence
+47. Ito, M., Ino, F.: An automated method for generating training               across scenes and its applications. IEEE Trans. Pattern Anal.
+    sets for deep learning based image registration. In: The 11th               Mach. Intell. 33(5), 978–994 (2011)
+    International Joint Conference on Biomedical Engineering Sys-           65. Liu, J., Pan, Y., Li, M., Chen, Z., Tang, L., Lu, C., Wang, J.:
+    tems and Technologies—Volume 2: BIOIMAGING, pp. 140–147.                    Applications of deep learning to mri images: a survey. Big Data
+    INSTICC SciTePress (2018)                                                   Min. Anal. 1(1), 1–18 (2018)
+48. Jaderberg, M., Simonyan, K., Zisserman, A., Kavukcuoglu, K:             66. Liu, M.-Y., Breuel, T., Kautz, J.: Unsupervised image-to-image
+    Spatial transformer networks. In: Cortes, C., Lawrence, N.D.,               translation networks. In: Guyon, I., Luxburg, U.V., Bengio, S.,
+    Lee, D.D., Sugiyama, M., Garnett, R. (eds.) Advances in Neu-                Wallach, H., Fergus, R., Vishwanathan, S., Garnett, R. (eds.)
+    ral Information Processing Systems, pp. 2017–2025. Curran                   Advances in Neural Information Processing Systems, pp. 700–
+    Associates, Inc. (2015). http://papers.nips.cc/paper/5854-spatial-          708. Curran Associates, Inc. (2017) http://papers.nips.cc/paper/
+    transformer-networks.pdf                                                    6672-unsupervised-image-to-image-translation-networks.pdf
+49. Jia, Y., Shelhamer, E., Donahue, J., Karayev, S., Long, J., Girshick,   67. Liu, Q., Leung, H.: Tensor-based descriptor for image registration
+    R., Guadarrama, S., Darrell, T.: Caffe: convolutional architecture          via unsupervised network. In: 2017 20th International Conference
+    for fast feature embedding. In: Proceedings of the 22nd ACM                 on Information Fusion (Fusion), pp. 1–7. IEEE, New York (2017)
+    International Conference on Multimedia, pp. 675–678. ACM,               68. Long, J., Shelhamer, E., Darrell, T.: Fully convolutional networks
+    New York (2014)                                                             for semantic segmentation. In: Proceedings of the IEEE Confer-
+50. Jiang, P., Shackleford, J.A.: CNN driven sparse multi-level b-              ence on Computer Vision and Pattern Recognition, pp. 3431–3440
+    spline image registration. In: Proceedings of the IEEE Conference           (2015)
+    on Computer Vision and Pattern Recognition, pp. 9281–9289               69. Lorenzi, M., Ayache, N., Frisoni, G.B., Pennec, X., (ADNI, A.
+    (2018)                                                                      D. N. I., et al.): LCC-demons: a robust and accurate symmetric
+51. Kaelbling, L.P., Littman, M.L., Moore, A.W.: Reinforcement                  diffeomorphic registration algorithm. NeuroImage 81, 470–483
+    learning: a survey. J. Artif. Intell. Res. 4, 237–285 (1996)                (2013)
+52. Kazeminia, S., Baur, C., Kuijper, A., van Ginneken, B., Navab,          70. Lv, J., Yang, M., Zhang, J., Wang, X.: Respiratory motion cor-
+    N., Albarqouni, S., Mukhopadhyay, A.: Gans for medical image                rection for free-breathing 3D abdominal MRI using CNN-based
+    analysis. Preprint (2018). arXiv:1809.06222                                 image registration: a feasibility study. Br. J. Radiol. 91, 20170788
+53. Klein, S., Staring, M., Murphy, K., Viergever, M.A., Pluim, J.P.:           (2018)
+    Elastix: a toolbox for intensity-based medical image registration.      71. Ma, K., Wang, J., Singh, V., Tamersoy, B., Chang, Y.-J., Wimmer,
+    IEEE Trans. Med. Imaging 29(1), 196–205 (2010)                              A., Chen, T.: Multimodal image registration with deep context
+54. Kori, A., Krishnamurthi, G.: Zero shot learning for multi-modal             reinforcement learning. In: International Conference on Medical
+    real time image registration (2019). arXiv:1908.06213                       Image Computing and Computer-Assisted Intervention, pp. 240–
+55. Krebs, J., Mansi, T., Delingette, H., Zhang, L., Ghesu, F.C.,               248. Springer, Berlin (2017)
+    Miao, S., Maier, A.K., Ayache, N., Liao, R., Kamen, A.: Robust          72. Maes, F., Collignon, A., Vandermeulen, D., Marchal, G., Suetens,
+    non-rigid registration through agent-based action learning. In:             P.: Multimodality image registration by maximization of mutual
+    International Conference on Medical Image Computing and                     information. IEEE Trans. Med. Imaging 16(2), 187–198 (1997)
+    Computer-Assisted Intervention, pp. 344–352. Springer, Berlin           73. Mahapatra, D.: Elastic registration of medical images with gans.
+    (2017)                                                                      Preprint (2018). arXiv:1805.02369
+56. Krebs, J., Mansi, T., Mailhé, B., Ayache, N., Delingette, H.:           74. Mahapatra, D., Ge, Z., Sedai, S., Chakravorty, R.: Joint reg-
+    Learning structured deformations using diffeomorphic registra-              istration and segmentation of X-ray images using generative
+    tion. Preprint (2018) arXiv:1804.07172                                      adversarial networks. In: International Workshop on Machine
+57. Krebs, J., Mansi, T., Mailhé, B., Ayache, N., Delingette, H.:               Learning in Medical Imaging, pp. 73–80. Springer, Berlin (2018)
+    Unsupervised probabilistic deformation modeling for robust dif-         75. Matthew, J., Hajnal, J.V., Rueckert, D., Schnabel, J.A.: LSTM spa-
+    feomorphic registration. In: Deep Learning in Medical Image                 tial co-transformer networks for registration of 3D fetal US and
+                                                                                MR brain images. In: Data Driven Treatment Response Assess-
+
+
+123
+Deep learning in medical image registration: a survey                                                                             Page 17 of 18   8
+
+
+     ment and Preterm, Perinatal, and Paediatric Image Analysis, pp.        94. Shen, D.: Image registration by local histogram matching. Pattern
+     149–159. Springer, Berlin (2018)                                           Recogn. 40(4), 1161–1172 (2007)
+ 76. Miao, S., Piat, S., Fischer, P., Tuysuzoglu, A., Mewes, P., Mansi,     95. Shu, C., Chen, X., Xie, Q., Han, H.: An unsupervised network for
+     T., Liao, R.: Dilated FCN for multi-agent 2D/3D medical image              fast microscopic image registration. In: Medical Imaging 2018:
+     registration. Preprint (2017). arXiv:1712.01651                            Digital Pathology, vol. 10581, p. 105811D. International Society
+ 77. Miao, S., Wang, Z.J., Liao, R.: A cnn regression approach for              for Optics and Photonics (2018)
+     real-time 2D/3D registration. IEEE Trans. Med. Imaging 35(5),          96. Simonovsky, M., Gutiérrez-Becker, B., Mateus, D., Navab, N.,
+     1352–1363 (2016a)                                                          Komodakis, N.: A deep metric for multimodal registration. In:
+ 78. Miao, S., Wang, Z.J., Zheng, Y., Liao, R.: Real-time 2D/3D                 International Conference on Medical Image Computing and
+     registration via CNN regression. In: 2016 IEEE 13th Interna-               Computer-Assisted Intervention, pp. 10–18. Springer, Berlin
+     tional Symposium on Biomedical Imaging (ISBI), pp. 1430–1434.              (2016)
+     IEEE, New York (2016)                                                  97. Sloan, J.M., Goatman, K.A., Siebert, J.P.: Learning rigid image
+ 79. Myronenko, A., Song, X.: Intensity-based image registration                registration-utilizing convolutional neural networks for medical
+     by minimizing residual complexity. IEEE Trans. Med. Imaging                image registration. In: 11th International Joint Conference on
+     29(11), 1882–1891 (2010)                                                   Biomedical Engineering Systems and Technologies, pp. 89–99.
+ 80. Nazib, A., Fookes, C., Perrin, D.: A comparative analysis of reg-          SCITEPRESS-Science and Technology Publications (2018)
+     istration tools: traditional vs. deep learning approach on high        98. Smith, J.T., Yao, R., Sinsuebphon, N., Rudkouskaya, A., Un, N.,
+     resolution tissue cleared data. Preprint (2018). arXiv:1810.08315          Mazurkiewicz, J., Barroso, M., Yan, P., Intes, X.: Fast fit-free
+ 81. Neylon, J., Min, Y., Low, D.A., Santhanam, A.: A neural network            analysis of fluorescence lifetime imaging via deep learning. Proc.
+     approach for fast, automated quantification of dir performance.            Natl. Acad. Sci. 116(48), 24019–24030 (2019)
+     Med. Phys. 44(8), 4126–4138 (2017)                                     99. Sokooti, H., de Vos, B., Berendsen, F., Lelieveldt, B.P., Išgum,
+ 82. Paszke, A., Gross, S., Chintala, S., Chanan, G., Yang, E., DeVito,         I., Staring, M.: Nonrigid image registration using multi-scale 3D
+     Z., Lin, Z., Desmaison, A., Antiga, L., Lerer, A.: Automatic dif-          convolutional neural networks. In: International Conference on
+     ferentiation in pytorch. In: NIPS-W (2017)                                 Medical Image Computing and Computer-Assisted Intervention,
+ 83. Punithakumar, K., Boulanger, P., Noga, M.: A gpu-accelerated               pp. 232–239. Springer, Berlin (2017)
+     deformable image registration algorithm with applications to right    100. Stergios, C., Mihir, S., Maria, V., Guillaume, C., Marie-Pierre, R.,
+     ventricular segmentation. IEEE Access 5, 20374–20382 (2017)                Stavroula, M., Nikos, P.: Linear and deformable image registration
+ 84. Ren, S., He, K., Girshick, R., Sun, J.: Faster R-CNN: towards              with 3D convolutional neural networks. In: Image Analysis for
+     real-time object detection with region proposal networks. In:              Moving Organ, Breast, and Thoracic Images, pp. 13–22. Springer,
+     Cortes, C., Lawrence, N.D., Lee, D.D., Sugiyama, M., Garnett,              Berlin (2018)
+     R. (eds.) Advances in Neural Information Processing Systems,          101. Sun, L., Zhang, S.: Deformable MRI-ultrasound registration using
+     pp. 91–99. Curran Associates, Inc. (2015) http://papers.nips.              3D convolutional neural network. In: Simulation, Image Pro-
+     cc/paper/5638-faster-r-cnn-towards-real-time-object-detection-             cessing, and Ultrasound Systems for Assisted Diagnosis and
+     with-region-proposal-networks.pdf                                          Navigation, pp. 152–158. Springer, Berlin (2018)
+ 85. Rivenson, Y., Zhang, Y., Günaydın, H., Teng, D., Ozcan, A.: Phase     102. Sun, Y., Moelker, A., Niessen, W.J., van Walsum, T.: Towards
+     recovery and holographic image reconstruction using deep learn-            robust CT-ultrasound registration using deep learning methods.
+     ing in neural networks. Light Sci. Appl. 7(2), 17141 (2018)                In: Understanding and Interpreting Machine Learning in Medi-
+ 86. Rohé, M.-M., Datar, M., Heimann, T., Sermesant, M., Pen-                   cal Image Computing Applications, pp. 43–51. Springer, Berlin
+     nec, X.: SVF-Net: learning deformable image registration using             (2018)
+     shape matching. In: International Conference on Medical Image         103. Uzunova, H., Wilms, M., Handels, H., Ehrhardt, J.: Training
+     Computing and Computer-Assisted Intervention, pp. 266–274.                 CNNS for image registration from few samples with model-
+     Springer, Berlin (2017)                                                    based data augmentation. In: International Conference on Medical
+ 87. Ronneberger, O., Fischer, P., Brox, T.: U-net: convolutional net-          Image Computing and Computer-Assisted Intervention, pp. 223–
+     works for biomedical image segmentation. In: International Con-            231. Springer, Berlin (2017)
+     ference on Medical Image Computing and Computer-Assisted              104. Vercauteren, T., Pennec, X., Perchant, A., Ayache, N.: Diffeo-
+     Intervention, pp. 234–241. Springer, Berlin (2015)                         morphic demons: efficient non-parametric image registration.
+ 88. Rühaak, J., Heldmann, S., Kipshagen, T., Fischer, B.: Highly accu-         NeuroImage 45(1), S61–S72 (2009)
+     rate fast lung CT registration. In: Medical Imaging 2013: Image       105. Vialard, F.-X., Risser, L., Rueckert, D., Cotter, C.J.: Diffeomor-
+     Processing, Volume 8669, pp. 86690Y. International Society for             phic 3D image registration via geodesic shooting using an efficient
+     Optics and Photonics (2013)                                                adjoint calculation. Int. J. Comput. Vis. 97(2), 229–241 (2012)
+ 89. Saalfeld, S., Fetter, R., Cardona, A., Tomancak, P.: Elastic volume   106. Viola, P., Wells III, W.M.: Alignment by maximization of mutual
+     reconstruction from series of ultra-thin microscopy sections. Nat.         information. Int. J. Comput. Vis. 24(2), 137–154 (1997)
+     Methods 9(7), 717 (2012)                                              107. Wang, G.: A perspective on deep imaging. Preprint (2016).
+ 90. Salehi, S.S.M., Khan, S., Erdogmus, D., Gholipour, A.: Real-               arXiv:1609.04375
+     time deep registration with geodesic loss. Preprint (2018).           108. Wang, Z., Schaul, T., Hessel, M., Van Hasselt, H., Lanctot, M.,
+     arXiv:1803.05982                                                           De Freitas, N.: Dueling network architectures for deep reinforce-
+ 91. Schmidhuber, J.: Deep learning in neural networks: an overview.            ment learning. Preprint (2015). arXiv:1511.06581
+     Neural Netw. 61, 85–117 (2015)                                        109. Wu, G., Kim, M., Wang, Q., Gao, Y., Liao, S., Shen, D.: Unsuper-
+ 92. Sedghi, A., Luo, J., Mehrtash, A., Pieper, S., Tempany, C.M.,              vised deep feature learning for deformable registration of MR
+     Kapur, T., Mousavi, P., Wells III, W.M.: Semi-supervised deep              brain images. In: International Conference on Medical Image
+     metrics for image registration. Preprint (2018). arXiv:1804.01565          Computing and Computer-Assisted Intervention, pp. 649–656.
+ 93. Sheikhjafari, A., Noga, M., Punithakumar, K., Ray, N.: Unsu-               Springer, Berlin (2013)
+     pervised deformable image registration with fully connected           110. Wu, G., Kim, M., Wang, Q., Munsell, B.C., Shen, D.: Scalable
+     generative neural network. In: International Conference on Med-            high-performance image registration framework by unsupervised
+     ical Imaging with Deep Learning (2018)                                     deep feature representations learning. IEEE Trans. Biomed. Eng.
+                                                                                63(7), 1505–1516 (2016)
+
+
+                                                                                                                                       123
+8   Page 18 of 18                                                                                                                    G. Haskins et al.
+
+
+111. Yan, P., Xu, S., Rastinehad, A.R., Wood, B.J.: Adversarial image       Grant Haskins is a graduate student at the Department of Biomedical
+     registration with application for MR and TRUS image fusion.            Engineering at Rensselaer Polytechnic Institute. He graduated from
+     Preprint (2018). arXiv:1804.11024                                      UCSD with a Bachelor of Science degree in Physics with a special-
+112. Yang, Q., Yan, P., Zhang, Y., Yu, H., Shi, Y., Mou, X., Kalra, M.K.,   ization in Astrophysics and a minor in psychology. He also earned a
+     Zhang, Y., Sun, L., Wang, G.: Low dose CT image denoising              Master of Science degree in Biomedical Engineering with a concen-
+     using a generative adversarial network with wasserstein distance       tration in medical devices and diagnostics.
+     and perceptual loss. IEEE Trans. Med. Imaging 37, 1348–1357
+     (2018)
+113. Yang, X.: Uncertainty quantification, image synthesis and defor-
+                                                                            Uwe Kruger received the M.S. degree from the University of Essen,
+     mation prediction for image registration. Ph.D. Thesis, The
+                                                                            Duisburg, Germany, in 1996, and the Ph.D. degree from the University
+     University of North Carolina at Chapel Hill (2017)
+                                                                            of Manchester, Manchester, UK, in 2002. He is currently a Professor
+114. Yang, X., Kwitt, R., Niethammer, M.: Fast predictive image reg-
+                                                                            of Practice in Biomedical Engineering with Rensselaer Polytechnic
+     istration. In: Carneiro, G., Mateus, D., Peter, L., Bradley, A.,
+                                                                            Institute, Troy, NY, USA. He has published over 160 research arti-
+     Tavares, J.M.R.S., Belagiannis, V., Papa, J.P., Nascimento, J.C.,
+                                                                            cles in leading international journals and conferences and wrote a
+     Loog, M., Lu, Z., Cardoso, J.S., Cornebise, J. (eds.) Deep Learning
+                                                                            monograph on the statistical monitoring of complex multivariate pro-
+     and Data Labeling for Medical Applications, pp. 48–57. Springer
+                                                                            cesses. He has four industrial patents and has been involved in numer-
+     International Publishing, Cham (2016)
+                                                                            ous conference activities. His research includes multivariate statistics,
+115. Yao, R., Ochoa, M., Intes, X., Yan, P.: Deep compressive
+                                                                            data science, process monitoring, fault detection and diagnosis, sys-
+     macroscopic fluorescence lifetime imaging. In: 2018 IEEE 15th
+                                                                            tem modeling, and developing innovative algorithmic as well as their
+     International Symposium on Biomedical Imaging (ISBI 2018),
+                                                                            application and industrial exploitation. Prof. Kruger is an Associate
+     pp. 908–911. IEEE, New York (2018)
+                                                                            Editor of Control Engineering Practice.
+116. Yi, Z., Zhang, H., Tan, P., Gong, M.: Dualgan: unsupervised dual
+     learning for image-to-image translation. arXiv Preprint (2017)
+117. Yoo, I., Hildebrand, D.G., Tobin, W.F., Lee, W.-C.A., Jeong,
+     W.-K.: ssEMnet: serial-section electron microscopy image regis-        Pingkun Yan is an Assistant Professor at the Department of Biomed-
+     tration using a spatial transformer network with learned features.     ical Engineering at Rensselaer Polytechnic Institute. He received his
+     In: Cardoso, M.J., Arbel, T., Carneiro, G., Syeda-Mahmood, T.,         Ph.D. from National University of Singapore. His research interests
+     Tavares, J.M.R.S., Moradi, M., Bradley, A., Greenspan, H., Papa,       include medical imaging informatics and image-guided intervention
+     J.P., Madabhushi, A., Nascimento, J.C., Cardoso, J.S., Belagian-       using machine learning and computer vision techniques. Dr. Yan has
+     nis, V., Lu, Z. (eds.) Deep Learning in Medical Image Analysis         published over 90 peer-reviewed articles in well-recognized journals
+     and Multimodal Learning for Clinical Decision Support, pp. 249–        and top international conferences. His research work has been recog-
+     257. Springer International Publishing, Cham (2017)                    nized by a number of awards including MICCAI best paper award
+118. Zhang, J.: Inverse-consistent deep networks for unsuper-               and IJCARS-MICCAI best paper award. He is currently serving as an
+     vised deformable image registration. arXiv Preprint (2018).            associate editor of multiple international journals, including Machine
+     arXiv:1809.03443                                                       Vision and Applications and Neurocomputing. He co-organized six
+119. Zheng, J., Miao, S., Wang, Z.J., Liao, R.: Pairwise domain adapta-     international workshops and four international journal special issues,
+     tion module for CNN-based 2-D/3-D registration. J. Med. Imaging        and has served as a program committee member for more than 40
+     5(2), 021204 (2018)                                                    international conferences. He is a senior member of IEEE.
+120. Zhu, B., Liu, J.Z., Cauley, S.F., Rosen, B.R., Rosen, M.S.: Image
+     reconstruction by domain-transform manifold learning. Nature
+     555(7697), 487 (2018)
+121. Zhu, J.-Y., Park, T., Isola, P., Efros, A.A.: Unpaired image-to-
+     image translation using cycle-consistent adversarial networks.
+     arXiv Preprint (2017)
+122. Zitova, B., Flusser, J.: Image registration methods: a survey. Image
+     Vis. Comput. 21(11), 977–1000 (2003)
+
+
+
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional affiliations.
+
+
+
+
+123
+

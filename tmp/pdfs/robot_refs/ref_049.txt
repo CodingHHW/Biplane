@@ -1,0 +1,844 @@
+          IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020                                                                   441
+
+
+
+
+ Pose Estimation of Periacetabular Osteotomy
+Fragments With Intraoperative X-Ray Navigation
+       Robert B. Grupp , Rachel A. Hegeman, Ryan J. Murphy, Clayton P. Alexander, Yoshito Otake,
+            Benjamin A. McArthur, Mehran Armand, and Russell H. Taylor , Life Fellow, IEEE
+
+
+   Abstract—Objective: State-of-the-art navigation systems                       Significance: Human interpretation of fragment pose is
+for pelvic osteotomies use optical systems with external                         challenging and usually restricted to rotation about a
+fiducials. In this paper, we propose the use of X-ray                            single anatomical axis. The proposed pipeline provides
+navigation for pose estimation of periacetabular fragments                       an intraoperative estimate of rigid pose with respect to
+without fiducials. Methods: A two-dimensional/three-                             all anatomical axes, is compatible with minimally invasive
+dimensional (2-D/3-D) registration pipeline was developed                        incisions, and has no dependence on external fiducials.
+to recover fragment pose. This pipeline was tested through                         Index Terms—Two-dimensional/three-dimensional (2-D/
+an extensive simulation study and six cadaveric surgeries.                       3-D) registration, orthopedics, periacetabular osteotomy,
+Using osteotomy boundaries in the fluoroscopic images,                           X-ray navigation.
+the preoperative plan was refined to more accurately match
+the intraoperative shape. Results: In simulation, average
+fragment pose errors were 1.3 ◦ /1.7 mm when the planned
+fragment matched the intraoperative fragment, 2.2 ◦ /2.1 mm                                                  I. INTRODUCTION
+when the plan was not updated to match the true shape, and                              EVELOPMENTAL hip dysplasia (DDH) is a congeni-
+1.9 ◦ /2.0 mm when the fragment shape was intraoperatively
+estimated. In cadaver experiments, the average pose errors
+were 2.2 ◦ /2.2 mm, 3.8 ◦ /2.5 mm, and 3.5 ◦ /2.2 mm when
+                                                                                 D      tal condition which may cause greater contact pressures
+                                                                                 between the femoral head and acetabular cartilage due to a
+registering with the actual fragment shape, a preoperative                       deformed acetabulum or femoral head. These conditions may
+plan, and an intraoperatively refined plan, respectively.                        cause pain and limit the amount of physical activity an individ-
+Average errors of the lateral center edge angle were less                        ual may perform. When DDH is not addressed, severe arthritis
+than 2◦ for all fragment shapes in simulation and cadaver
+experiments. Conclusion: The proposed pipeline is capable                        by age 30 is typical, and requires surgical intervention [1].
+of accurately reporting femoral head coverage within a                              In 1984, the periacetabular osteotomy (PAO) was developed
+range clinically identified for long-term joint survivability.                   by Ganz for the purpose of treating DDH [2]. Standing AP and
+                                                                                 false profile radiographs are used to preoperatively assess the
+                                                                                 condition and develop an initial surgical plan. Osteotomies along
+   Manuscript received November 21, 2017; revised March 20, 2019;
+accepted May 1, 2019. Date of publication May 6, 2019; date of cur-              the pubis, ilium, ischium, and posterior column of the pelvis are
+rent version January 20, 2020. This work was supported in part by                performed, typically with fluoroscopic guidance [2]. The ischial
+NIH/NIBIB under Grants R01EB006839 and R21EB020113, in part by                   and posterior cuts present significant challenges, including using
+the MEXT/JSPS KAKENHI under Grant 26108004, in part by the Johns
+Hopkins University Internal Funds, and in part by the Johns Hopkins Uni-         difficult to interpret fluoroscopic views, potentially affecting the
+versity Applied Physics Laboratory Graduate Student Fellowship. (Cor-            Sciatic nerve, and risking joint breakage due to the osteotome’s
+responding author: Robert Bruce Grupp.)                                          proximity to the acetabulum. After completing the osteotomies,
+   R. B. Grupp is with the Department of Computer Science, Johns Hop-
+kins University, Baltimore, MD 21218 USA (e-mail:, grupp@jhu.edu).               the acetabular fragment is freed from the pelvis and repositioned
+   R. A. Hegeman is with the Research and Exploratory Development                to increase femoral coverage and improve joint contact pressure
+Department, Johns Hopkins University Applied Physics Laboratory.                 [2]–[6] (Fig. 1).
+   R. J. Murphy was with the Research and Exploratory Development
+Department, Johns Hopkins University Applied Physics Laboratory. He                 Mentally resolving the 3D pose of the acetabular fragment
+is now with Auris Surgical Robotics.                                             using intraoperative fluroscopy is challenging, especially for
+   C. P. Alexander is with the Department of Orthopaedic Surgery, Johns          novice surgeons [7]. An acceptable repositioning is often de-
+Hopkins Medicine.
+   Y. Otake is with the Graduate School of Information Science, Nara             termined using the lateral center edge (LCE) angle [8], which
+Institute of Science and Technology.                                             estimates the amount of lateral femoral head coverage provided
+   B. A. McArthur was with Washington Orthopedics and Sports                     by the acetabulum. In order to achieve long-term survivability
+Medicine. He is now with the Dell Medical School, University of Texas.
+   M. Armand is with the Research and Exploratory Development De-                of the joint, a LCE angle between 30◦ –40◦ is desired [9]. Men-
+partment, Johns Hopkins University Applied Physics Laboratory and                tally resolving the LCE angle from 2D radiographs, without any
+also with the Department of Mechanical Engineering, Johns Hopkins                other tools, was shown to have a large variance [10].
+University.
+   R. H. Taylor is with the Department of Computer Science, Johns Hop-              To address the challenges with performing PAO, several com-
+kins University.                                                                 puter assisted systems using optical tracking technology have
+   This paper has supplementary downloadable material available at               been developed; e.g. [11]–[16]. However, intraoperative optical
+http://ieeexplore.ieee.org, provided by the authors. The file size is 111
+MB).                                                                             tracking systems are not yet standard equipment in most oper-
+   Digital Object Identifier 10.1109/TBME.2019.2915165                           ating rooms, and have several technical disadvantages, such as
+                  0018-9294 © 2019 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+                       See http://www.ieee.org/publications standards/publications/rights/index.html for more information.
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+442                                                                   IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+
+Fig. 1. Example of periacetabular osteotomies and a fragment repo-
+sition. This is taken from the cadaver experiments and represents the
+ground truth fragment pose. The manually segmented fragment shape
+is shown. See Fig. 3 for the corresponding intraoperative fluoroscopic
+images. The orientations of each anatomical axis for the anterior pelvic
+plane are also depicted: left/right x axis (LR), inferior/superior y axis (IS),
+and anterior/posterior z axis (AP).
+
+
+
+a sensitivity to occlusion and a limited workspace. Moreover,
+the need to digitize points on the ilium and iliac crest for regis-
+tration of the patient’s pelvis to a preoperative model, requires
+more invasive incisions than typically needed for a PAO [12],
+[17], [18]. These reasons, and the universal availability of intra-               Fig. 2. High level workflow detailing the steps performed during the
+operative fluoroscopic imaging, provide motivation for the use                    surgery and the data required for each. The registration and shape esti-
+of an X-Ray based navigation system. In place of specialized 3D                   mation steps are the primary focus of this paper.
+tracking devices, computer-assisted X-Ray navigation systems
+use the fluoroscopic or radiographic imagers already present
+                                                                                  C-Arm. Unlike existing multiple-object registration solutions,
+during many interventions [19]–[32]. Since the acetabular frag-
+                                                                                  an inaccurate model of the fractured shape is allowed and a
+ment is created intraoperatively, an accurate model of the frag-
+                                                                                  prior distribution over fragment shapes is not required. More-
+ment shape is not available, and invalidates the assumptions used
+                                                                                  over, non-standard equipment is not required to perform the
+in existing multiple-object registration methods [22], [24], [28].
+                                                                                  surgery and no burdensome steps are added to the operating
+   We propose a fiducialess approach that performs multiple-
+                                                                                  workflow.
+object, multiple-view, 2D/3D X-Ray to CT registration to re-
+                                                                                     We have evaluated the proposed method with a large simu-
+solve the pose of an acetabular fragment with respect to the
+                                                                                  lation study and six cadaver surgeries. In both experiments we
+anterior pelvic plane (APP). After the clinician performs a repo-
+                                                                                  report fragment pose and LCE errors when knowing the true
+sitioning of the fragment, the pelvis and fragment are registered
+                                                                                  fragment shape, a preoperatively planned shape, and an intraop-
+using several fluoroscopic images, and the fragment’s pose and
+                                                                                  eratively estimated shape. To evaluate the performance of our
+LCE angle are reported. The fragment shape is estimated after
+                                                                                  method, we examine rotation and translation components of the
+registering the patient’s non-acetabular portion of the pelvis.
+                                                                                  pose differences from ground truth, as well as the error in LCE
+Cut lines present in the 2D images are used to approximate the
+                                                                                  angle measurement. Since it is expected that fragment pose and
+ilium and pubis osteotomies, while the ischial and posterior os-
+                                                                                  LCE angle errors will increase as the shapes used for registration
+teotomies remain set according to a preoperative plan. The pose
+                                                                                  match intraoperative shapes less, analysis of the simulation and
+and LCE values may be interpreted by the clinician to determine
+                                                                                  cadaver experiments will determine if the proposed methods are
+whether the fragment is in an acceptable pose, or whether further
+                                                                                  sufficiently accurate to assist with intraoperative evaluation of
+adjustment is needed. When the fragment needs to be moved,
+                                                                                  dysplasia.
+the current pose estimate may help determine the direction in
+which the fragment should next be adjusted. Additionally, but
+beyond the scope of this work, biomechanical indicators may                                                  II. RELATED WORK
+also be computed once the fragment’s relative pose is known                          Initial work on computer aided systems for pelvic osteotomy
+[3]–[6]. The high-level workflow of our proposal is shown in                      focused on performing the actual osteotomies, rather than track-
+Fig. 2.                                                                           ing the mobilized acetabular fragment. Langlotz demonstrated
+   We believe this is the first computer assisted system for in-                  the use of preoperative CT and optically tracked surgical in-
+traoperatively tracking an acetabular fragment with X-Ray nav-                    struments to assist with PAOs, but did not provide estimates
+igation without the use of artificial fiducial objects. Compared                  on the relocated pose of the acetabular fragment [11], [33].
+to other multiple-view registration approaches in literature, our                 Mayman used optical tracking to intraoperatively place guid-
+approach does not require a tracked, encoded, or motorized,                       ing screws on the patient’s pelvis and matching osteotomies
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+GRUPP et al.: POSE ESTIMATION OF PERIACETABULAR OSTEOTOMY FRAGMENTS WITH INTRAOPERATIVE X-RAY NAVIGATION                                              443
+
+
+
+from a preoperative plan, but did not provide intraoperative                       Intensity-based registration performs an optimization over
+tracking of the fragment [13]. Akiyama also tracked osteotomes                  the relevant pose parameters, using an objective function that
+during a curved periacetabular osteotomy (CPO) [34] using op-                   compares simulated radiographs, commonly referred to as digi-
+tical tracking [15]. In [35], Radermacher constructed patient                   tally reconstructed radiographs (DRRs), with the intraoperative
+specific cutting guides for use in a triple osteotomy [36], how-                image [29]. The comparison is performed using a mathemat-
+ever the pose of the fragment was not reported during the proce-                ical construct known as a similarity measure [29]. Due to the
+dure. Similarly, Otsuki developed patient specific cutting guides               differences in X-Ray energy between preoperative CT and in-
+to perform CPO and did not track the pose of the acetabular                     traoperative fluoroscopy, the most effective similarity metrics
+fragment [37].                                                                  compare the 2D gradients of a measured radiograph and a DRR,
+   Also using preoperative CT and optical tracking devices, Mur-                such as normalized cross-correlation between the Sobel gradi-
+phy did not track the ostoetomes, but instead tracked the acetabu-              ent images (Grad-NCC) [29]. Robustness to metallic objects and
+lar movements and computed intraoperative biomechanics [12],                    bone fractures may be improved by taking a weighted sum of
+[38]. Through repeated digitizations of points on the acetabular                similarity measures computed in local regions of interest [41],
+fragment body, the fragment was tracked and the appropriate                     [42]. Registration with multiple 2D views, and known relative
+biomechanical properties were presented to the clinician [12].                  poses between each view, is accomplished by creating DRRs at
+Fragment pose errors of 1.4–1.8◦ and 1.0–2.2 mm were re-                        each view and summing the similarity scores for each view [27].
+ported. The process of manually digitizing the bone bur points                  In order to register multiple objects with known shape, each ob-
+during each fragment reposition adds a small amount of time                     ject may be treated as a separate volume, and DRRs for each
+to the overall procedure and may be subject to some error [38].                 object are summed together to create a single DRR [28]. The
+Liu also developed a system for preoperative PAO planning                       registration problem for N object poses: θ1 , . . . , θN , with M
+and intraoperative tracking of the fragment using optical track-                intraoperative views: I1 . . . IM , a pre-operative CT: V , a DRR
+ing and a separate rigid body attached to the fragment [14],                    operator: P, similarity metric: S, and regularizer over plausible
+[39]. However, fixing a separate rigid body to the fragment is                  poses: R, is concisely stated in (1).
+not necessarily practical when using a state-of-the-art, mini-                                    M
+                                                                                                               N
+                                                                                                                               
+                                                                                                               
+mally invasive, approach such as [17] and [18]. For rotational                         min            S Im ,        P (V ; θn ) + R (θ1 , . . . θN )
+acetabular osteotomies (RAO) [40], Takao used an optically                       θ 1 ,...,θ N ∈S E (3)
+                                                                                                         m =1       n =1
+tracked system to monitor the osteotomes and fragment move-                                                                                     (1)
+ment [16]. The fragment pose was intraoperatively estimated                        With the advent of general purpose GPU programming re-
+by digitizing the anterior edge of the acetabulum, which re-                    sources, Otake was able to efficiently form many DRRs simulta-
+sulted in some difficulty distinguishing between rotation and                   neously and use a state of the art “Covariance Matrix Adaptation:
+translation.                                                                    Evolutionary Search” (CMA-ES) optimization strategy [43]
+   X-Ray navigation has been used to assist with the reduc-                     to carry out registration of a single femur using three views in
+tion of traumatic bone fractures, by providing real-time 3D                     under 22 seconds [27]. Relative pose information was computed
+visualizations of relocated bone fragments [24] and feedback                    using an external fiducial for a non-motorized C-Arm and was
+corresponding to a 3D preoperative plan [22]. Methods to au-                    preoperatively calibrated when using a motorized C-Arm.
+tomatically annotate intraoperative images have been used to                       Several groups have demonstrated registration of multiple ob-
+avoid wrong-level spinal surgery [30] and mitigate the malpo-                   jects with intensity-based objective functions and accurate shape
+sitioning of surgical implants [19]. Using intraoperative X-Ray                 models, or with a statistical prior of the shape distributions.
+imaging, a surgical robot may be guided into an optimal location                   In [28], Otake’s framework was extended to multiple objects
+for the milling [23], [31], or drilling [32], of bone. Automatic                for the knee joint (distal femur, patella, proximal tibia) tracking
+3D visualization and kinematic analysis of the wrist [20] and                   with bi-plane fluoroscopy. Initial registration times at the start
+knee [21], [25] have also been demonstrated with X-Ray navi-                    of each sequence for the femur, tibia, and patella bones were
+gation. To our knowledge, no existing method based on X-Ray                     between 2 and 5 minutes. All femur and tibia poses were es-
+navigation, without fiducials, is able to localize a bone fragment              timated within 2◦ and 2 mm, and 74% of patella poses were
+without accurate preoperative knowledge or a statistical prior of               estimated within the same thresholds.
+the fragment shape.                                                                Gong proposed to use intensity-based registration to intraop-
+   At the core of an X-Ray based navigation system is a 2D/3D                   eratively estimate the position of bone fragments resulting from
+registration algorithm [26]. The goal of 2D/3D registration is                  a distal radius fracture [22]. The approach requires preoperative
+to determine the pose of 3D objects with respect to a 3D coor-                  knowledge of the bone fragment shapes and uses a preoperative,
+dinate frame using a series of 2D X-Ray images. Typically, a                    but post-trauma, CT scan [22]. Two 3D printed phantoms with
+preoperative 3D model, such as a CT scan is used to represent                   synthetic fractures were used to test the method with four fluo-
+the patient, and the information contained in the X-Ray image                   roscopic views from a tracked C-Arm. Target registration errors
+is used to determine the pose of the patient with respect to the                (TREs) smaller than 3 mm were achieved when using a manual,
+intraoperative X-Ray imager. The majority of 2D/3D X-Ray reg-                   interactive, initialization of the registration. Execution times of
+istration methods may be classified as either “intensity-based” or              3–9 minutes were reported using modest hardware.
+“feature-based,” however we limit discussion to intensity-based                    In order to localize and determine the shape of carpal bones
+methods in this paper.                                                          in the hand, Chen et al. use a 2D/3D registration of a single
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+444                                                                 IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+fluoroscopic view to 3D statistical shape and pose models of the                removed due to the chiseling action, left femur, or right femur.
+carpal bones, radius, and ulna [20]. TREs of 2.45 mm were re-                   The osteotomy action is simulated by moving a virtual chisel,
+ported in simulation, and TREs from 0.93–2.37 were reported in                  of width 1 mm, along the virtual cutting planes defined by the
+the flouroscopic experiments. Registration times were approxi-                  preoperative plan. Starting from the original segmentation, all
+mately 3 minutes per frame.                                                     pelvis labels contained within the convex hull defined by the
+   Although related by the motivation to track multiple objects                 virtual cutting planes are marked as a candidate fragment voxel.
+with intensity-based registration, the aforementioned works do                  Furthermore, if a candidate fragment voxel is within a chisel
+not provide a complete solution for the localization of an ac-                  width of any virtual cut plane, it is also marked as a candidate
+etabular fragment. Most importantly, the fragment shape is not                  “cut” voxel. The set of candidate fragment voxels is divided
+completely known pre-operatively and, to our knowledge, no                      into connected components, with the largest component kept
+statistical priors of pelvic osteotomies exist. In contrast to the              as candidate fragment voxels, and the others reverted to pelvis
+fluoroscopic data collected of the phantom in [22], the fluoro-                 labels. Of the remaining candidate fragment voxels, any marked
+scopic images of a human have more heterogeneous hard and                       as candidate cut voxels are labeled as cuts, and are otherwise
+soft tissue distributions, usually resulting in a more challeng-                labeled as fragment. Tight bounding boxes are computed about
+ing registration. Additionally, objects such as metallic screws,                the pelvis labels, fragment labels, and femur labels to create
+wires, or tools may confound a registration strategy, and were                  sub-volumes for each object.
+not present in the fluoroscopic views used by [20], [22], [28].
+   Without any external fiducial objects or optical tracking sys-
+tems, the methods proposed in this paper intraoperatively es-                   B. Intraoperative Registration Strategy
+timate an acetabular fragment’s pose using X-Ray navigation.                       Our registration strategy is based on the methods described in
+The pose estimation problem is solved by extending previous                     [27] and [28]. However, the methods proposed here do not rely
+2D/3D X-Ray registration techniques to partially estimate the                   on external information to recover the multiple-view geometry,
+acetabular fragment shape during surgery, and then localize the                 provide a quick single-landmark initialization, use a similarity
+pelvis and fragment without a tracked, motorized, or encoded,                   metric robust to mismatches between the preoperative models
+X-Ray imager. Furthermore, our method aims to provide intra-                    and intraoperative reality, perform a faster local search at higher
+operative feedback in a reasonable timeframe, with computation                  resolution levels, and attempt to recover the shape of intraoper-
+times on the order of seconds.                                                  atively created bone fragments without an additional CT.
+                                                                                   DRRs are formed by ray casting through each object’s at-
+                 III. MATERIALS AND METHODS                                     tenuation volume with a ray step size of 1 mm and trilinear
+                                                                                interpolation. Grad-NCC scores are computed throughout im-
+A. Preoperative Processing and Planning
+                                                                                age patches, with the mean value used as the similarity measure
+   Lower torso preoperative CT images were acquired and re-                     for all intensity-based registrations in this work [42]. Ray cast-
+sampled to have 1 mm isotropic voxel spacing. Segmentation                      ing and similarity metric computation are computed on a GPU
+of the pelvis, and left and right femurs was performed using an                 through the use of OpenCL [46], while optimization logic is
+automatic method [44], followed by manual touch up. The man-                    conducted on the CPU. Image parameters and the projection
+ual touch up was occasionally necessary to distinguish between                  geometry are derived from a Siemens CIOS Fusion C-Arm with
+the acetabulum of a pelvis and the corresponding femoral head.                  30 cm flat panel detector. Using DICOM metadata populated by
+Using manually annotated landmarks, the APP was computed                        a CIOS Fusion, we created a naı̈ve set of intrinsic parameters
+as described by [45] and the origin was relocated to the ipsilat-               for the C-Arm: image dimensions of 1536 × 1536, isotropic
+eral femoral head. The APP coordinate axes are aligned with                     pixel spacing of 0.194 mm/pixel, a source-to-detector distance
+the left/right (LR), inferior/superior (IS), and anterior/posterior             of 1020 mm, no distortion, and a principal point at the center of
+(AP) anatomical axes. An example of the APP axis orientations                   the image.
+is shown in Fig. 1. In order to report LCE angles intraopera-                      We use two 2D image resolution levels in this work, start-
+tively, the most lateral points of the acetabulum are digitized                 ing from coarse (8× downsampling in each 2D dimension) and
+from coronal slices of the preoperative CT volume.                              moving to a finer resolution (4× downsampling). At the coars-
+   Other landmarks identified for registration purposes were the                est resolution level, all optimizations are conducted with the
+medial and inferior points of maximal curvature on the obturator                CMA-ES strategy, and the Bounded Optimization by Quadratic
+foramen, the greater sciatic notch, and inferior symphysis. To                  Approximation (BOBYQA) strategy [47] is used at the second
+allow for accurate initialization of full pelvis registration in the            level. The CMA-ES search strategy is a derivative free method
+presence of a mobilized fragment, the registration landmarks                    which requires a large number of objective function evaluations
+should not be located on portions of the pelvis that may become                 per iteration, but approximates a traditional second-order algo-
+fragment.                                                                       rithm while maintaining robustness to local minima [43]. Since
+   A preoperative plan of the osteotomies is created by manual                  the BOBYQA strategy requires only a single objective function
+selection of several landmarks on the pelvis surface and cutting                evaluation per iteration, it has significantly faster runtimes com-
+planes are fit to pass through the landmarks. Next, a label map is              pared to CMA-ES for this work. Even though BOBYQA does
+computed that indicates whether a voxel represents the acetab-                  not provide the same robustness to local minima as CMA-ES,
+ular bone fragment, the non-fragment pelvis, a portion of bone                  we justify its use at the second resolution level due to its effi-
+
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+GRUPP et al.: POSE ESTIMATION OF PERIACETABULAR OSTEOTOMY FRAGMENTS WITH INTRAOPERATIVE X-RAY NAVIGATION                                               445
+
+
+
+                                                                                 pose estimate of the pelvis may be obtained by annotating more
+                                                                                 landmarks in 2D and solving the PnP problem [48]. Once the ini-
+                                                                                 tial pose is estimated, a single-view intensity-based registration
+                                                                                 of the pelvis is performed.
+                                                                                    By restricting the possible movements of the C-Arm for sub-
+                                                                                 sequent views, initial pelvis pose estimates for the remaining
+                                                                                 views are automatically obtained through an exhaustive search
+                                                                                 starting from the registered pose of the pelvis in the first view.
+                                                                                 More precisely, we limit the geometries of the remaining views
+                                                                                 to only differ from the first view by a rotation along the C-Arm’s
+                                                                                 orbit. DRRs are computed by adjusting the registered pelvis
+                                                                                 pose of the initial view by C-Arm orbital rotations of ±90◦ in
+                                                                                 1◦ increments, for a total of 181 DRRs. Similarity computations
+                                                                                 are made between the second and third fluoroscopic views, and
+                                                                                 the poses corresponding to the best similarity scores are used
+                                                                                 to initialize intensity-based registrations. An offline calibration
+                                                                                 process was conducted to determine center of orbital rotation
+                                                                                 and rotation axis for the CIOS Fusion.
+                                                                                    Prior to any further registrations, the preoperative plan of the
+                                                                                 fragment may be refined as described in Section III-C.
+                                                                                    Once the single view pelvis registrations are complete, the
+Fig. 3. Top Row: Intraoperative fluoroscopic images used for regis-              multiple-view geometry is recovered using the pelvis coordi-
+tering the fragment on the left side of a cadaveric specimen. Note the           nate frame and the multiple-object registration is conducted.
+four BBs on the mobilized fragment and four BBs on the ilium used
+for ground truth computation. The left image shows an approximate AP             Specifically, we attempt to solve problem (1) through successive
+view and the yellow circle indicates the single-landmark used for ini-           optimizations of individual objects, followed by a simultaneous
+tialization of the intraoperative pipeline. Middle Row: DRRs created as          optimization. At each resolution level, the pelvis pose estimate
+part of the intensity-based registration using manual segmentation of the
+fragment; the final pose estimates are shown. Prior to performing any            is refined starting from its current estimate. The pose of the
+similarity comparisons, the images in the top-row will be log-corrected.         pelvis is kept fixed, while an optimization over the pose of the
+Bottom Row: An example of simulated fluoroscopic data generated us-              femur is performed. Keeping the poses of the pelvis and femur
+ing the protocol of the simulation study. The image includes soft-tissue
+and inserted K-wires, with object poses determined by the registrations          fixed, the pose of the acetabular fragment is estimated. At the
+from the middle row. Despite the visual similarity with the top row, the         coarse level, the femur and fragment poses are initialized with
+challenge of visually determining a fragment’s pose is confirmed by an           the current estimate of the pelvis pose, while previous poses
+approximate 3°/3 mm pose error difference from the top row’s ground
+truth. See Fig. 1 for the ground truth 3D view.                                  are used for initialization at the second level. At the second
+                                                                                 level, a “simultaneous” optimization is performed after the “se-
+                                                                                 quential” optimizations; which optimizes over all object poses
+ciency, and because we assume that pose estimates after the first                simultaneously. An example of three views used for a fragment
+resolution level lie within a smooth, convex, region about the                   localization is shown in Fig 3.
+true minima.                                                                        The registration process produces pose estimates of the ex-
+   The C-Arm is not required to be motorized, encoded, or ca-                    trinsic C-Arm frame (C) with respect to the pelvis (P V ) and
+pable of reporting relative pose information. In order to obtain                 fragment (F V ) volumes: TCP V and TCF V . The relative pose of
+the relative pose information required by the multi-object frag-                 the fragment with respect to the APP is computed as:
+ment registration, we treat the patient’s anatomy as a “fiducial”
+                                                                                                    ΔA P P = TPAVP P TCF V TPCV TAPPV P .              (2)
+object. Single-view registrations of the pelvis are performed for
+each view and the pelvis coordinate frame is then used as the                    TAPPV P is obtained when estimating the APP from preopera-
+C-Arm world frame.                                                               tive landmarks and maps points in the APP to the preoperative
+   Assuming the first fluoroscopic view is approximately AP, a                   pelvis and fragment volumes. Using ΔA P P , the intraoperative
+single landmark is manually annotated in 2D to initialize pelvis                 fragment movement may be visualized in 3D (see Fig. 1) and
+registration. The 3D landmark location, with respect to the C-                   shown to the clinician. Additional information useful for the
+Arm, is estimated by traversing the source-to-detector ray of                    assessment of dysplasia may also be displayed, such as the LCE
+this landmark 85% of the source-to-detector distance. Orienta-                   angle and a decomposition of the pose with respect to each
+tion of the pelvis is computed using the APP coordinate frame                    anatomical axis. Similar to the approach in [49], the LCE angle
+described in Section III-A. Translation is recovered by aligning                 is computed by applying the fragment’s relative pose to trans-
+the landmark points in the two coordinate frames. The point of                   form the 3D preoperative lateral trace of the acetabulum.
+maximal curvature on the medial portion of the ipsilateral ob-                      Given initial estimates for poses of each object, the optimiza-
+turator foramen was chosen as the initialization landmark used                   tion for each object is performed over the se(3) Lie Algebra [50],
+in this work, and an example annotation is shown in the top left                 with the SE(3) reference point set from the initialization point.
+of Fig. 3. If the first view is not approximately AP, an initial                 For a single view registration, an intermediate coordinate frame
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+446                                                                 IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+that is axis aligned with the camera projection frame, with origin
+at the initial estimate of the femoral head, is used. For multiple
+view registrations, the APP with origin at ipsilateral femoral
+head is used as an intermediate frame during the optimization.
+To discourage implausible poses, regularization is applied when
+using the CMA-ES optimization strategy. For single view regis-
+trations, regularization is applied separately to each translation
+component and the Euler decompositions of the rotation ma-
+trix, whereas the total rotation and translation magnitudes are
+used for multiple view registrations. Box constraints are used
+for all optimizations using the BOBYQA optimization strategy.
+Since the pelvis is initially registered with single-views, the op-
+timization parameters used during the multi-view/multi-object
+registration for the pelvis are set for quicker execution time and
+tighter constraints in comparison to those used to register the
+femur and fragment.
+   Exact parameter values are listed in supplementary section
+S-1-B.
+                                                                                Fig. 4. An example of the 2D cut manual annotations from fluoroscopic
+C. Fragment Shape Estimation                                                    images corresponding to the case shown in Fig. 1. Labels identifying
+                                                                                ilium cuts are shown in (a), and labels identifying pubis cuts are shown
+    Since the fracture line introduced during bone chiseling is                 in (b). Zoomed displays of the regions of interest in (a) and (b) are shown
+dependent on bone quality, the cut does not always follow a                     in (c) and (d), respectively. In (a) and (c) biege labels indicate rays that
+                                                                                enter the pelvis surface when moving from the detector to source, while
+planned path. Therefore, it is not realistic for a clinician to ex-             blue labels indicate rays that exit the pelvis surface. In (b) and (d), red
+actly reproduce the planned cuts, even when the osteotome is                    labels indicate rays that both enter and exit the pelvis surface; the view
+guided by a navigation system. To account for the potential                     looks approximately down the cut line.
+uncertainties associated with the osteotomies, we have devel-
+oped a method to estimate the fragment shape; starting from a
+preoperative plan and refined from intraoperative fluoroscopic
+                                                                                consisted of 4 male and 2 female subjects, with ages ranging
+images.
+                                                                                from 57 to 94 years (81 ± 14). For the left and right sides of each
+    For each osteotomy to be estimated, a post-osteotomy fluo-
+                                                                                specimen, we created simulated acetabular fragments, simulated
+roscopic view clearly showing the cut lines is required. The full
+                                                                                fragment movements, and simulated intraoperative fluoroscopic
+pelvis shape is registered to this view and a user manually an-
+                                                                                images.
+notates 2D pixels along the cut lines visible on the main pelvis
+                                                                                   All PAOs were performed bilaterally by a single surgeon
+object. For each 2D label, a ray is cast from the C-Arm detector
+                                                                                (B.A.M.). In order to create nominal fragment shapes, planes
+towards the X-Ray source, and the 3D intersection points with
+                                                                                were fit to the osteotomy contours in postoperative CT volumes
+the pelvis surface are computed. The osteotomy is estimated by
+                                                                                and then mapped into preoperative CT coordinates. Random
+fitting a plane to the recovered 3D points. When looking approx-
+                                                                                surgeries were simulated by applying random rigid transforma-
+imately down the cut line, the ray is nearly tangent to the entire
+                                                                                tions to the cutting planes associated with each nominal os-
+cut and 3D intersection points entering and leaving the pelvis
+                                                                                teotomy. The random adjustments were manually verified to
+surface are used. Otherwise, a label must indicate whether the
+                                                                                create plausible PAO fragments and any invalid fragments were
+ray intersects the 3D osteotomy when entering or exiting the
+                                                                                rejected. This resulted in 15 simulated fragments for each side
+pelvis surface; in this case only the entry or exit intersection
+                                                                                of each patient and 180 for the entire study.
+point is used. Fig. 4 shows an example of the 2D labeling of
+                                                                                   Random movements of each fragment and ipsilateral femur
+ilium and pubis cut pixels.
+                                                                                were sampled. Random rotations of the fragment and femur
+    If an appropriate view and corresponding pelvis registration
+                                                                                were sampled along with a random translation component for
+is not available, then the preoperative plan for that osteotomy
+                                                                                both the fragment and femur. The translation component is
+is used for shape estimation. For the ischial and posterior os-
+                                                                                shared, since the fragment and femur tend to move together.
+teotomies, it is challenging to obtain a view that clearly shows
+                                                                                To mimic clinically relevant movements of the fragment and
+the cut lines, and for which a pelvis registration may be success-
+                                                                                femur, Euler angles and translations about each anatomical axis
+fully performed. Therefore, only the ilium and pubis osteotomies
+                                                                                were sampled. All transformations are with respect to the APP
+will be estimated in the following experiments, and the ischium
+                                                                                with appropriate femoral head origin. Collision detection was
+and posterior osteotomies will be set at the planned values.
+                                                                                performed to ensure that different bones did not overlap in 3D
+                                                                                space. When a collision occurred, the set of transformations
+D. Simulation Study                                                             was rejected, and another set was sampled. A total of 20 move-
+  In order to determine the feasibility of this registration strat-             ments for each fragment were sampled, with a mean rotation of
+egy, we conducted a large simulation study using the CT scans of                15.49◦ ± 6.77◦ and mean translation of 4.35 mm ± 1.57 mm.
+6 non-dysplastic cadaveric specimens. The group of specimens                    This yields a total of 3,600 fragment movements for this study.
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+GRUPP et al.: POSE ESTIMATION OF PERIACETABULAR OSTEOTOMY FRAGMENTS WITH INTRAOPERATIVE X-RAY NAVIGATION                                              447
+
+
+
+   Three views are used for each repositioned fragment: a
+perturbed AP view, followed by two views offset at random
+rotations about the C-Arm’s orbit. The simulated fluoroscopy
+incorporates soft-tissues by piece-wise rigidly warping the
+original CT volume according to the pelvis, femur, and fragment
+labels as described in [42]. A temporary fixation of the fragment
+is simulated by inserting two random K-wires into the volume,
+each at a random pose intersecting the ilium and fragment.
+Using a protocol similar to [51], fluoroscopic images are created
+from this new volume and view geometries. An example set
+of simulated fluoroscopic images is shown in the bottom row
+of Fig. 3.
+   The registration process proceeds according to the strategy
+described in III-B. Registrations are initialized by simulating
+a 2D and 3D point picking process for the single landmark                       Fig. 5. Intraoperative setup for the PAO procedure performed on the
+strategy. Using the registration point manually identified in each              right side of a cadaveric specimen. The current fluoroscopic view is
+CT, the corresponding 2D pixel location is computed for each                    shown in the bottom left. The enlarged region in the top right shows the
+                                                                                markings used to control the orbital rotation of the C-Arm.
+set of fluoroscopic views. Random noise is added to the 2D and
+3D points to simulate variation in human point picking behavior.
+The landmarks are offset by a random distance along a random
+direction. The offset directions are drawn uniformly from the                   estimated fragment shapes. Postoperative CT scans were taken,
+appropriate (2D or 3D) sphere. The 3D offset magnitudes are                     and the fragment shape was manually segmented, to obtain the
+sampled, in mm, from N (0, 3), and the 2D magnitudes are                        true fragment shape. Fifteen preoperative plans for each surgery
+sampled, in pixels, from N (0, 7.5). Five different initializations             were created by fitting cutting planes to the manually segmented
+are estimated for each set of fluoroscopic views.                               fragment, followed by random adjustments. Each preoperative
+   These simulations result in a total of 18,000 multiple-                      plan was manually verified to be a valid PAO, with any invalid
+object/multiple-view registrations that need to be evaluated.                   plan rejected and resampled. The 2D cut lines of the ilium and
+Each registration is run over four scenarios; each with a differ-               pubis osteotomies were manually annotated in the fluoroscopic
+ent fragment shape used during the registration. The first case                 images, and were used to compute the ilium and pubis cutting
+considered is when the fragment shape in the fluoroscopic views                 planes of the estimated fragment shape. Each estimated shape is
+exactly matches the preoperative plan. We also considered the                   completed with the planned ischium and posterior osteotomies.
+case of tracking a fragment with an unknown, or uncertain shape.                   Included with this paper is a supplementary video, which
+To achieve this we assumed that the nominal fragments represent                 illustrates the workflow used to perform the fragment shape
+preoperative plans for the randomly adjusted fragments present                  and pose estimation for the left side of the specimen
+in the simulated fluoroscopic images. The remaining two cases                   shown in Figures 1, 3, 4, and 5. This will be available at
+examined the effect of using intraoperative information to up-                  http://ieeexplore.ieee.org.
+date the planned cut model. For the first case of incorporating                    Ground truth poses of each fragment were obtained using
+intraoperative knowledge, it was assumed that the ilium and                     metallic BBs implanted into the pelves. The postoperative CT
+pubis osteotomies would be perfectly recovered; the planned                     volumes contain the relocated fragment which had been intra-
+ilium and pubis cuts were replaced with the actual values. In the               operatively fixed in place using screws and K-wire. Prior to
+second case, synthetic 2D cut annotations were used to simulate                 osteotomy, BBs were implanted onto the interior ilium surface
+the fragment shape estimation described in Section III-C.                       in a region expected to lie on the fragment, and additional BBs
+   Further details regarding the simulated datasets are described               were implanted onto the interior ilium surface in a region ex-
+in supplementary section S-1-D.                                                 pected to not lie on the fragment. The ground truth fragment
+                                                                                poses are calculated with 3D/3D paired-point registrations [52]
+                                                                                between the 3D locations of the fragment BBs before osteotomy,
+E. Cadaver Study
+                                                                                and the 3D locations after osteotomy. For two specimens, and
+   In order to further evaluate the proposed methods, intraopera-               three PAOs, the fragment BB locations were computed using
+tive fluoroscopy was collected during six of the PAOs previously                3D CT imaging only. Eight BBs were placed on the ilium re-
+used for simulation studies. Four specimens, three male and one                 gion and another eight placed on the fragment, with each eight
+female, were used. Each surgery was performed under fluoro-                     BB constellation made of four 1.5 mm diameter BBs and four
+scopic guidance with a Siemens CIOS Fusion C-Arm with 30 cm                     1 mm diameter BBs. A Halifax Biomedical Inc. injection de-
+flat panel detector. Fig. 5 shows a photograph of the operating                 vice was used to insert the 1 mm diameter BBs. One of our
+theater. Each fluoroscopy image of the repositioned fragments                   clinical co-authors, C.P.A., inserted these BBs after perform-
+contains screws, K-wires, or a combination of the two.                          ing soft-tissue dissections. An additional preoperative CT of the
+   Fragment registrations were evaluated using the true fragment                specimens was obtained to recover the pre-osteotomy BB lo-
+shape, preoperative planned fragments, and intraoperatively                     cations. For the remaining two specimens, and remaining three
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+448                                                                             IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+                                                                      TABLE I
+                                    SIMULATION STUDY FRAGMENT AVERAGE POSE AND LATERAL CENTER EDGE ANGLE ERRORS
+
+
+
+
+Means and standard deviations of the fragment pose errors and lateral center edge (LCE) angle errors for each simulation study. The errors are organized by the type of fragment shape
+used for pose estimation, the total rotation and translation error magnitudes, the decompositions of the errors about each anatomical axis, and the LCE angle. Small LCE errors for all
+fragment shapes indicate that any shape is reliable for reporting lateral coverage of the femoral head.
+
+
+
+
+Fig. 6. Normalized 2D histograms of fragment pose error for the simulation studies. (a) The actual fragment shape is known and matches the
+planned fragment shape, (b) the actual fragment shape is not known and none of the osteotomies match the planned fragment, (c) the actual
+fragment is partially known, with the ilium and pubis osteotomies matching the planned fragment, (d) the actual fragment is not known, but the ilium
+and pubis osteotomies are estimated from 2D cut lines.
+
+
+PAOs, four BBs (1.5 mm diameter) were inserted on the ilium                                                                   TABLE II
+                                                                                                              SIMULATION STUDY STATISTICAL TEST RESULTS
+region and four BBs (1.5 mm diameter) inserted on the fragment
+region. No additional preoperative CT was obtained, however
+a series of fluoroscopic images were taken prior to osteotomy.
+Using the BB constellations obtained from the postoperative
+CT, the pre and post-osteotomy 3D locations of the BBs were
+obtained through a series of 2D/3D landmark registrations on
+the fluoroscopic images. A similar approach, using a plastic
+pelvis phantom with injected BBs and three views from CBCT                                   Results of the Mann-Whitney U-Tests on fragment pose errors for the simulation studies.
+projections, showed that the fragment pose may be recovered                                  The total rotation and translation magnitudes of the pose errors, along with the error of the
+
+within 1◦ /1 mm of CBCT ground truth [53], [54]. Details of BB
+                                                                                             lateral center edge (LCE) angle are examined. The null hypothesis indicates that both sets
+                                                                                             of errors are drawn from the same distribution with identical medians and the alternative
+insertion and the methods used to obtain ground truth poses are                              hypothesis indicates that the errors are drawn from different distributions with the second
+described in supplementary section S-1-E. The BBs were not                                   distribution (fragment shape with label 2) having larger median. Applying a threshold of
+                                                                                             0.005 to the above p-values results in a rejection of the null-hypothesis for all but one
+present in the preoperative CTs used to drive the intensity-based                            of the tests. This implies that errors associated with fragment shapes incorporating less
+registrations and did not aid the proposed methods in any way.                               information of the true cuts are statistically larger than the errors associated with cuts that
+                                                                                             more closely match intraoperative cuts, except when comparing translation errors when
+                                                                                             ilium and pubis cuts are known versus estimated.
+                                  IV. RESULTS
+A. Simulation Study                                                                          the error distribution “widens” as the amount of uncertainty as-
+   Fragment pose estimation was most accurate when the ex-                                   sociated with the fragment shape increases, particularly with
+act fragment shape was used during registration, and accuracy                                respect to rotation error. The percentages of registrations with
+monotonically decreased as knowledge of the shape decreased.                                 rotation errors below 3◦ were 96%, 83%, 92%, and 91%, for the
+For each simulation in which the osteotomies were at least par-                              cases of all cuts known, no cuts known (preoperatively planned),
+tially known or estimated, the mean rotation and translation                                 known ilium and pubis cuts, and estimated ilium and pubis cuts,
+errors were less than 2◦ and 2 mm, respectively. Mean fragment                               respectively. Similarly, the corresponding percentages of trials
+pose errors of 2.2◦ and 2.1 mm were obtained from the sim-                                   with LCE errors below 3◦ were 99%, 97%, 98%, and 98%.
+ulation using preoperatively planned shapes. For all fragment                                   Single-tailed Mann-Whitney U-Tests were performed to de-
+shapes, mean LCE errors were less than 1◦ . Table I lists the                                termine any statistical significance between the errors obtained
+mean and standard deviations of the fragment pose and LCE                                    when running registration with different fragment shapes. The
+errors for each simulation study. Fig. 6 shows the joint his-                                p-values are shown in Table II, and indicate that pose and
+tograms for the fragment pose estimation errors. The shape of                                LCE estimation errors associated with the various categories of
+
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+GRUPP et al.: POSE ESTIMATION OF PERIACETABULAR OSTEOTOMY FRAGMENTS WITH INTRAOPERATIVE X-RAY NAVIGATION                                                                        449
+
+
+
+                                                                      TABLE III
+                                        CADAVER EXPERIMENT FRAGMENT POSE AND LATERAL CENTER EDGE ANGLE ERRORS
+
+
+
+
+Means and standard deviations of fragment pose and lateral center edge angle (LCE) errors for the cadaver surgeries. For each type of fragment shape used during registration, the
+total rotation and translation error magnitudes are reported, along with the errors about each anatomical axis and the LCE angle error. The manual segmented fragment shape, planned
+fragment shape, and estimated fragment shapes roughly correspond to the simulation cases of a fragment shape with all cuts known, a preoperatively planned fragment shape with no
+cuts known, and a shape with ilium and pubis cuts estimated, respectively, as shown in Table I.
+
+
+                              TABLE IV                                                        detector parallel to the operating table and did not match a
+             CADAVER EXPERIMENTS STATISTICAL TEST RESULTS
+                                                                                              typical AP view due to the pelvic tilt of the specimens.
+                                                                                                 An expected runtime of 25.3 seconds was obtained by
+                                                                                              re-running the estimated-fragment pose estimation pipeline
+                                                                                              20 times for each surgery. The expected time required to man-
+                                                                                              ually choose a single 2D landmark, required for registration
+Results of the Mann-Whitney U-Tests on fragment pose and lateral center edge (LCE)
+                                                                                              initialization, was 2 seconds; the expected time for manual an-
+angle errors for the cadaver experiments. See Table II for a discussion of the hypotheses.    notation of 2D cut lines, required for fragment shape estimation,
+Using a threshold of 0.005, no significant difference is reported for any of the errors and   was 51.2 seconds.
+for each comparison of shapes.
+                                                                                                 The ground truth fragment poses from each surgery, the error
+                                                                                              statistics for each individual surgery, violin plots of the error
+                                                                                              distributions, and a breakdown of timings across the individual
+fragment shape are statistically different. Moreover, the single-                             components of the registration pipeline are provided in supple-
+tailed test indicates that the errors associated with fragment                                mentary section S-2-B.
+shapes using less intraoperative osteotomy information are sta-
+tistically larger than errors determined by fragment shapes in-
+corporating more knowledge of the intraoperative cuts.                                                                      V. DISCUSSION
+                                                                                                 The simulation study yielded promising results for the lo-
+                                                                                              calization of the acetabular fragment. As one would expect,
+B. Cadaver Study                                                                              the pose errors were smallest on average when the exact shape
+   A summary of the fragment pose and LCE error statistics                                    of each bone was known during registration, and degraded as
+is provided in Table III. Two results, one corresponding to a                                 less information about the osteotomies was known. This in-
+planned fragment shape and another to an estimated shape, pro-                                crease in average error was consistent across total rotation and
+duced fragment rotation errors above 20◦ and were discarded                                   translation magnitudes, the decompositions about anatomical
+from analysis. The pose estimations with manual segmented                                     axes, and for the LCE angle estimates. The increases in rotation
+fragments, planned fragments, and estimated fragments resulted                                error magnitudes and LCE angle errors were statistically sig-
+in mean rotation/translation errors of 2.2◦ /2.2 mm, 3.8◦ /2.5 mm,                            nificant for all comparisons and highlight the impact of preop-
+and 3.5◦ /2.5 mm, respectively. Mean LCE errors were below 2◦                                 erative/intraoperative fragment shape mismatch on registration
+for all fragment shapes. Additionally, the standard deviations                                accuracy. Increases in the translation error magnitudes were sta-
+of all rotation and LCE errors strictly increased as knowledge                                tistically significant in all but one comparison: using true pubis
+of the fragment’s 3D shape decreased. Rotation errors were                                    and ilium osteotomies, mixed with planned ischial and poste-
+less than 3◦ for 83%, 39%, and 39% of the registration trials                                 rior osteotomies, compared with estimating the pubis and ilium
+when using a manual segmentation of the fragment, a planned                                   osteotomies. This also indicates that the fragment localization
+fragment, and an estimated fragment, respectively. The corre-                                 is partially robust to differences between the planned and intra-
+sponding proportions of LCE errors less than 3◦ were 100%,                                    operative osteotomies for the ischial and posterior cuts.
+85%, and 85%.                                                                                    To our knowledge, no bounds on the accuracy of fragment
+   Table IV shows p-values from statistical tests of significance                             pose or LCE angle have been identified in previous literature,
+conducted on the rotation, translation, and LCE errors. The pro-                              therefore we consider 3◦ to be an acceptable upper bound on
+tocol was identical to that used for evaluating the simulation                                LCE angle error. This threshold allows the clinician to target
+study results. Using a threshold of p = 0.005, no statistical dif-                            LCE angles between 33◦ –37◦ , while having confidence that the
+ferences are indicated between the rotation, translation, or LCE                              true LCE angle is within the 30◦ –40◦ criteria put forth by [9].
+errors when comparing the various fragment shapes.                                            At this threshold, the lowest success rate of 97% corresponds
+   The single-landmark initialization strategy was used for four                              to a preoperatively planned fragment shape, and indicates that
+of the six cases, and multiple-landmark initialization was used                               an arbitrary preoperative plan is sufficient to obtain a successful
+for the remaining two. In the two cases requiring multiple-                                   registration. However, if the LCE error threshold is lowered to
+landmark initialization, the initial views were taken with the                                2◦ , successful pose estimates were found in 98%, 92%, 97%,
+
+               Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+450                                                                 IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+and 96% of trials, for the cases of the fragment shape with                     method, the previous analysis of LCE angle errors indicate it is
+all cuts known, the preoperatively planned fragment shape, the                  capable of providing clinically appropriate pose estimates.
+shape with known ilium and pubis cuts, and the shape with esti-                    The amount of femoral head coverage is primarily derived
+mated ilium and pubis cuts, respectively. Therefore, a clinician                from the series of rotations applied to the acetabular fragment
+may attach more confidence to pose estimates obtained after                     about the femoral head. For this reason, we report errors using
+estimating the fragment’s ilium and pubis cuts.                                 rotation and translation components of the pose differences be-
+   In cadaver surgeries, registrations using each fragment shape                tween registered estimates and ground truth poses. Furthermore,
+yielded average LCE errors less than 2◦ . This indicates that                   large TREs at regions distant from the cartilage surface, such as
+the proposed pipeline is capable of producing clinically usable                 the ilium osteotomy, do not imply an incorrect estimate of the
+estimates on real fluoroscopic imagery. In terms of average                     femoral head coverage.
+rotational and LCE error, registrations using the manually                         Given the promising results in cadaveric experiments, and
+segmented fragment shape outperformed registrations using                       the diversity of data used in simulation, we believe this method
+preoperatively planned shapes and intraoperatively refined                      should perform well on human subjects. Although we did not
+shapes. However, when examining translation dimensions,                         evaluate the proposed methods on dysplastic hips, our method
+the manually segmented fragment did not offer a noticeable                      should not suffer any performance degradation when run on
+advantage over the remaining two shapes. The performance                        dysplastic hips of younger patients. We have not made any as-
+across all error metrics was roughly equivalent when comparing                  sumptions in our processing specific to normal hip anatomy,
+the registrations using the preoperative plan and estimated                     and we only require an intensity volume of the pelvis that we
+fragments. Moreover, when comparing the errors produced                         may compute DRRs from. Some dysplastic hips may be subject
+through registrations using differing shape types, no statistically             to severe arthritis, which would likely cause difficulty during
+significant differences were found. This is in stark contrast to the            preoperative segmentation and also create a less-smooth reg-
+simulation study results, which imply that an estimated shape                   istration similarity metric, however these patients would most
+should perform statistically better than a preoperatively planned               likely undergo a total hip replacement (THR) instead of pelvic
+fragment.                                                                       osteotomy.
+   We believe this is primarily caused by low bone qualities from                  The expected computation time of approximately 25 seconds
+two specimens used for three surgeries. Prior to any osteotomies                is reasonable for intraoperative operation, however this does
+made to free the acetabular fragment, a small osteotomy of the                  not include the time required to perform any manual annota-
+anterior superior iliac spine (ASIS) is performed in order to                   tions. Since the fragment will not change shape after the os-
+provide sufficient access to the ilium. At the conclusion of the                teotomies are completed, annotation of the cut lines only needs
+surgery, the ASIS is reattached in its original location. The ASIS              to be performed once. It is likely that several adjustments to
+osteotomy was excessively large for two specimens, resulting                    the fragment’s pose will be required, therefore we believe that
+in a fragment shape with an additional osteotomy not repre-                     the cut annotation time is amortized over each of these ad-
+sentable by our four-cut model. When these three surgeries are                  justments. A similar amortization is not applicable to registra-
+removed from the results, 100% of the registrations using man-                  tion re-initialization via landmark identification. However, other
+ually segmented fragment shapes, 95% using preoperatively                       techniques using neural networks for recognizing fluoroscopic
+planned fragment shapes, and 100% using estimated shapes                        landmarks [55], or for approximate pose regression [56], could
+produce LCE errors less than 3◦ . Furthermore, mean rotation                    be applied to avoid this bottleneck.
+errors of the fragment pose were 2.4◦ , 4.0◦ , and 3.1◦ when us-                   Although implicitly penalized by the image similarity metric,
+ing a manually segmented fragment shape, a preoperative plan,                   the proposed registration method does not penalize 3D collision
+and estimated shape, respectively. Although no statistical dif-                 or overlap of bones. It is possible that the method’s performance
+ference was found between these error distributions, the results                may improve by including collision and overlap information into
+are more consistent with the trend established by the simula-                   the regularization term of (1). When the fragment shape used
+tion study of increasing errors, corresponding to registrations                 during registration does not match the true fragment shape, it is
+using more mismatched fragment shapes. Since most patients                      possible for collisions to occur, particularly about the ischial and
+undergoing PAO are young adults, bone quality is not expected                   posterior osteotomies. Therefore, it may be possible to recover
+to be an issue in clinical use. Considering these factors, we can               more accurate shapes by updating the volumetric segmentation
+say that the fragment pose estimation using an estimated shape                  to remove collisions after registration. Shapes could be refined
+provided clinically relevant results to determine femoral head                  by iteratively switching between registration and shape updates.
+coverage, with LCE errors less than 3◦ .                                           The six cadaver surgeries have served as proof-of-concept for
+   The mean rotation error of 3.5◦ , when using the estimated                   the methods proposed in this work, however we believe further
+fragment shape during the cadaver surgeries, is noticeably larger               efforts should include clinical PAO cases. This would include
+than the 1.8◦ error reported by a state-of-the-art optically tracked            the acquisition of clinical PAO fluoroscopic data used for further
+solution [12]. Translation errors found with the proposed system                validation, and move towards a comparison of patient outcomes
+are roughly equivalent to the 2.2 mm identified by the optically                and operative times of non-navigated, optically navigated, and
+tracked method. Although the X-Ray navigation approach has                      X-Ray navigated cases. The system could also integrate a preop-
+inferior rotation performance compared to the optically tracked                 erative plan of the biomechanically optimal fragment reposition,
+
+
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+GRUPP et al.: POSE ESTIMATION OF PERIACETABULAR OSTEOTOMY FRAGMENTS WITH INTRAOPERATIVE X-RAY NAVIGATION                                                      451
+
+
+
+and intraoperatively provide feedback consisting of adjustments                 paper, for which we are very grateful. In addition, the authors
+that would maximize the likelihood of achieving the plan.                       are indebted to Dr. M. Takao and Dr. N. Sugano for allow-
+   Although the experiments in this paper were restricted to                    ing us to observe an RAO procedure and become aware of the
+PAO, we have not made any assumptions that would preclude                       challenges involved. The authors also thank Prof. M. Unberath
+application to other pelvic osteotomies, such as RAO, CPO,                      for helpful discussions. Finally, we are appreciative of the con-
+or triple osteotomy. Forty percent of THR surgeries result in a                 structive comments and critiques provided by the anonymous
+mal-positioned (with respect to the “safe zone”) acetabular com-                reviewers, which have resulted in an improved paper. This feed-
+ponent [57], therefore we believe that our fragment tracking ap-                back led to the single-landmark registration initialization strat-
+proach would also be useful for the intraoperative visualization,               egy, and has greatly improved the system’s ease of use. Part
+and guidance, of the THR acetabular implant.                                    of this research project was conducted using computational re-
+   Although the use of a preoperative CT scan is an increasingly                sources at the Maryland Advanced Research Computing Center
+common practice, it is not considered the current standard of                   (MARCC).
+care at all centers. When CT scans are used for diagnosis or pre-
+operative planning, slice spacings are typically in the range of
+2–3 mm [10]. It is not clear what effect lower resolution CT data                                                 REFERENCES
+will have on the accuracy of the proposed system and remains an                  [1] S. B. Murphy, R. Ganz, and M. Müller, “The prognosis in untreated
+important topic to be investigated. Furthermore, higher resolu-                      dysplasia of the hip. A study of radiographic factors that predict the
+tion preoperative CT scans may add additional cost and expose                        outcome,” J. Bone Joint Surg. Amer., vol. 77, no. 7, pp. 985–989, 1995.
+                                                                                 [2] R. Ganz et al., “A new periacetabular osteotomy for the treatment of hip
+the patient to, potentially hazardous, radiation. In the future, a                   dysplasias technique and preliminary results,” Clin. Orthopaedics Related
+“CT free” approach could be implemented using a statistical                          Res., vol. 232, pp. 26–36, 1988.
+deformation model (SDM) created from a database of exist-                        [3] M. Armand et al., “Outcome of periacetabular osteotomy: joint contact
+                                                                                     pressure calculation using standing AP radiographs, 12 patients followed
+ing pelvic CTs [58]. The SDM would be used in a deformable                           for average 2 years,” Acta Orthopaedics, vol. 76, no. 3, pp. 303–313, 2005.
+2D/3D registration to recover the patient’s 3D anatomy from                      [4] R. S. Armiger et al., “Three-dimensional mechanical evaluation of joint
+standard preoperative standing radiographs and several pre-                          contact pressure in 12 periacetabular osteotomy patients with 10-year
+                                                                                     follow-up,” Acta Orthopaedics, vol. 80, no. 2, pp. 155–161, 2009.
+osteotomy fluoroscopic images [59]. However, the SDM would                       [5] N. Niknafs et al., “Biomechanical factors in planning of periacetabular
+most likely be unable to recover a sufficiently accurate cartilage                   osteotomy,” Front Bioeng. Biotechnol., vol. 1, p. 20, 2013.
+model required for biomechanical measures and analysis. This                     [6] J. A. Hipp et al., “Planning acetabular redirection osteotomies based
+                                                                                     on joint contact pressures,” Clin. Orthopaedics Related Res., vol. 364,
+could be overcome through the use of a partial preoperative CT,                      pp. 134–143, 1999.
+scanning only the acetabulum and extrapolating the remaining                     [7] A. Troelsen, “Surgical advances in periacetabular osteotomy for treatment
+anatomy with the SDM, similar to the methods proposed in [60]                        of hip dysplasia in adults,” Acta Orthopaedics, vol. 80, no. suppl. 332,
+                                                                                     pp. 1–33, 2009.
+and [61].                                                                        [8] G. Wiberg, “Studies on dysplastic acetabulum and congenital subluxation
+                                                                                     of the hip joint with special reference to the complications of osteoarthri-
+                         VI. CONCLUSION                                              tis,” Acta Chir. Scand., vol. 83, no. 58, pp. 53–68, 1939.
+                                                                                 [9] C. Hartig-Andreasen et al., “What factors predict failure 4 to 12 years after
+   The proposed method for intraoperative localization of a                          periacetabular osteotomy?” Clin. Orthopaedics Related Res., vol. 470,
+                                                                                     no. 11, pp. 2978–2987, 2012.
+mobilized acetabular fragment, with uncertain shape, has been                   [10] A. Troelsen et al., “Assessment of hip dysplasia and osteoarthritis: Vari-
+demonstrated to report LCE angles within clinical tolerance in                       ability of different methods,” Acta Radiol, vol. 51, no. 2, pp. 187–193,
+simulated cases and also in cadaveric cases for PAO. Less com-                       2010.
+                                                                                [11] F. Langlotz et al., “Computer assistance for pelvic osteotomies,” Clin.
+mon equipment used in other approaches, such as an encoded                           Orthopaedics Related Res., vol. 354, pp. 92–102, 1998.
+or motorized CBCT C-Arm or an optical tracking device, is                       [12] R. J. Murphy et al., “Development of a biomechanical guidance system
+not required by this method. Additionally, the processing runs                       for periacetabular osteotomy,” Int. J. Comput. Assisted Radiol. Surgery,
+                                                                                     vol. 10, no. 4, pp. 497–508, 2015.
+in an amount of time which is reasonable for incorporation into                 [13] D. J. Mayman et al., “The kingston periacetabular osteotomy utilizing
+an intraoperative workflow. As entry-level flat panel imaging                        computer enhancement: A new technique,” Comput. Aided Surg., vol. 7,
+technology becomes more common in operating theaters, our                            no. 3, pp. 179–186, 2002.
+                                                                                [14] L. Liu et al., “Computer assisted planning and navigation of periacetab-
+method should be directly applicable to pelvic osteotomies                           ular osteotomy with range of motion optimization,” in Proc. Med. Image
+or other similar fragment tracking tasks. The proposed X-ray                         Comput. Comput. Assisted Intervention, 2014, pp. 643–650.
+navigation could make pelvic osteotomies more accessible to                     [15] H. Akiyama et al., “Computed tomography-based navigation for
+                                                                                     curved periacetabular osteotomy,” J. Orthopaedics Sci., vol. 15, no. 6,
+novice surgeons, reduce the number of times a fragment needs                         pp. 829–833, 2010.
+to be adjusted during a procedure, and possibly reduce the radi-                [16] M. Takao et al., “Comparison of rotational acetabular osteotomy per-
+ation exposure to the surgical team by reducing the number of                        formed with navigation by surgeons with different levels of experience
+                                                                                     of osteotomies,” Int. J. Comput. Assisted Radiol. Surgery, vol. 12, no. 5,
+fluoroscopic images used.                                                            pp. 841–853, 2017.
+                                                                                [17] A. Troelsen, B. Elmengaard, and K. Søballe, “A new minimally invasive
+                       ACKNOWLEDGMENT                                                transsartorial approach for periacetabular osteotomy,” J. Bone Joint Surg.
+                                                                                     Amer., vol. 90, no. 3, pp. 493–498, 2008.
+   The authors would like to thank D. Boston for his assistance                 [18] A. Troelsen, B. Elmengaard, and K. Søballe, “Comparison of the mini-
+                                                                                     mally invasive and ilioinguinal approaches for periacetabular osteotomy
+during cadaveric testing. Prof. Y. Sato provided productive and                      263 single-surgeon procedures in well-defined study groups,” Acta
+insightful discourse during the algorithmic development of this                      Orthopaedics, vol. 79, no. 6, pp. 777–784, 2008.
+
+
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+452                                                                     IEEE TRANSACTIONS ON BIOMEDICAL ENGINEERING, VOL. 67, NO. 2, FEBRUARY 2020
+
+
+
+[19] P. Belei et al., “Fluoroscopic navigation system for hip surface replace-      [40] S. Ninomiya and H. Tagawa, “Rotational acetabular osteotomy for the
+     ment,” Comput. Aided Surg., vol. 12, no. 3, pp. 160–167, 2007.                      dysplastic hip,” J. Bone Joint Surg. Amer., vol. 66, no. 3, pp. 430–436,
+[20] X. Chen et al., “Automatic inference and measurement of 3D carpal bone              1984.
+     kinematics from single view fluoroscopic sequences,” IEEE Trans. Med.          [41] D. Knaan and L. Joskowicz, “Effective intensity-based 2D/3D rigid reg-
+     Imag., vol. 32, no. 2, pp. 317–328, Feb. 2013.                                      istration between fluoroscopic X-ray and CT,” in Medical Image Com-
+[21] D. A. Dennis et al., “In vivo determination of normal and anterior cru-             puting and Computer-Assisted Intervention. Berlin Germany: Springer,
+     ciate ligament-deficient knee kinematics,” J. Biomechan., vol. 38, no. 2,           2003, pp. 351–358.
+     pp. 241–253, 2005.                                                             [42] R. B. Grupp, M. Armand, and R. H. Taylor, “Patch-based image simi-
+[22] R. H. Gong, J. Stewart, and P. Abolmaesumi, “Multiple-object 2-D–3-                 larity for intraoperative 2D/3D pelvis registration during periacetabular
+     D registration for noninvasive pose identification of fracture fragments,”          osteotomy,” in Proc. Int. Workshop Clin. Image Based Procedures, 2018,
+     IEEE Trans. Biomed. Eng., vol. 58, no. 6, pp. 1592–1601, Jun. 2011.                 pp. 153–163.
+[23] A. Guéziec et al., “Anatomy-based registration of CT-scan and intraoper-      [43] N. Hansen and A. Ostermeier, “Completely derandomized self-adaptation
+     ative X-ray images for guiding a surgical robot,” IEEE Trans. Med. Imag.,           in evolution strategies,” Evol. Comput., vol. 9, no. 2, pp. 159–195, 2001.
+     vol. 17, no. 5, pp. 715–728, Oct. 1998.                                        [44] M. Krčah, G. Székely, and R. Blanc, “Fully automatic and fast segmenta-
+[24] L. Joskowicz et al., “FRACAS: A system for computer-aided image-                    tion of the femur bone from 3D-CT images with no shape prior,” in Proc.
+     guided long bone fracture surgery,” Comput. Aided Surg., vol. 3, no. 6,             IEEE Int. Symp. Biomed. Imag., 2011, pp. 2087–2090.
+     pp. 271–288, 1998.                                                             [45] C. Nikou et al., “Description of anatomic coordinate systems and rationale
+[25] M. R. Mahfouz et al., “A robust method for registration of three-                   for use in an image-guided total hip replacement system,” in Proc. Med.
+     dimensional knee implant models to two-dimensional fluoroscopy im-                  Image Comput. Comput. Assisted Intervention, 2000, pp. 1188–1194.
+     ages,” IEEE Trans. Med. Imag., vol. 22, no. 12, pp. 1561–1574, Dec. 2003.      [46] J. E. Stone, D. Gohara, and G. Shi, “OpenCL: A parallel program-
+[26] P. Markelj et al., “A review of 3D/2D registration methods for image-               ming standard for heterogeneous computing systems,” Comput. Sci. Eng.,
+     guided interventions,” Med. Image Anal., vol. 16, no. 3, pp. 642–661,               vol. 12, no. 3, pp. 66–73, 2010.
+     2012.                                                                          [47] M. J. Powell, “The BOBYQA algorithm for bound constrained optimiza-
+[27] Y. Otake et al., “Intraoperative image-based multi-view 2D/3D registra-             tion without derivatives,” University of Cambridge, Cambridge, U.K.,
+     tion for image-guided orthopaedic surgery: Incorporation of fiducial-based          Rep. NA2009/06, 2009.
+     C-arm tracking and GPU-acceleration,” IEEE Trans. Med. Imag., vol. 31,         [48] R. Hartley and A. Zisserman, Multiple View Geometry in Computer Vision.
+     no. 4, pp. 948–962, Apr. 2012.                                                      Cambridge, U.K.: Cambridge Univ. Press, 2003.
+[28] Y. Otake et al., “Robust patella motion tracking using intensity-based         [49] R. S. Armiger et al., “Evaluation of a computerized measurement tech-
+     2D-3D registration on dynamic bi-plane fluoroscopy: Toward quantitative             nique for joint alignment before and during periacetabular osteotomy,”
+     assessment in MPFL reconstruction surgery,” Proc. SPIE, vol. 9786, 2016,            Comput. Aided Surg., vol. 12, no. 4, pp. 215–224, 2007.
+     Art. no. 97 860B.                                                              [50] R. M. Murray et al., A Mathematical Introduction to Robotic Manipula-
+[29] G. P. Penney et al., “A comparison of similarity measures for use in                tion. Boca Raton, FL, USA: CRC Press, 1994.
+     2-D-3-D medical image registration,” IEEE Trans. Med. Imag., vol. 17,          [51] P. Markelj, B. Likar, and F. Pernuš, “Standardized evaluation methodology
+     no. 4, pp. 586–595, Aug. 1998.                                                      for 3D/2D registration based on the visible human data set,” Med. Phys.,
+[30] L. L. Sheng-fu et al., “Automatic localization of target vertebrae in spine         vol. 37, no. 9, pp. 4643–4647, 2010.
+     surgery: Clinical evaluation of the LevelCheck registration algorithm,”        [52] B. K. Horn, “Closed-form solution of absolute orientation using unit
+     Spine, vol. 40, no. 8, 2015, Art. no. E476.                                         quaternions,” J. Opt. Soc. Amer. A, vol. 4, no. 4, pp. 629–642, 1987.
+[31] J. Yao et al., “A C-arm fluoroscopy-guided progressive cut refinement          [53] M. Armand et al., “Biomechanical guidance system for periacetabular
+     strategy using a surgical robot,” Comput. Aided Surg., vol. 5, no. 6,               osteotomy,” in Intelligent Orthopaedics. Berlin, Germany: Springer, 2018,
+     pp. 373–390, 2000.                                                                  pp. 169–179.
+[32] T. Yi et al., “Robotic drill guide positioning using known-component           [54] R. Murphy et al., “Computer-assisted X-ray image-based navigation of pe-
+     3D–2D image registration,” J. Med. Imag., vol. 5, no. 2, 2018, Art. no.             riacetabular osteotomy with fiducial based 3D acetabular fragment track-
+     021212.                                                                             ing,” Orthopaedics Proc., vol. 95, no. SUPP_28, 2013, Art. no. 84.
+[33] F. Langlotz et al., “The first twelve cases of computer assisted periac-       [55] B. Bier et al., “X-ray-transform invariant anatomical landmark detection
+     etabular osteotomy,” Comput. Aided Surg., vol. 2, no. 6, pp. 317–326,               for pelvic trauma surgery,” in Medical Image Computing and Computer-
+     1997.                                                                               Assisted Intervention. Berlin, Germany: Springer, 2018, pp. 55–63.
+[34] M. Naito et al., “Curved periacetabular osteotomy for treatment of dys-        [56] A. Kendall, M. Grimes, and R. Cipolla, “PoseNet: A convolutional net-
+     plastic hip,” Clin. Orthopaedics Related Res., vol. 433, pp. 129–135,               work for real-time 6-DOF camera relocalization,” in Proc. IEEE Int. Conf.
+     2005.                                                                               Comput. Vis., 2015, pp. 2938–2946.
+[35] K. Radermacher et al., “Computer assisted orthopaedic surgery with im-         [57] M. C. Callanan et al., “The john charnley award: Risk factors for cup
+     age based individual templates,” Clin. Orthopaedics Relat. Res., vol. 354,          malpositioning: Quality improvement through a joint registry at a tertiary
+     pp. 28–38, 1998.                                                                    hospital,” Clin. Orthopaedics Relat. Res., vol. 469, no. 2, pp. 319–329,
+[36] D. Tönnis et al., “Triple pelvic osteotomy,” J. Pediatric Orthopaedics B,          2011.
+     vol. 3, no. 1, pp. 54–67, 1994.                                                [58] Y. Otake et al., “Comparison of optimization strategy and similarity metric
+[37] B. Otsuki et al., “Developing a novel custom cutting guide for curved peri-         in Atlas-to-subject registration using statistical deformation model,” Proc.
+     acetabular osteotomy,” Int. Orthopaedics, vol. 37, no. 6, pp. 1033–1038,            SPIE, vol. 94 15, 2015, Art. no. 94 150Q.
+     2013.                                                                          [59] O. Sadowsky, G. Chintalapani, and R. Taylor, “Deformable 2D-3D regis-
+[38] R. J. Murphy et al., “Clinical evaluation of a biomechanical guidance               tration of the pelvis with a limited field of view, using shape statistics,” in
+     system for periacetabular osteotomy,” J. Orthopaedics Surg. Res., vol. 11,          Proc. Med. Image Comput. Comput. Assisted Interv., 2007, pp. 519–526.
+     no. 1, p. 36, 2016.                                                            [60] R. Grupp et al., “Pelvis surface estimation from partial CT for computer-
+[39] L. Liu et al., “Periacetabular osteotomy through the pararectus approach:           aided pelvic osteotomies,” Orthopaedics Proc., vol. 98, no. SUPP_5, 2016,
+     technical feasibility and control of fragment mobility by a validated surgi-        Art. no. 55–55.
+     cal navigation system in a cadaver experiment,” Int. Orthopaedics, vol. 40,    [61] G. Chintalapani et al., “Statistical atlas based extrapolation of CT data,”
+     no. 7, pp. 1389–1396, 2016.                                                         Proc. SPIE, vol. 7625, 2010, Art. no. 762 539.
+
+
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:53:16 UTC from IEEE Xplore. Restrictions apply.
+

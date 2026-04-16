@@ -1,0 +1,1212 @@
+             Journal of
+             Clinical Medicine
+
+Review
+Image-to-Patient Registration in Computer-Assisted Surgery of
+Head and Neck: State-of-the-Art, Perspectives, and Challenges
+Ali Taleb 1, * , Caroline Guigou 1,2,† , Sarah Leclerc 1,† , Alain Lalande 1,3                   and Alexis Bozorg Grayeli 1,2
+
+                                         1   Team IFTIM, Institute of Molecular Chemistry of University of Burgundy (ICMUB UMR CNRS 6302),
+                                             Univ. Bourgogne Franche-Comté, 21000 Dijon, France; caroline.guigou@chu-dijon.fr (C.G.);
+                                             sarah.leclerc@u-bourgogne.fr (S.L.); alain.lalande@u-bourgogne.fr (A.L.);
+                                             alexis.bozorggrayeli@chu-dijon.fr (A.B.G.)
+                                         2   Otolaryngology Department, University Hospital of Dijon, 21000 Dijon, France
+                                         3   Medical Imaging Department, University Hospital of Dijon, 21000 Dijon, France
+                                         *   Correspondence: ali.taleb@u-bourgogne.fr
+                                         †   These authors contributed equally to this work.
+
+
+                                         Abstract: Today, image-guided systems play a significant role in improving the outcome of diagnostic
+                                         and therapeutic interventions. They provide crucial anatomical information during the procedure
+                                         to decrease the size and the extent of the approach, to reduce intraoperative complications, and to
+                                         increase accuracy, repeatability, and safety. Image-to-patient registration is the first step in image-
+                                         guided procedures. It establishes a correspondence between the patient’s preoperative imaging and
+                                         the intraoperative data. When it comes to the head-and-neck region, the presence of many sensitive
+                                         structures such as the central nervous system or the neurosensory organs requires a millimetric preci-
+                                         sion. This review allows evaluating the characteristics and the performances of different registration
+                                         methods in the head-and-neck region used in the operation room from the perspectives of accuracy,
+                                         invasiveness, and processing times. Our work led to the conclusion that invasive marker-based
+                                         methods are still considered as the gold standard of image-to-patient registration. The surface-based
+                                         methods are recommended for faster procedures and applied on the surface tissues especially around
+Citation: Taleb, A.; Guigou, C.;
+                                         the eyes. In the near future, computer vision technology is expected to enhance these systems by
+Leclerc, S.; Lalande, A.; Bozorg
+                                         reducing human errors and cognitive load in the operating room.
+Grayeli, A. Image-to-Patient
+Registration in Computer-Assisted
+                                         Keywords: registration; image-to-patient; head-and-neck surgery; computer-assisted surgery; image-
+Surgery of Head and Neck:
+State-of-the-Art, Perspectives, and
+                                         guided; image navigation
+Challenges. J. Clin. Med. 2023, 12,
+5398. https://doi.org/10.3390/
+jcm12165398
+                                         1. Introduction
+Academic Editors: Lin-Lin Bu and
+Bing Liu
+                                              Surgical navigation systems also known under the general term of computer-assisted
+                                         surgery (CAS) systems were introduced into routine medical practice more than four decades
+Received: 20 July 2023                   ago [1]. Today, hybrid operating rooms including computed tomography (CT) scans or mag-
+Revised: 8 August 2023                   netic resonance imaging (MRI) are rapidly expanding around the world in all specialties [2].
+Accepted: 14 August 2023
+                                         Based on this technology, minimally invasive surgical procedures and endovascular inter-
+Published: 19 August 2023
+                                         ventions have been designed [3]. These types of procedures require specific training and
+                                         collaboration in the fields of imaging and surgery [4,5]. Although these systems represent
+                                         real progress in many surgical fields, the flow of information provided by them increases
+Copyright: © 2023 by the authors.
+                                         the cognitive load of the operators and potentially the risk of human error [6], raising many
+Licensee MDPI, Basel, Switzerland.
+                                         issues pertaining to safety, reliability, and ergonomics.
+This article is an open access article
+                                              Until the end of the 19th Century, the only way to explore the human body’s organs
+distributed under the terms and          was through invasive procedures [7]. Later, the advent of X-ray imaging by Wilhelm
+conditions of the Creative Commons       Conrad in 1895 was acknowledged by the medical society and rapidly became the key to
+Attribution (CC BY) license (https://    the exploration of human anatomy [8]. In the following years, the number of applications
+creativecommons.org/licenses/by/         for this new technology grew rapidly. However, to establish the correspondence between
+4.0/).                                   the image and the patient’s body, physicians had to rely on their anatomical knowledge
+
+
+
+J. Clin. Med. 2023, 12, 5398. https://doi.org/10.3390/jcm12165398                                           https://www.mdpi.com/journal/jcm
+J. Clin. Med. 2023, 12, 5398                                                                                             2 of 22
+
+
+
+
+                               and mental representation capacities [9]. The first attempts to localize specific anatomical
+                               structures based on imaging can be traced back to the late Nineteenth Century [10]. The
+                               use of navigation systems has since grown rapidly, especially in the head-and-neck region.
+                               At the beginning, these systems used an external frame attached to the target body region.
+                               After obtaining an X-ray image including the frame and the concerned body region (gener-
+                               ally the skull), the coordinates of the target were calculated, and an instrument was placed
+                               on the target using the same frame [10]. In simple scenarios, such as stereotactic brain
+                               biopsies, the procedure could be carried out with a quite simple technology. However,
+                               in complex surgical procedures requiring the mobility of both the head and the surgical
+                               instruments, the introduction of several instruments in the field, and the movement of soft
+                               tissues inside and around the target zone, complex and sometimes cumbersome machines
+                               (e.g., O-Arm, Medtronics Inc., Minneapolis, MN, USA) became unavoidable. Today, these
+                               systems can provide crucial anatomical information during the procedure to decrease the
+                               size and the extent of the approach, reduce intraoperative complications, and increase
+                               accuracy, repeatability, and safety [11].
+                                     All CAS systems require an image-to-patient registration as a preliminary step. This
+                               step consists of aligning multiple coordinate systems. The two inputs are the target (intra-
+                               operative, such as a biopsy needle) and the source (preoperative, such as a brain MRI scan).
+                               The process is conducted by transforming the source image to align with the target. Regis-
+                               tration methods can be classified based on their characteristics (Figure 1). An overview of
+                               these characteristics is provided below:
+                               •    Type of input: Preoperative images (e.g., MRI, CT scan, ultrasound (US)) provide
+                                    information on the deep-seated structures and are generally acquired several hours or
+                                    days before the procedure. This timing is due to the complexity of image acquisition
+                                    and processing. Intraoperative imaging equipment (e.g., cone-beam computed tomog-
+                                    raphy (CBCT), intraoperative CT (iCT), fluoroscopy, US, intraoperative MRI (iMRI),
+                                    endoscopic cameras) or tracking devices with markers connected to the navigation
+                                    system serve for the initial image-to-patient registration and also to correct naviga-
+                                    tional errors or the tissue shift during the procedure [12]. Accordingly, data could take
+                                    the form of either an image or the spatial coordinates of the physical space.
+                               •    Transformations: Depending on the types of surrounding tissues, the registration
+                                    could be rigid or non-rigid (i.e., deformable, local). Soft tissues require a non-rigid
+                                    registration that considers all local deformations [13], while a rigid registration consid-
+                                    ers only global transformation and normally requires fewer degrees of freedom and
+                                    lower computational costs.
+                               •    Techniques: In both cases of rigid and non-rigid techniques, the registration can be
+                                    manual [14], semi-automatic [15], or automatic [16]. Current studies focus on removing
+                                    the human intervention from the loop progressively and ultimately automating the
+                                    whole procedure. This enhances the ergonomics while potentially increasing the
+                                    performance. Today, the most-common scenario consists of a surgeon or a qualified
+                                    operator conducting a manual registration by selecting a set of corresponding points
+                                    from the patient’s physical space or the target image based on a qualitative analysis. A
+                                    semi-automatic procedure employs a program that can assist the registration process to
+                                    enhance the performance, the accuracy, or the computational cost, but still requires the
+                                    intervention of an expert. The chain of procedure can include well-known algorithms
+                                    such as the iterative closest point (ICP), normal iterative closest point (NICP) [17], or
+                                    even learning-based algorithms [18]. Several other routine CAS systems are based on
+                                    automatic registration. The process does not require any intervention, but in some
+                                    cases, invasive external fiducial markers and external tracking devices with bulky
+                                    sensors attached to the body are required [19].
+                               •    Correspondence: Establishing a correspondence between the input data is based on
+                                    the input modalities and their available features. The three common approaches
+                                    for determining the correspondence are [20]: segmentation [21], sparse features (i.e.,
+                                    points, edges, objects) [22], or signal intensity (i.e., MRI or US signal, radiological
+J. Clin. Med. 2023, 12, 5398                                                                                                  3 of 22
+
+
+
+
+                                    density) [23,24]. Feature-based approaches are known to be less complex in terms
+                                    of computation, where the transformation matrix could be directly obtained from
+                                    the correspondence of features between two modalities or by a simple algorithm
+                                    (e.g., least squares [25]). Features could be physically available (fiducials) or extracted
+                                    from images with image-processing techniques [26]. However, in cases where the
+                                    same features are not constantly available in all situations (e.g., block of display,
+                                    noisy images, anatomical deformations), the reliability becomes an issue. As an
+                                    alternative, intensity approaches start from the initial default parameters, and through
+                                    an optimization algorithm, the best model is selected. Here, the key relies on the
+                                    selected metric, which is at the basis of integrating mutual information from both
+                                    modalities [27].
+
+
+
+
+                               Figure 1. A classification of the registration methods. The upper row represents the intraoperative
+                               data (patient’s body) and the lower row the preoperative data (imaging). The dotted lines represent
+                               the pairing between the 2 modalities. In the anatomy-based method (A), anatomical landmarks are
+                               identified and selected by the operator. In the marker-based method (B), fiducial markers are fixed to
+                               the patient’s head. In the surface-based method (C), the red surface on the patient’s face is scanned
+                               by a specific instrument. In computer-vision-based method (D), the registration zone is captured by
+                               a camera.
+
+                                     Based on this background, image-to-image and image-to-patient are the two types of
+                               registration in the medical field. The word “patient” in the latter term refers to either the
+                               patient’s physical reference space (real spatial coordinate system) or real-time intraoperative
+                               imaging (e.g., endoscopic, CBCT, operative microscope video output). Registration in CAS
+                               can, therefore, be referred to as an image-to-patient registration.
+                                     Mathematically, the dimension of the source should always be greater than or equal to
+                               the target. Since the target (the patient) is always in three dimensions (3D), we expect the
+                               source to be also in 3D, thus a 3D-to-3D transformation is expected. As the deformations
+                               in the head-and-neck region are considered to be rigid, a minimum of three non-coplanar
+                               points or features should be perceived and matched in both inputs. However, in some cases,
+                               the target is displayed in two dimensions (2D) by projecting it from a certain viewpoint to
+                               a 2D image [28]. Then, an extra point is needed for identifying the projection parameters.
+                                     In our work, we will systematically review all procedures of image-to-patient registra-
+                               tion in the head-and-neck region and discuss their characteristics, from the perspectives of
+                               the method, accuracy, processing time, and invasiveness. To the best of our knowledge, no
+                               comprehensive systematic review focusing specifically on the patient-to-image registration
+                               has been conducted in the past decade.
+J. Clin. Med. 2023, 12, 5398                                                                                            4 of 22
+
+
+
+
+                               2. Methods
+                                    In this study, we performed a systematic review of the available literature up to April
+                               2022 on the “Pubmed” website (https://pubmed.ncbi.nlm.nih.gov accessed on 12 April
+                               2022) using the following query: “(R & P) OR (R & O & N) OR (R & O & M & N)”, where
+                               each term is a list of keywords appearing in the articles’ title. R stands for registration,
+                               O for organ, M for modality, N for techniques, and P for procedures as listed below:
+                               •    R: register, registration.
+                               •    O: auditory, brain, canal, cavity, cephalic vein, cerebellar, cerebral, cerebral, cerebrum,
+                                    cheek, chorda, ciliary nerves, cochlea, cranial, cricoarytenoid muscle, cricoid, ear,
+                                    eardrum, eye, facial, fossa, glossopharyngeal, head, hypoglossal, iris, jaw, jugular,
+                                    laryngeal, larynx, lingual, lip, malleus, mandibular, masticatory, maxillary, meninges,
+                                    muscles, nasal, nasolacrimal duct, neck, nerve, nose, occipital lobe, ocular, oculomotor,
+                                    optic chiasm, optic nerve, oral cavity, palate, palpebral, peduncles, pharynx, retina,
+                                    septum, sinus, sinuses, skull, submandibular gland, teeth, temporomandibular joint,
+                                    tongue, tooth, trachea, trochlear nerve, tympani nerve.
+                               •    M: angiographic, angiography, CT, DPI, fluoroscopic, fluoroscopy, image, imaging,
+                                    Laser, mesh, modality, MRI, portal image, surface, techniques, TRUS, ultrasound, US.
+                                    N: 3D to 2D, AR, augmented reality, biopsy, endoscopic, endoscopy, FNA, guided,
+                                    IGRT, image to patient, image-to-patient, implant, implantation, interventional, intra,
+                                    intraoperative, intra-operative, invasive, macroscopic, macroscopy, navigation, non-
+                                    invasive, radiosurgery, radiotherapy, real time, shift, surface, surgery, surgical, video.
+                               •    P: angle tumor, apex, cataract, cavernous, cerebellopontine, cervical spinal, clivus,
+                                    cochlear, craniotomy, gamma-knife, glaucoma, jugular, keratectomy, labyrinthectomy,
+                                    labyrinthectomy, lasik, macula, myringotomy, neuroendoscopy, olfactory, ophthal-
+                                    mology, otologic, petrous, photorefractive, PRK, retinopathy, septoplasty, sinusitis,
+                                    stereotactic, tracheostomy, turbinoplasty.
+                                    The initial search yielded 483 studies. After removing duplicates, reading the abstracts
+                               for appropriateness in terms of scope, and including 20 additional articles through cross-
+                               referencing, a total of 113 studies were included in this review.
+
+                               3. Registration Methods
+                                    The registration methods (Figure 1) were classified based on the type of input data and
+                               the acquisition technique: anatomy-based, surface-based, marker-based, and computer-
+                               vision-based.
+
+                               3.1. Anatomy-Based Methods
+                                    They are basically a pair-point matching. Characteristic points are specific anatomical
+                               landmarks that could easily be identified in both the image space and the patient space with
+                               minimal skin shift. Common landmarks are the tip of the nose, nasion, both canthi, tragi,
+                               parietal eminence, and inion [9,29] (Figure 2). Teeth can also be used as landmarks: the
+                               mesiobuccal cusps of the first molars on both sides, the mesial point of the incisal edge of
+                               the upper incisor, and the canine cusp were used in a study utilizing digitally reconstructed
+                               models [30]. Depending on the procedure, some landmarks may be hard to reach due to
+                               the head position. While most of them are accessible in a supine position, only a few are
+                               reachable in a lateral position or even fewer in a prone position.
+                                    Marking the landmarks on an image requires the placement of a marker on the
+                               adequate 2D slice when dealing with 2D images or crosshairs on each plane for more
+                               precision in the case of 3D images [31]. Marking in a patient physical reference frame is
+                               achieved via a tracked pointer device. By pairing the two sets of landmarks, the coordinate
+                               systems can be unambiguously registered. There are several algorithms to calculate the
+                               transformation between two spaces from corresponding point pairs [32–34]. The anatomy-
+                               based method has been reported to show lower accuracy in comparison to other methods.
+                               However, it is known for its simplicity, minimal invasiveness, and low cost.
+J. Clin. Med. 2023, 12, 5398                                                                                           5 of 22
+
+
+
+
+                               Figure 2. Landmarks used in anatomy-based methods for registration.
+
+                               3.2. Surface-Based Methods
+                                     These methods work by scanning the surface of the face to collect a large set of points
+                               forming the geometry of the area. The points are matched to a corresponding set of
+                               points extracted from the preoperative imaging. Unlike other methods, there is no direct
+                               correspondence between the points. Instead, algorithms aim for the best transformation
+                               that aligns both sets. ICP is one of the most-popular algorithms for such a purpose. The
+                               algorithm works iteratively, each time estimating the transformation that minimizes a cost
+                               function determined by a defined distance between points [35,36].
+                               Optimal regions for registration are the ones with a minimal skin shift (along the nasion,
+                               around the orbits, the forehead, and the nose). Evidently, this method is not feasible in a
+                               prone position since remarkable landmarks are not accessible to the external cameras [37].
+                                     Initially, stationary intraoperative systems were developed to acquire skin surface
+                               points. Marmulla et al. proposed multiple systems of this kind based on projecting and
+                               capturing an optical signal [38,39]. Beams from a projector (such as a video beamer) fixed
+                               above the patient’s head, or laser beams, were projected on the skin and captured by
+                               cameras within the specified frequency range of the light.
+                                     Later, mobile systems were introduced. The majority of these systems operated
+                               contactless by projecting the laser lines (Z-touch, BrainLAB, Heimstetten, Germany). Each
+                               line ends with a dot on the patient’s skin. The laser reflections are detected by the infrared
+                               cameras of the navigation system placed around the patient’s head, and their positions are
+                               exploited for the registration. Alternatively, the distance to each laser dot is measured by
+                               the handheld tool itself, therefore eliminating the need for an external camera to capture
+                               its position [40]. However, an active optical tracking system, using light-emitting diodes
+                               attached to the tool and external infrared cameras, are used to track the position of the
+                               registration tool. The tracking of the registration tool establishes the geometrical relation
+                               between the system and the patient. In a more-complex surface-based method, several
+                               camera systems were designed to capture both image and depth information along the
+                               z-axis. Lee et al. [41] reported four commercially available systems using such a method:
+                               The GALAXY (LAP Co., Lüneburg, Germany), IDENTIFY (Varian Co., Palo Alto, CA, USA),
+                               C-RAD products (C-RAD Co., Uppsala, Sweden), and The Align RT (vision RT Co., London,
+                               UK). These systems rely on either a laser camera, time-of-flight camera, structured light,
+                               or stereo cameras to acquire the depth information. Simpler surface contact tools were
+J. Clin. Med. 2023, 12, 5398                                                                                          6 of 22
+
+
+
+
+                               also used to scan skin surface points (e.g., Soft-touch, BrainLAB, Heimstetten, Germany, or
+                               Digipointeur, Collin SA, Bagneux, France).
+
+                               3.3. Marker-Based Methods
+                                     These methods rely on markers attached to the patient’s tissues and can be either
+                               invasive or non-invasive. In both cases, the markers or fiducials are clearly identifiable on
+                               both modalities (preoperative and intraoperative images). They are localized easily and,
+                               in some systems, automatically. The detection of markers in preoperative images can be
+                               simply achieved by thresholding [42]. In the patient’s physical space, points are localized
+                               by touching the fiducial marker with a tracked probe [43] or an optical tracker [44] (Hx40;
+                               Claron Technology Inc., Toronto, ON, Canada).
+                                     Examples of non-invasive markers are stickers, headbands, dental splints, and detach-
+                               able markers. Headbands (e.g., BrainLAB headband, BrainLAB, Heimstetten, Germany)
+                               and stickers (e.g., Digipointeur, Collin SA, Bagneux, France; BrainLAB 960-991 Medtronic
+                               Disposable Fiducial Markers, Heimstetten, Germany) on the patient’s forehead are easy to
+                               install and inexpensive [45]. They are attached to tissues with minimal shift such as bone by
+                               screws, biocompatible glue, or any other adhesive material. The markers should remain in
+                               place from the time of the preoperative imaging until the registration in the operating room.
+                               Yet, the skin movements during the imaging and registration may still induce millimetric
+                               errors. Detachable markers can be customized to the patient’s anatomy preoperatively.
+                               Their shape does not change until the day of the operation, thus there is no requirement
+                               for the markers to be placed between the time of preoperative imaging and the day of the
+                               procedure. A common marker based on this concept is the Thermoset facial mask used for
+                               immobilizing the patient’s head-and-neck for radiotherapy [46]. More on this subject will
+                               be discussed in the invasiveness section.
+                                     Invasive markers placed under local anesthesia in the skull bone have the advantage
+                               of no tissue shift, but their invasiveness represents a limitation [47]. Titanium screws
+                               are preferred because they present a low risk of allergy, are biocompatible, and cause no
+                               inflammation [48].
+
+                               3.4. Computer-Vision-Based Methods
+                                     These methods do not require any marker, and unlike surface-based methods, the
+                               patient’s space is captured by a real-time video. Basic acquisition tools are a video feed
+                               from an endoscope [49], a microscope [50], or a stereo camera [51]. For instance, in a
+                               procedure of deep brain stimulation, Zagorchev et al. [52] used a geodesic photogrammetry
+                               system (Electrical Geodesics Inc., Eugene, OR, USA) for the identification of the electrode
+                               positions on the scalp surface. The system relied on 11 cameras mounted on a polyhedron
+                               mount. It could compute the location of the electrodes by stereovision principles combining
+                               the position of each camera and the principles of perspective [53]. In a similar manner,
+                               Chang et al. [51] used two stereo cameras for 3D modeling. The patient’s physical space
+                               was derived from a pair of images. For smaller surgical fields, more-complex tools were
+                               utilized. Gurbani et al. [54] implemented a system for cochlear implantation with a fiber
+                               optic rotary probe. The method was based on scanning the inner surface of the cochlear
+                               canal using the probe attached to a microrobot (EyeRobot2, CISST ERC Johns Hopkins
+                               University, Baltimore, MD, USA) [55]. The probe then acted as a highly accurate distance
+                               sensor, allowing for surface detection. To deal with brain shift in neurosurgical procedures,
+                               Jiang et al. [56] were able to measure the texture of the brain surface with a phase-shift
+                               3D surface measurement system [57,58]. The brain surface was scanned by projecting
+                               phase-shifted patterns in both the horizontal and vertical directions, while the phase-shift
+                               pattern was recorded by a camera. Subsequently, the camera captured the 2D texture image.
+                                     The inputs (intraoperative and preoperative data) of computer-vision-based methods
+                               are correlated either through a similarity metric or a feature extraction followed by feature
+                               mapping. However, it is common to preprocess the input data as a preliminary step.
+                               Preprocessing involves image reconstruction or rendering. In a study that evaluated a
+J. Clin. Med. 2023, 12, 5398                                                                                                 7 of 22
+
+
+
+
+                               navigation system for sinus surgery, Burschka et al. [59] used a monocular camera to
+                               obtain a 3D reconstruction of the target region and used it as an input to a principal-
+                               component-analysis (PCA)-based algorithm, which registered the reconstructed video
+                               data to the CT data. The method was inherited from a previously implemented vision-
+                               based inertial system for mobile robots. Another approach to preprocessing data is to use
+                               image rendering while attempting to apply the appropriate metric [60]. By combining the
+                               information on camera pose to the video feed via an optimization algorithm, a rendered
+                               image (virtual endoscopic vision) with maximum similarity to the real 3D endoscopic
+                               image can be obtained as reported by Otake et al. [61]. This rendering algorithm, called iso-
+                               surface volume rendering, was implemented on a graphics processing unit (GPU) for faster
+                               calculation and more fluid images. The similarity metric was based on the normalized
+                               cross-correlation (NCC) between the gradients of the two images. The concept of the
+                               GPU-based rendering method was also applied to CT scan data by using an algorithm
+                               based on a structural similarity metric [62]. The system searched in the CT scan data for
+                               the virtual camera pose that produced a simulated view that best matched the real video
+                               image. These projects, which take advantage of the considerable image-processing capacity
+                               of the GPUs in real-time, will be expanding in the near future.
+
+                               4. Accuracy
+                                     Accuracy enhancement in the surgical procedure stands out as one of the main ob-
+                               jectives of the CAS. In the head-and-neck region, the accuracy depends on the region. In
+                               stereotactic procedures that involve a variable amount of brain shift, an accuracy above
+                               2 mm is considered as unacceptable [63,64]. An even lower threshold is set for microsurgi-
+                               cal interventions. One prominent example for this high-accuracy requirement is cochlear
+                               implant surgery, where the accuracy shall not exceed 0.5 mm [65]. Indeed, the average
+                               width of the posterior tympanotomy separating the facial nerve from the rim of the external
+                               auditory canal and through which the approach is drilled is 4.7 mm [66]. In cataract surgery,
+                               the threshold of clinical acceptance drops to the range of 20 to 100 µm [67,68].
+                                     Whatever the adopted method, the target registration error (TRE) is the common
+                               measure of accuracy and the only metric to estimate the reliability of the intraoperative
+                               information [69]. However, in particular methods, other notations of error metrics emerge
+                               before estimating the final registration output TRE. Fiducial localization error (FLE) and
+                               fiducial registration error (FRE) could assist in the evaluation of the registration method
+                               (Figure 3).
+
+
+
+
+                               Figure 3. Metrics and factors influencing the target registration error (TRE) in anatomy- and marker-
+                               based methods. the sign − indicates that the corresponding factor decreases the error. The sign +
+                               indicates that the corresponding factor increases the error.
+J. Clin. Med. 2023, 12, 5398                                                                                             8 of 22
+
+
+
+
+                               4.1. Target Registration Error
+                                     The TRE is defined by the distance between the actual and the estimated target
+                               position after the registration. A principle applies for all methods: TRE increases with
+                               the distance between the registration (fiducials or features) and the target areas [70–74].
+                               Eggers et al. [75] conducted a study to test whether a maxillary template is sufficient for
+                               image-guided cranial surgery. The TRE increased from 1.5 mm in the anterior to 3.26 mm in
+                               the lateral skull regions since the maxillary template used in the registration was fixed in the
+                               frontal region. In the same context, Marmulla et al. [76] were able to improve their surface-
+                               based method and approach the results of conventional marker-based methods in the lateral
+                               skull base surgery by scanning the auricle. Reducing the distance between the registration
+                               area and the target reduced the chances of obtaining an inaccurate registration matrix. The
+                               main disadvantage of using the pinna was that the cartilage is easily deformable, and care
+                               should be taken during CT scan acquisition to avoid contact between the headrest and the
+                               pinna, which will distort the landmarks. In another study, Bozorg Grayeli et al. [77] came
+                               to the same conclusion when placing a titanium screw behind the auricle in the temporal
+                               bone. Using a screw in this location as a fiducial marker in addition to the midface skin
+                               registration significantly increased the precision of the navigation in the lateral skull base.
+                               Opposite this, only one study [78] claimed that the TRE was the same in the anterior and
+                               lateral skull regions. The method relied on a dynamic reference frame attached to a skull
+                               phantom, and markers were detected automatically through infrared technology.
+                                     Another factor that directly affects the TRE is the spatial distribution of the markers. It
+                               is recommended to avoid collinear placement of the markers and keep them as far apart as
+                               possible [79]. In other terms, the aim is a wide distribution of the markers with minimal
+                               redundancy in the x, y, and z axes [80,81].
+                                     In pair-point matching methods (anatomy- and marker-based), apart from the pre-
+                               viously mentioned parameters, the TRE is influenced by several other factors related to
+                               the marker localization and number and the alignment method and human factors such
+                               as expertise, stress level, and fatigue (Figure 3). For these factors, the FLE and FRE are
+                               interesting metrics to analyze the system in addition to the TRE.
+
+                               4.2. FLE
+                                     The FLE is the distance between the true position of a fiducial marker and its measured
+                               position. Factors that influence the FLE in the image coordinate space include the shape
+                               and the size of the marker, the voxel dimensions of the image (error decreases as the
+                               marker size/voxel dimension ratio increases), the digital properties of the image (spatial
+                               and intensity quantization), the signal-to-noise ratio of the image, the marker’s contrast
+                               relative to its background in the image, the geometrical distortion of the image, and the
+                               localization method [43,82].
+                                     In the anatomy-based methods, the localization of the markers in the patient’s phys-
+                               ical space depends on the operator’s ability to identify them and match them with the
+                               corresponding point on the preoperative image [83]. Kral et al. [84] conducted a study on
+                               four residents in the same year of postgraduate training with no experience in CAS. They
+                               performed pair-point registrations on five anatomic specimens. The accuracy increased
+                               with the repetition of the procedure, suggesting the effect of the surgeons’ experience.
+                                     In the marker-based methods, locating the markers relies on the detection tool
+                               (e.g., probe). The tool should bear attached markers to be tracked by the CAS, and this can
+                               introduce potential errors into the chain of events. Knott et al. [43] showed that attaching
+                               a rigid tool to the probe with a number of well-spatially distributed markers for tracking
+                               resulted in a 0.1 mm mean transformation error (error in estimating the position of the
+                               registration tool by the navigation system) in comparison to the standard probe. How-
+                               ever, an increase of 0.37 mm in the tool tip localization error (tracing accuracy of the tool
+                               tip) appeared to be due to the poor ergonomics caused by the bulky rigid tool attached.
+                               Furthermore, Gerber et al. [50] were able to achieve an excellent accuracy of 0.1 mm by
+                               eliminating the human intervention and the use of robotic fiducial localization (Table 1).
+J. Clin. Med. 2023, 12, 5398                                                                                                 9 of 22
+
+
+
+
+                               Fiducial markers were located on the patient by an automatic robot-based tactile search
+                               within the head of a standard surgical screw.
+
+                               4.3. FRE
+                                    The FRE is the distance, after registration, between the fiducial marker positions in the
+                               preoperative image used in the registration process and their corresponding point sets on
+                               the patient coordinate. The localization and number of fiducials have the greatest effect on
+                               the FRE (Figure 3). An increased number of fiducials (N) will lead to a higher value of the
+                               FRE as it is more difficult to align multiple markers [79]. However, this same increase in N
+                               might drop the value of the FLE since more markers used in the registration process will
+                               reduce the effect of localization error [80] (Figure 3). Nevertheless, extending the time for
+                               acquisition during the surgery might raise the surgeon’s workload and lead to an increase
+                               in the FLE. In a study attempting to quantify the registration parameters that influence
+                               accuracy, Chu et al. [85] suggested that using five fiducial markers is the optimal trade-off
+                               between the registration time and the accuracy.
+                                    The FRE is the only accuracy indicator that can be measured during the registration
+                               process, but it should be pointed out that the level of the FRE might be misleading for the
+                               surgeon since it does not entirely reflect the accuracy of the CAS around the target [70,79].
+                               In fact, the FRE is independent of the spatial distribution of the markers and clearly does
+                               not consider the distance between the target and the markers serving for the registration
+                               (Figure 3).
+                                    In systems where one of the inputs has two dimensions, which is common in computer-
+                               vision-based methods, the conventional TRE is replaced by a projective TRE (Figure 4). To
+                               measure the distance between Point A in the 2D registered image and Point B in the 3D
+                               image, a ray R is issued from the center of the camera and passes through A. The error
+                               is then defined by the perpendicular distance between B and the ray R. In the case of a
+                               perfect registration, the line would pass exactly through B, resulting in an error equal to
+                               zero [26,61,86,87].
+
+
+
+
+                               Figure 4. Target registration error between 2D and 3D modalities. B is the target in the 3D modality.
+                               A is the registered target in the 2D modality. A ray (R) is issued from the center of the camera and
+                               passing through A. Error is measured by the perpendicular distance from B to R.
+
+                                     Tables 1 and 2 summarize publications on image-to-patient registration with the high-
+                               est accuracies (lowest TRE) in different procedures. Publications on otological procedures
+                               report TREs below 0.5 mm, while CASs used for rhinology and neurosurgery show TREs
+                               less than 1 mm. However, it is important to note that this accuracy depends on several
+                               factors. As mentioned before, the distance between the target and the markers is a crucial
+                               factor in the TRE. In the tables, this factor can be estimated by the distance between the two
+                               columns “registration landmark” and “target landmark”. Another factor is the operating
+                               environment, where working in a realistic scenario is related to a higher TRE probably
+                               due to stress and time constraints. For instance, the TRE of the same CAS increased from
+                               0.69 [88] and 0.8 [61] to 1.19 and 1.97, respectively, when applying the same method on a
+                               plastic head or a cadaver versus a patient.
+J. Clin. Med. 2023, 12, 5398                                                                                                                                                                          10 of 22
+
+
+
+                                    Table 1. Top computer-assisted surgery settings in terms of accuracy in head-and-neck, excluding neurosurgical procedures.
+
+                                                      Registration                                                    Description or                                         TRE (STD)
+           Study                 Procedure                                      Test Subjects          Method                                  Target Landmarks                                     Time
+                                                      Landmarks                                                      Commercial Name                                         [Min–Max]
+                                                                                                                    Image-guided robotic
+                                                   Outer surface of the       1 plastic temporal                                               Cochlea and round
+    Gerber et al. [50]            Otology                                                                MB          microsurgery on the                                   0.07 mm (0.019)         <4 min
+                                                        mastoid                  bone n = 32                                                       window
+                                                                                                                            head
+                                                                                                                       Contact surface
+     Zhou et al. [89]             Otology             Mastoid bone               13 patients              SB                                     Mastoid surface            0.16 mm (0.09)          3 min
+                                                                                                                          matching
+                                                                                                                       Contact surface
+     Zhou et al. [89]             Otology             Mastoid bone               13 patients              SB                                     Round window               0.23 mm (0.1)           3 min
+                                                                                                                          matching
+                                                                                                                                               Cochlear structures
+                                                    Cochlea in HFUS          6 cadaveric guinea                     Registering micro CT
+    Lavenir et al. [83]           Otology                                                             AB + CVB                                  determined on 3D            0.32 mm (0.05)           NS
+                                                        images                  pig cochleae                           scan to HFUS
+                                                                                                                                                     images
+                                                  Middle ear, auditory                                                                         Middle ear, auditory
+   Schneider et al. [90]          Otology                                        2 specimens             AB          Pair-point matching                                    0.51 mm (0.28)         3.8 min
+                                                  canal, mastoid cortex                                                                               canal
+                                                                                                                                              3 markers intranasal +
+                                                    Nasion, outer ear,
+    Hauser et al. [88]           Rhinology                                  1 plastic head n = 160       MB           1 dental face bow        1 marker extranasal          0.69 mm (0.2)            NS
+                                                      upper teeth
+                                                                                                                                                  near the nose
+                                                    Sinus endoscopic                                                 Rendering-based
+     Otake et al. [61]           Rhinology                                     1 cadaver n = 7           CVB                                  Sinus (2D to 3D TRE)             0.83 mm              4.4 s
+                                                     rendered image                                                      video CT
+   Brouwer de Koning                                                                                                 3D-printed dental
+                                Maxillofacial             Teeth               1 phantom n = 45           MB                                        Mandibular            0.83 mm [0.70–1.39]      >90 min
+       et al. [91]                                                                                                         splint
+                                                  Retinal vessels from                                                 CAS for laser            Retinal vessels on
+                                                                               10 patient video
+    Broehan et al. [67]        Ophthalmology          ophthalmic                                         CVB         photocoagulation              ophthalmic               23.2 µm (18.8)        Real time
+                                                                                  sequences
+                                                   microscopeframes                                                       system                   microscope
+                                                                                                                     Deformable image
+                                                    Region of tongue
+    Reaungamornrat                                                                                                    registration for
+                                Laryngology        extending to hyoid       1 cadaver (25 images)        CVB                                     Tongue surface              1.7 mm (0.9)           5 min
+       et al. [92]                                                                                                    base-of-tongue
+                                                     bone on CBCT
+                                                                                                                          surgery
+
+                                     Methods are grouped according to their procedures. AB = anatomy-based registration method, MB = marker-based registration method, SB = surface-based registration method,
+                                     CVB = computer vision-based registration method, HFUS = high-frequency ultrasound, CBCT = cone-beam computed tomography, NS = not specified.
+J. Clin. Med. 2023, 12, 5398                                                                                                                                                                  11 of 22
+
+
+
+
+                                     Table 2. Top computer-assisted surgery settings in terms of accuracy in neurosurgical procedures.
+
+                                                            Registration                                             Description or                                      TRE (STD)
+          Study                      Procedure                                      Test Subjects       Method                               Target Landmarks                                Time
+                                                            Landmarks                                               Commercial Name                                      [Min–Max]
+                                                                                                                        Intensity-based
+                                                        Intraoperative X-ray      1 head-and-neck                   intraoperative X-ray
+       Fu et al. [74]            Skull-base surgery                                                       CVB                                   Skull surface           0.34 mm (0.16)       <3 s
+                                                              images              phantom n = 49                    to CT registration in
+                                                                                                                         radio surgery
+                                                                                                                       Dental splint for
+  Ledderose et al. [93]          Skull-base surgery            Teeth              1 cadaver n = 20        MB                                Left lateral skull base     0.55 mm (0.28)        NS
+                                                                                                                    lateral skull surgery
+                                                                                                                        Registration of
+                                                          Skull surface by       5 cadaveric human                 human skull CT data
+   O’Reilly et al. [94]          Skull-base surgery                                                       CVB                                   Skull surface            0.9 mm (0.2)         NS
+                                                               HFUS                    heads                          to an ultrasound
+                                                                                                                       treatment space
+                                                                                                                         Laser Surface
+                                                                                                                        registration for
+  Marmulla et al. [76]           Skull-base surgery           Auricle                10 patients           SB                                Periauricular bow           0.9 mm (0.3)         2s
+                                                                                                                      lateral skull-base
+                                                                                                                            surgery
+                                                                                                                      Facial recognition
+                                                                                                                           applied to       4 landmarks near the
+      Gooroochurn
+                                 Skull-base surgery      Ear tragus, canthi        1 artificial skull     CVB            registration of      canthi and the ear      0.98 mm [0.52–1.31]     NS
+       et al. [95]
+                                                                                                                         patients in the             tragi
+                                                                                                                      emergency room
+                                                                                                                           Frameless
+      Saß et al. [96]            Skull-base surgery         Skull surface            30 patients          MB          stereotactic brain        Skull surface            0.7 mm (0.32)      36 min
+                                                                                                                             biopsy
+                                                                                                                    Registration in deep
+                                                                                                                      brain stimulation
+       Xu et al. [97]          Deep brain stimulation       Skull surface            38 patients          MB                                   Implanted rod            0.27 mm (0.07)        NS
+                                                                                                                    using ROSA robotic
+                                                                                                                             device
+                                                                                                                   Intensity-based 2D to
+  Hunsche et al. [98]
+                               Deep brain stimulation     2D X-ray images            15 patients          CVB        3D registration for       Implanted rod             0.7 mm (0.2)       <20 min
+                                                                                                                       lead localization
+                                                                                                                           Non-rigid
+                                                                                                                          registration
+                                                        Brain texture surface
+     Jiang et al. [56]             Brain surgery                                  5 porcine brains        CVB        integrating surface        Brain surface            0.9 mm (0.24)       340 s
+                                                         + camera images
+                                                                                                                       and vessel/sulci
+                                                                                                                            features
+
+                                     Methods are grouped according to their procedures. MB = marker-based registration method, SB = surface-based registration method, CVB = computer vision-based
+                                     registration method, HFUS = high-frequency ultrasound, NS = not specified.
+J. Clin. Med. 2023, 12, 5398                                                                                           12 of 22
+
+
+
+                               5. Processing Time
+                                     Time is essential in the process of image-to-patient registration. Long CAS setups
+                               expose clinicians to stress, increase their cognitive load, and divert them from their clinical
+                               tasks. Visuo-tactile perceptions tend to be vague especially if the surgery lasts longer than
+                               expected [85]. In contrast to offline registration tasks, which are conducted outside the
+                               operating room, the image-to-patient initial registration in the operating room should not
+                               exceed 5–10 min [14]. Longer durations will result in a significant increase in the workload
+                               of preparation and the checklist before surgery.
+                                     For re-initiating the registration during the operation, the acceptable limit is even
+                               lower since surgical constraints (e.g., bleeding, vascular clamping delay) or stress do not
+                               allow a five-minute break. One or two minutes may be considered acceptable during a
+                               procedure if it is not repetitive. However, in some procedures, iterative registrations may
+                               be required during the procedure, and this is considered as a challenge, especially with
+                               the tissue shift and the patient’s movements during an operation. Data from the initial
+                               registration may not be valid and exploitable for recalibration [99]. In this type of scenario,
+                               interruptions of 1 or 2 min in the procedure may dramatically affect the ergonomics if they
+                               are frequent.
+                                     Comparisons between the anatomy-based, the surface-based, and the marker-based
+                               methods [31,85,100] suggest that the surface-based methods are generally the fastest and
+                               that more human intervention is related to slower registration [101,102]:
+                               •    Surface-based methods require shorter registration procedures due to their simplicity
+                                    in both the setup and process of acquisition. In two studies on patients undergo-
+                                    ing endoscopic sinus surgery, scanning with optical and electromagnetic devices
+                                    required an average of 3 min for the equipment setup and less than 50 s to perform
+                                    the registration [101,102].
+                               •    Anatomy-based methods are highly dependent on the perception of the operator. The
+                                    process might be repeated several times to achieve the optimal accuracy and is, conse-
+                                    quently, longer [100].
+                               •    Marker-based methods require more-complex and longer setups and can be further
+                                    prolonged by sophisticated labeling and marker fixation into the bone [103]. In case of
+                                    an inexperienced surgeon, an additional 15–30 min may be necessary for the overall
+                                    process [104]. Even for non-invasive fiducial labels, the environment setup for fixing
+                                    the markers might take several minutes or hours [91]. In a method described by
+                                    Matsumoto et al. [105], building a customized template of the patient required a
+                                    patient clinical visit 2 weeks before the surgery and, hence, a more-complex logistical
+                                    organization than other registration routines. This method will be described with
+                                    more details in the invasiveness section.
+                               •    Computer-vision-based methods require the least amount of human intervention or
+                                    reliance. The overall process might take several seconds or several minutes when
+                                    running on commercial central processing units (CPU) [106]. With the expansion of
+                                    GPUs for these applications, heavy calculations could be performed instantly [61].
+
+                               6. Invasiveness
+                                     In almost all medical specialties, there is a growing trend towards the development of
+                               less-invasive and safer surgical procedures [88]. Of all the available methods, the marker-
+                               based ones raise the most-significant issues regarding invasiveness. At best, skin markers
+                               can cause slight discomfort (headbands) or allergic reaction (adhesive skin markers).
+                                     In the conventional marker-based methods, one or several invasive external markers
+                               (e.g., bone screw markers, stereotactic frame, Mayfield clamp) are fixed to the bone through
+                               soft tissues. Even though invasive markers in bone are more reliable [107], they potentially
+                               induce complications and pain.
+                                     The methods listed below have been proposed to reduce the invasiveness of the
+                               registration systems:
+J. Clin. Med. 2023, 12, 5398                                                                                           13 of 22
+
+
+
+
+                               – One common approach is attaching the markers to the upper teeth or the maxillary bone as
+                                 reference points [30,88,108]. The most-widely implemented systems were designed with a
+                                 reference frame to be mounted on a dental splint or a mouthpiece (Figure 5) [75,91,109–112].
+                                 For instance, a registration tool tightly attached to the upper teeth by means of a silicon
+                                 rubber splint bearing automatically recognized markers was developed and validated for
+                                 cochlear implantation surgery [65]. Although such methods eliminated the complications
+                                 of penetrating the skull, their accuracy was slightly below invasive approaches [113,114].
+                               – Alternatively, customized facial masks were conceived of, allowing a relatively precise
+                                 registration without using an invasive marker. Ford et al. [115] proposed a facial mask
+                                 (manufactured and provided by Xomed Corporation, Jacksonville, FL, USA) made of a
+                                 radiolucent, low-melting-temperature polyester with ten radiopaque fiducial markers
+                                 embedded permanently into it. This mask was used for a CAS dedicated to sinus surgery.
+                                 The mask is placed in warm water until it is deformable enough then held on the patient’s
+                                 face until it solidifies into shape. It fits on rigid structures with multiple contact points
+                                 such as the frontal, nasal, maxillary, and parietal bones, and it can be securely strapped at
+                                 the back of the head. However, the presence of a facial mask reduces the access to many
+                                 facial and nasal regions and cannot be applied to many procedures. In a similar manner,
+                                 Hubley et al. [116] used a facial thermoplastic mask for Gamma knife radiosurgery. It
+                                 was applied for immobilization during an onboard CBCT imaging system to define the
+                                 stereotactic space. Similarly, Chen et al. [117] used a six-marker thermoplastic facial mask
+                                 for an image-to-patient registration in stereotactic radiofrequency thermocoagulation.
+                               – In contrast, using a headband in brain surgery as an alternative for invasive pins and
+                                 skull posts does not appear to be a practical solution since they are easily displaced intra-
+                                 operatively and these unwanted movements reduce the accuracy of the CAS [108,118].
+                               – Surface template-assisted marker positioning (STAMP) is another marker-based method
+                                 that works by building a template of the bony surface of the patient’s head from a preop-
+                                 erative CT scan [105]. Virtual markers are created on the CT scan and then transferred to
+                                 the patient’s head template, which is manufactured by 3D printing. Virtual markers are
+                                 represented by holes in the template. Intraoperatively, a sterile template is placed on the
+                                 patient’s head, and the positions of the virtual markers are marked by a pen through the
+                                 holes, establishing the correspondence between the CT scan and the patient’s head.
+                               – Another way of securing the markers without tissue penetration is to place them in
+                                 the nasal cavities. For an auditory brainstem implantation, the fiducial markers were
+                                 mounted on a titanium mesh connected to a stent, which was placed through the nostrils
+                                 into the rhinopharynx. This device was initially commercialized for the treatment of sleep
+                                 apnea (AlaxoStent, Alaxo GmbH, Frechen, Germany) [119,120].
+
+
+
+
+                               Figure 5. Frame used in marker-based methods fixed on a dental splint.
+J. Clin. Med. 2023, 12, 5398                                                                                          14 of 22
+
+
+
+
+                               7. Discussion
+                                     Image-to-patient registration is the initial and a crucial step of every CAS. Initially,
+                               marker-based methods were generalized as the most-robust strategy. In the 1990s-to-
+                               early-2000 period, this method was enhanced by incremental improvements. The effects
+                               of fiducial marker configuration, localization, and registration sequence on the accuracy
+                               registration were refined [80,121]. Less-invasive marker-based methods utilizing detachable
+                               masks or frames based on dental splints were developed (Figure 5) [93,122]. However, the
+                               marker-based methods still require imaging after the fiducial marker placement in addition
+                               to the imaging performed for diagnostic purposes, and this signifies potential additional
+                               irradiation.
+                                     Later, surface-based methods were introduced. They were able to circumvent the
+                               additional imaging, to reduce both invasiveness and procedure time. However, these advan-
+                               tages came at the cost of a lower accuracy [56,76,123,124]. The surface-based methods rely
+                               only on the external shape of the body surface, which raises the issue of low reliability dur-
+                               ing the procedure [125]. More recently, the computer-vision-based methods were conceived
+                               of, benefiting from the development of powerful GPUs. One of their greatest advantages is
+                               their real-time processing with no need for a complex setup or operator expertise. These
+                               characteristics are particularly suitable in the emergency surgical room and offer the possi-
+                               bility to easily reinitiate the process during the intervention if needed [95]. However, the
+                               reliability of these methods is still questionable. The computer-vision-based methods need
+                               to be challenged with a “noisy” environment (e.g., rapid movements, bleeding, anatomical
+                               distortions, partial obliteration of the view) in every possible situation.
+                                     In the last decade, many teams have investigated the idea of using the preoperative
+                               imaging techniques intraoperatively. MRI and CT scan were brought to the operating
+                               rooms and were integrated with the CAS. Studies on iMRI are limited [73,126,127]. This
+                               is principally due to not only the cost of the system, but also to the significant technical
+                               constraints related to the powerful magnetic field generated by the MRI inside an operating
+                               room full of metallic instruments. Other factors are the lower spatial resolution of the
+                               MRI, difficulty observing bony structures, and MRI contraindications related to already
+                               implanted metallic or magnetic devices in the patients (e.g., pacemakers). iCT, which
+                               does not have these limitations, progressed faster and better toward the commercial in-
+                               dustry. Several reports showed that iCT provided an accuracy for CASs similar to the
+                               conventional methods [128,129], while reducing radiation and saving time and hospital
+                               resources [130,131]. However, iCT faces other challenges before it can be widely used for
+                               head-and-neck CAS. The risk of exposure to frequent radiation for the surgeons, the loss of
+                               time caused by multiple CT acquisitions [132], the cumbersome material, which imposes
+                               ergonomic adaptation, and the risk of shifting from the routine of reliable conventional
+                               methods into other systems have to be studied for each surgical scenario separately with
+                               its pros and cons.
+                                     Irradiation is a general concern when dealing with CAS and minimally invasive
+                               surgery [133]. An average of two to three CT scans per procedure increases the risk of
+                               radiation-induced carcinogenesis [134] and cataracts [135]. Many teams have published
+                               optimized protocols to reduce irradiation for both registration and navigation [98,136]. In
+                               deep brain stimulation surgery, replacing the conventional CT scan by a 3D fluoroscopy
+                               leads to a five-fold decrease of irradiation while maintaining a similar accuracy and
+                               process duration [128]. The use of iCT in stereotactic brain biopsy instead of a conven-
+                               tional preoperative CT scan to locate the fiducial markers reduced the irradiation up to
+                               eight times [96,137,138].
+                                     In our review, methods relying on image processing were classified as computer-
+                               vision-based techniques. The fact that some of them do not involve computer vision is
+                               debatable. However, it is certain that they share the same characteristics in that they rely
+                               solely on markers or surface scanning and that the input data have to be processed or
+                               interpreted by a computer program before the registration. In the field of image-to-patient
+                               registration and in contrast with other medical imaging domains, deep learning is not
+J. Clin. Med. 2023, 12, 5398                                                                                         15 of 22
+
+
+
+
+                               common [139]. So far, it cannot compete with the state-of-the-art methods [28,140], but will
+                               certainly improve in the coming years. Obstacles in this domain are numerous, and among
+                               these, the most-prominent are the lack of large databanks, anatomical variations, scenario
+                               variations, and noisy images due to the disease or bleeding.
+                                     Almost all registration methods in this review were based on a rigid transformation
+                               exploiting the rigid anatomical structures (i.e., bones) in the head region. Furthermore,
+                               51 studies out of the 113 selected described their target region as the head without specify-
+                               ing the exact area. Consequently, the majority of the proposed methods offered common
+                               characteristics such as the fiducial markers in bones, the anatomical landmarks in the
+                               facial area around the eyes, the intraoperative modalities, and the rigid transformation.
+                               In fact, several systems designed for a specific procedure hold significant potential to
+                               be used in other procedures in the head-and-neck region, given that the proximity be-
+                               tween the registration area and the target area remains minimal. One major exception is
+                               the brain tissue [141], where non-rigid deformations may exist especially in the case of
+                               intracranial tumors and during their surgical removal [142]. In this case, intraoperative
+                               ultrasound (iUS) was commonly used in combination with preoperative MRI to account
+                               for the tissue shift. This combination required image-processing techniques to determine
+                               the brain deformations and update the preoperative MRI. This strategy has its limits. The
+                               non-rigid image-based transformations would not consider the mechanical properties of
+                               the anatomical structures depicted in the MRI image and may yield non-physically co-
+                               herent deformation fields. To ensure the plausibility of the predicted deformation field,
+                               biomechanical models have complemented the image-based methods to ensure a realistic
+                               computer simulation of the brain deformation. Some authors proposed a segmentation of
+                               the brain vessels followed by a linear registration and a refinement by the thin plate spline
+                               (TPS) transform [143]. Here, the TPS technique uses several control points (segmented
+                               vessels in the iUS) to transform a space (brain on MRI) by mathematical smoothing and
+                               interpolation. It has the advantage of a relatively low computational cost, but it lacks
+                               precision in a region where tissue properties are not homogeneous (cortex, small and large
+                               vessels, ventricles, etc.). In most practical cases, brain deformation models employ the
+                               finite element method, which generally includes more-detailed information of the brain
+                               tissue including the physical properties and the adjacent structures [73,144–148].
+                                     All proposed registration methods have their limitations in the emergency room,
+                               where time constraints and stress levels are high. In addition, factors such as patient
+                               condition and the availability of surgical skills and technologies should also be taken into
+                               consideration for CAS indications [149].
+
+                               8. Conclusions
+                                    In conclusion, our work established that all systems are built on trade-offs between
+                               the performance, on the one hand, and the setup complexity and invasiveness, on the
+                               other, and that different parameters should be privileged depending on the scenario.
+                               This systematic review showed that the invasive marker-based method is still considered
+                               as the gold standard for image-to-patient registration. The surface-based methods are
+                               recommended for faster procedures and applied on the surface tissues especially around
+                               the eyes. Computer-vision-based methods combined with artificial intelligence emerge
+                               as the future of image-guided procedures leading to lighter, faster, more-precise, and
+                               user-friendly systems. They will potentially allow less-experienced physicians to perform
+                               interventions in a more-reliable and safer environment. Additionally, certain systems
+                               designed for a specific procedure hold significant potential to be used in other procedures
+                               in the head-and-neck region, given that the proximity between the registration area and
+                               the target area remains minimal.
+J. Clin. Med. 2023, 12, 5398                                                                                                       16 of 22
+
+
+
+
+                                  Author Contributions: Conceptualization, A.T. and A.B.G.; methodology, A.T., A.L. and A.B.G.;
+                                  software, A.T.; validation, A.T., A.L. and A.B.G.; formal analysis, A.B.G.; investigation, A.T., C.G. and
+                                  A.B.G.; resources, A.T., C.G. and A.B.G.; data curation, A.T.; writing—original draft preparation, A.T.;
+                                  writing—review and editing, A.T., A.L. and A.B.G.; visualization, A.B.G.; supervision, S.L. and A.L.;
+                                  project administration, A.B.G.; funding acquisition, A.B.G. All authors have read and agreed to the
+                                  published version of the manuscript.
+                                  Funding: This research received no external funding.
+                                  Institutional Review Board Statement: Not applicable.
+                                  Informed Consent Statement: Not applicable.
+                                  Data Availability Statement: All information presented in this review is documented by the
+                                  relevant references.
+                                  Acknowledgments: We acknowledge Moundji Kafi from the CHU university hospital Dijon, car-
+                                  diology department, for his kind support in providing valuable information during the work of
+                                  this manuscript.
+                                  Conflicts of Interest: The authors declare no conflict of interest.
+
+References
+1.    Nishihara, M.; Sasayama, T.; Kudo, H.; Kohmura, E. Morbidity of stereotactic biopsy for intracranial lesions. Kobe J. Med. Sci.
+      2011, 56, E148–E153. [PubMed]
+2.    Miner, R.C. Image-guided neurosurgery. J. Med. Imaging Radiat. Sci. 2017, 48, 328–335. [CrossRef] [PubMed]
+3.    Püschel, A.; Schafmayer, C.; Groß, J. Robot-assisted techniques in vascular and endovascular surgery. Langenbeck’s Arch. Surg.
+      2022, 407, 1789–1795. [CrossRef]
+4.    Kazmitcheff, G.; Duriez, C.; Miroir, M.; Nguyen, Y.; Sterkers, O.; Bozorg Grayeli, A.; Cotin, S. Registration of a Validated
+      Mechanical Atlas of Middle Ear for Surgical Simulation. In Medical Image Computing and Computer-Assisted Intervention—MICCAI
+      2013: 16th International Conference, Nagoya, Japan, September 22–26. 2013, Proceedings, Part III 16; Mori, K., Sakuma, I., Sato, Y.,
+      Barillot, C., Navab, N., Eds.; Springer: Berlin/Heidelberg, Germany, 2013; pp. 331–338.
+5.    Dumitru, M.; Vrinceanu, D.; Banica, B.; Cergan, R.; Taciuc, I.A.; Manole, F.; Popa-Cherecheanu, M. Management of Aesthetic and
+      Functional Deficits in Frontal Bone Trauma. Medicina 2022, 58, 1756. [CrossRef] [PubMed]
+6.    Yasin, R.; O’Connell, B.P.; Yu, H.; Hunter, J.B.; Wanna, G.B.; Rivas, A.; Simaan, N. Steerable robot-assisted micromanipulation in
+      the middle ear: Preliminary feasibility evaluation. Otol. Neurotol. 2017, 38, 290–295. [CrossRef] [PubMed]
+7.    Turnbull, F., Jr.; Strelzow, V. Antro-ethmosphenoidectomy. Int. Surg. 1989, 74, 58–60. [PubMed]
+8.    Pfeiffer, D.; Pfeiffer, F.; Rummeny, E. Advanced X-ray imaging technology. In Molecular Imaging in Oncology; Springer: Cham,
+      Switzerland, 2020; pp. 3–30.
+9.    Eggers, G.; Mühling, J.; Marmulla, R. Image-to-patient registration techniques in head surgery. Int. J. Oral Maxillofac. Surg. 2006,
+      35, 1081–1095. [CrossRef]
+10.   Enchev, Y. Neuronavigation: Geneology, reality, and prospects. Neurosurg. Focus 2009, 27, E11. [CrossRef]
+11.   Feng, W.; Wang, W.; Chen, S.; Wu, K.; Wang, H. O-arm navigation versus C-arm guidance for pedicle screw placement in spine
+      surgery: A systematic review and meta-analysis. Int. Orthop. 2020, 44, 919–926. [CrossRef] [PubMed]
+12.   Zhang, X.; Wang, J.; Wang, T.; Ji, X.; Shen, Y.; Sun, Z.; Zhang, X. A markerless automatic deformable registration framework
+      for augmented reality navigation of laparoscopy partial nephrectomy. Int. J. Comput. Assist. Radiol. Surg. 2019, 14, 1285–1294.
+      [CrossRef]
+13.   Golse, N.; Petit, A.; Lewin, M.; Vibert, E.; Cotin, S. Augmented reality during open liver surgery using a markerless non-rigid
+      registration system. J. Gastrointest. Surg. 2021, 25, 662–671. [CrossRef] [PubMed]
+14.   Hussain, R.; Lalande, A.; Marroquin, R.; Guigou, C.; Bozorg Grayeli, A. Video-based augmented reality combining CT scan and
+      instrument position data to microscope view in middle ear surgery. Sci. Rep. 2020, 10, 6767. [CrossRef] [PubMed]
+15.   Sharp, G.C.; Kollipara, S.; Madden, T.; Jiang, S.B.; Rosenthal, S.J. Anatomic feature-based registration for patient set-up in head
+      and neck cancer radiotherapy. Mach. Vis. Appl. 2005, 50, 4667–4679. [CrossRef] [PubMed]
+16.   Kristin, J.; Burggraf, M.; Mucha, D.; Malolepszy, C.; Anderssohn, S.; Schipper, J.; Klenzner, T. Automatic Registration for
+      Navigation at the Anterior and Lateral Skull Base. Ann. Otol. Rhinol. Laryngol. 2019, 128, 894–902. [CrossRef]
+17.   Lee, J.; Thornhill, R.E.; Nery, P.; DeKemp, R.; Peña, E.; Birnie, D.; Adler, A.; Ukwatta, E. Left atrial imaging and registration
+      of fibrosis with conduction voltages using LGE-MRI and electroanatomical mapping. Comput. Biol. Med. 2019, 111, 103341.
+      [CrossRef]
+18.   Schneider, C.; Thompson, S.; Totz, J.; Song, Y.; Allam, M.; Sodergren, M.; Desjardins, A.; Barratt, D.; Ourselin, S.; Gurusamy,
+      K.; et al. Comparison of manual and semi-automatic registration in augmented reality image-guided liver surgery: A clinical
+      feasibility study. Surg. Endosc. 2020, 34, 4702–4711. [CrossRef]
+J. Clin. Med. 2023, 12, 5398                                                                                                         17 of 22
+
+
+
+
+19.   Cuchet, E.; Knoplioch, J.; Dormont, D.; Marsault, C. Registration in neurosurgery and neuroradiotherapy applications. J. Image
+      Guid. Surg. 1995, 1, 198–207. [CrossRef]
+20.   Brock, K. Image Registration in Intensity- Modulated, Image-Guided and Stereotactic Body Radiation Therapy. Front. Radiat.
+      Ther. Oncol. 2007, 40, 94–115. [CrossRef]
+21.   Alam, F.; Rahman, S.U.; Khalil, A. An investigation towards issues and challenges in medical image registration. J. Postgrad. Med.
+      Inst. 2017, 31, 224–233.
+22.   Liu, Y.; Song, Z.; Wang, M. A new robust markerless method for automatic image-to-patient registration in image-guided
+      neurosurgery system. Comput. Assist. Surg. 2017, 22, 319–325. [CrossRef]
+23.   Tan, W.; Alsadoon, A.; Prasad, P.; Al-Janabi, S.; Haddad, S.; Venkata, H.S.; Alrubaie, A. A novel enhanced intensity-based
+      automatic registration: Augmented reality for visualization and localization cancer tumors. Int. J. Med. Robot. Comput. Assist.
+      Surg. 2020, 16, e2043. [CrossRef] [PubMed]
+24.   Coupé, P.; Hellier, P.; Morandi, X.; Barillot, C. 3D rigid registration of intraoperative ultrasound and preoperative MR brain
+      images based on hyperechogenic structures. J. Biomed. Imaging 2012, 2012, 1. [CrossRef] [PubMed]
+25.   Watson, G.S. Linear least squares regression. Ann. Math. Stat. 1967, 38, 679–1699. [CrossRef]
+26.   Mirota, D.J.; Uneri, A.; Schafer, S.; Nithiananthan, S.; Reh, D.D.; Ishii, M.; Gallia, G.L.; Taylor, R.H.; Hager, G.D.; Siewerdsen,
+      J.H. Evaluation of a system for high-accuracy 3D image-based registration of endoscopic video to C-arm cone-beam CT for
+      image-guided skull base surgery. IEEE Trans. Med. Imaging 2013, 32, 1215–1226. [CrossRef] [PubMed]
+27.   Penney, G.P.; Weese, J.; Little, J.A.; Desmedt, P.; Hill, D.L.G.; Hawkes, D.J. A Comparison of Simularity Measures for use in 2D-3D
+      Medical Image Registration. IEEE Trans. Med. Imaging 1998, 17, 586–595. [CrossRef] [PubMed]
+28.   Haouchine, N.; Juvekar, P.; Wells, W.M.III; Cotin, S.; Golby, A.; Frisken, S. Deformation aware augmented reality for craniotomy
+      using 3d/2d non-rigid registration of cortical vessels. In Medical Image Computing and Computer Assisted Intervention—MICCAI
+      2020: Proceedings of the 23rd International Conference, Lima, Peru, 4–8 October 2020; Proceedings, Part IV 23; Springer: Cham,
+      Switzerland, 2020; pp. 735–744.
+29.   Omara, A.; Wang, M.; Fan, Y.; Song, Z. Anatomical landmarks for point-matching registration in image-guided neurosurgery. Int.
+      J. Med. Robot. Comput. Assist. Surg. MRCAS 2014, 10, 55–64. [CrossRef]
+30.   Kang, S.; Kim, M.; Kim, J.; Park, H.; Park, W. Marker-free registration for the accurate integration of CT images and the subject’s
+      anatomy during navigation surgery of the maxillary sinus. Dentomaxillofacial Radiol. 2012, 41, 679–685. [CrossRef] [PubMed]
+31.   Hardy, S.M.; Melroy, C.; White, D.R.; Dubin, M.; Senior, B. A Comparison of Computer-Aided Surgery Registration Methods for
+      Endoscopic Sinus Surgery. Am. J. Rhinol. 2006, 20, 48–52. [CrossRef] [PubMed]
+32.   Arun, K.S.; Huang, T.S.; Blostein, S.D. Least-squares fitting of two 3-D point sets. IEEE Trans. Pattern Anal. Mach. Intell. 1987,
+      698–700. [CrossRef]
+33.   Horn, B.K. Closed-form solution of absolute orientation using unit quaternions. J. Opt. Soc. Am. A 1987, 4, 629–642. [CrossRef]
+34.   Walker, M.W.; Shao, L.; Volz, R.A. Estimating 3-D location parameters using dual number quaternions. CVGIP Image Underst.
+      1991, 54, 358–367. [CrossRef]
+35.   Chen, Y.; Medioni, G. Object modelling by registration of multiple range images. Image Vis. Comput. 1992, 10, 145–155. [CrossRef]
+36.   Besl, P.; McKay, N.D. A method for registration of 3-D shapes. IEEE Trans. Pattern Anal. Mach. Intell. 1992, 14, 239–256. [CrossRef]
+37.   Cho, S.S.; Teng, C.W.; Ramayya, A.; Buch, L.; Hussain, J.; Harsch, J.; Brem, S.; Lee, J.Y. Surface-registration frameless stereotactic
+      navigation is less accurate during prone surgeries: Intraoperative near-infrared visualization using second window indocyanine
+      green offers an adjunct. Mol. Imaging Biol. 2020, 22, 1572–1580. [CrossRef]
+38.   Marmulla, R.; Niederdellmann, H. Computer-assisted bone segment navigation. J. Cranio-Maxillofac. Surg. 1998, 26, 347–359.
+      [CrossRef]
+39.   Marmulla, R.; Hoppe, H.; Mühling, J.; Hassfeld, S. New augmented reality concepts for craniofacial surgical procedures. Plast.
+      Reconstr. Surg. 2005, 115, 1124–1128. [CrossRef] [PubMed]
+40.   Schicho, K.; Figl, M.; Seemann, R.; Donat, M.; Pretterklieber, M.L.; Birkfellner, W.; Reichwein, A.; Wanschitz, F.; Kainberger, F.;
+      Bergmann, H.; et al. Comparison of laser surface scanning and fiducial marker–based registration in frameless stereotaxy. J.
+      Neurosurg. 2007, 106, 704–709. [CrossRef] [PubMed]
+41.   Lee, H.; Park, J.M.; Kim, K.H.; Lee, D.H.; Sohn, M.J. Accuracy evaluation of surface registration algorithm using normal
+      distribution transform in stereotactic body radiotherapy/radiosurgery: A phantom study. J. Appl. Clin. Med. Phys. 2022,
+      23, e13521. [CrossRef]
+42.   Wang, M.Y.; Maurer, C.R.; Fitzpatrick, J.M.; Maciunas, R.J. An automatic technique for finding and localizing externally attached
+      markers in CT and MR volume images of the head. IEEE Trans. Biomed. Eng. 1996, 43, 627–637. [CrossRef]
+43.   Knott, P.D.; Maurer, C.R., Jr; Gallivan, R.; Roh, H.J.; Citardi, M.J. The impact of fiducial distribution on headset-based registration
+      in image-guided sinus surgery. Otolaryngol.—Head Neck Surg. 2004, 131, 666–672. [CrossRef]
+44.   Choi, J.W.; Jang, J.; Jeon, K.; Kang, S.; Kang, S.H.; Seo, J.K.; Lee, S.H. Three-dimensional measurement and registration accuracy
+      of a third-generation optical tracking system for navigational maxillary orthognathic surgery. Oral Surg. Oral Med. Oral Pathol.
+      Oral Radiol. 2019, 128, 213–219. [CrossRef] [PubMed]
+45.   Duque, S.; Gorrepati, R.; Kesavabhotla, K.; Huang, C.; Boockvar, J. Endoscopic Endonasal Transphenoidal Surgery Using the
+      BrainLAB (R) Headband for Navigation without Rigid Fixation. J. Neurol. Surgery. Part Cent. Eur. Neurosurg. 2013, 75, 267–269.
+      [CrossRef]
+J. Clin. Med. 2023, 12, 5398                                                                                                           18 of 22
+
+
+
+
+46.   Aoyama, T.; Uto, K.; Shimizu, H.; Ebara, M.; Kitagawa, T.; Tachibana, H.; Suzuki, K.; Kodaira, T. Development of a new
+      poly-ε-caprolactone with low melting point for creating a thermoset mask used in radiation therapy. Sci. Rep. 2021, 11, 20409.
+      [CrossRef] [PubMed]
+47.   Balachandran, R.; Fritz, M.A.; Dietrich, M.S.; Danilchenko, A.; Mitchell, J.E.; Oldfield, V.L.; Lipscomb, W.W.; Fitzpatrick, J.M.;
+      Neimat, J.S.; Konrad, P.E.; et al. Clinical testing of an alternate method of inserting bone-implanted fiducial markers. Int. J.
+      Comput. Assist. Radiol. Surg. 2014, 9, 913–920. [CrossRef] [PubMed]
+48.   Hosoki, M.; Nishigawa, K.; Miyamoto, Y.; Ohe, G.; Matsuka, Y. Allergic contact dermatitis caused by titanium screws and dental
+      implants. J. Prosthodont. Res. 2016, 60, 213–219. [CrossRef] [PubMed]
+49.   Chen, M.; Gonzalez, G.; Lapeer, R. Intra-operative registration for image enhanced endoscopic sinus surgery using photo-
+      consistency. Stud. Health Technol. Inform. 2007, 125, 67–72. [PubMed]
+50.   Gerber, N.; Gavaghan, K.A.; Bell, B.J.; Williamson, T.M.; Weisstanner, C.; Caversaccio, M.D.; Weber, S. High-accuracy patient-
+      to-image registration for the facilitation of image-guided robotic microsurgery on the head. IEEE Trans. Biomed. Eng. 2013,
+      60, 960–968. [CrossRef] [PubMed]
+51.   Chang, Y.Z.; Hou, J.F. Registration for frameless brain surgery based on stereo imaging. In Proceedings of the 2013 35th
+      Annual International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC), Osaka, Japan, 3–7 July 2013;
+      pp. 3998–4001.
+52.   Zagorchev, L.; Brueck, M.; Fläschner, N.; Wenzel, F.; Hyde, D.; Ewald, A.; Peters, J. Patient-specific sensor registration for electrical
+      source imaging using a deformable head model. IEEE Trans. Biomed. Eng. 2020, 68, 267–275. [CrossRef]
+53.   Russell, G.S.; Eriksen, K.J.; Poolman, P.; Luu, P.; Tucker, D.M. Geodesic photogrammetry for localizing sensor positions in
+      dense-array EEG. Clin. Neurophysiol. 2005, 116, 1130–1140. [CrossRef]
+54.   Gurbani, S.S.; Wilkening, P.; Zhao, M.; Gonenc, B.; Cheon, G.W.; Iordachita, I.I.; Chien, W.; Taylor, R.H.; Niparko, J.K.; Kang, J.U.
+      Robot-assisted three-dimensional registration for cochlear implant surgery using a common-path swept-source optical coherence
+      tomography probe. J. Biomed. Opt. 2014, 19, 057004. [CrossRef]
+55.   Üneri, A.; Balicki, M.A.; Handa, J.; Gehlbach, P.; Taylor, R.H.; Iordachita, I. New steady-hand eye robot with micro-force sensing
+      for vitreoretinal surgery. In Proceedings of the 2010 3rd IEEE RAS & EMBS International Conference on Biomedical Robotics and
+      Biomechatronics, Tokyo, Japan, 26–29 September 2010; pp. 814–819.
+56.   Jiang, J.; Nakajima, Y.; Sohma, Y.; Saito, T.; Kin, T.; Oyama, H.; Saito, N. Marker-less tracking of brain surface deformations by
+      non-rigid registration integrating surface and vessel/sulci features. Int. J. Comput. Assist. Radiol. Surg. 2016, 11, 1687–1701.
+      [CrossRef] [PubMed]
+57.   Wen, R.; Chui, C.K.; Ong, S.H.; Lim, K.B.; Chang, S.K.Y. Projection-based visual guidance for robot-aided RF needle insertion. Int.
+      J. Comput. Assist. Radiol. Surg. 2013, 8, 1015–1025. [CrossRef] [PubMed]
+58.   Olesen, O.V.; Paulsen, R.R.; Hojgaard, L.; Roed, B.; Larsen, R. Motion tracking for medical imaging: A nonvisible structured light
+      tracking approach. IEEE Trans. Med. Imaging 2011, 31, 79–87. [CrossRef] [PubMed]
+59.   Burschka, D.; Li, M.; Ishii, M.; Taylor, R.H.; Hager, G.D. Scale-invariant registration of monocular endoscopic images to CT scans
+      for sinus surgery. Med. Image Anal. 2005, 9, 413–426. [CrossRef] [PubMed]
+60.   Lapeer, R.; Chen, M.; Gonzalez, G.; Linney, A.; Alusi, G. Image-enhanced surgical navigation for endoscopic sinus surgery:
+      evaluating calibration, registration and tracking. Int. J. Med. Robot. Comput. Assist. Surg. 2008, 4, 32–45. [CrossRef] [PubMed]
+61.   Otake, Y.; Léonard, S.; Reiter, A.; Rajan, P.; Siewerdsen, J.H.; Gallia, G.L.; Ishii, M.; Taylor, R.H.; Hager, G.D. Rendering-based
+      video-CT registration with physical constraints for image-guided endoscopic sinus surgery. In Proceedings of the Medical
+      Imaging 2015: Image-Guided Procedures, Robotic Interventions, and Modeling, Orlando, FL, USA, 21–26 February 2015; Volume
+      9415, pp. 64–69.
+62.   Luo, X.; Takabatake, H.; Natori, H.; Mori, K. Robust real-time image-guided endoscopy: A new discriminative structural
+      similarity measure for video to volume registration. In Information Processing in Computer-Assisted Interventions: Proceedings of the
+      4th International Conference, IPCAI 2013, Heidelberg, Germany, 26 June 2013; Proceedings 4; Springer: Berlin/Heidelberg, Germany,
+      2013; pp. 91–100.
+63.   Farnia, P.; Najafzadeh, E.; Ahmadian, A.; Makkiabadi, B.; Alimohamadi, M.; Alirezaie, J. Co-sparse analysis model based image
+      registration to compensate brain shift by using intra-operative ultrasound imaging. In Proceedings of the 2018 40th Annual
+      International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC), Honolulu, HI, USA, 18–21 July 2018;
+      pp. 1–4.
+64.   Paul, P.; Morandi, X.; Jannin, P. A surface registration method for quantification of intraoperative brain deformations in
+      image-guided neurosurgery. IEEE Trans. Inf. Technol. Biomed. 2009, 13, 976–983. [CrossRef] [PubMed]
+65.   Wang, J.; Liu, H.; Ke, J.; Hu, L.; Zhang, S.; Yang, B.; Sun, S.; Guo, N.; Ma, F. Image-guided cochlear access by non-invasive
+      registration: A cadaveric feasibility study. Sci. Rep. 2020, 10, 18318. [CrossRef] [PubMed]
+66.   Samuel, H.T.; Lepcha, A.; Philip, A.; John, M.; Augustine, A.M. Dimensions of the Posterior Tympanotomy and Round Window
+      Visibility Through the Facial Recess: Cadaveric Temporal Bone Study Using a Novel Digital Microscope. Indian J. Otolaryngol.
+      Head Neck Surg. 2022, 74, 714–718. [CrossRef] [PubMed]
+67.   Broehan, A.M.; Rudolph, T.; Amstutz, C.A.; Kowal, J.H. Real-time multimodal retinal image registration for a computer-assisted
+      laser photocoagulation system. IEEE Trans. Biomed. Eng. 2011, 58, 2816–2824. [CrossRef]
+J. Clin. Med. 2023, 12, 5398                                                                                                          19 of 22
+
+
+
+
+68.   Kollias, A.N.; Ulbig, M.W. Diabetic retinopathy: Early diagnosis and effective treatment. Dtsch. Arztebl. Int. 2010, 107, 75.
+      [PubMed]
+69.   Kral, F.; Riechelmann, H.; Freysinger, W. Navigated surgery at the lateral skull base and registration and preoperative imagery:
+      Experimental results. Arch. Otolaryngol.–Head Neck Surg. 2011, 137, 144–150. [CrossRef] [PubMed]
+70.   Fitzpatrick, J.M.; West, J.B.; Maurer, C.R. Predicting error in rigid-body point-based registration. IEEE Trans. Med. Imaging 1998,
+      17, 694–702. [CrossRef] [PubMed]
+71.   Shamir, R.R.; Freiman, M.; Joskowicz, L.; Spektor, S.; Shoshan, Y. Surface-based facial scan registration in neuronavigation
+      procedures: A clinical study. J. Neurosurg. 2009, 111, 1201–1206. [CrossRef] [PubMed]
+72.   Ledderose, G.; Stelter, K.; Leunig, A.; Hagedorn, H. Surface laser registration in ENT-surgery: Accuracy in the paranasal
+      sinuses—A cadaveric study. Rhinology 2008, 45, 281–285.
+73.   Ferrant, M.; Nabavi, A.; Macq, B.; Jolesz, F.A.; Kikinis, R.; Warfield, S.K. Registration of 3-D intraoperative MR images of the
+      brain using a finite-element biomechanical model. IEEE Trans. Med. Imaging 2001, 20, 1384–1397. [CrossRef] [PubMed]
+74.   Fu, D.; Kuduvalli, G. A fast, accurate, and automatic 2D–3D image registration for image-guided cranial radiosurgery. Med. Phys.
+      2008, 35, 2180–2194. [CrossRef]
+75.   Eggers, G.; M¨ hling, J. Template-based registration for image-guided skull base surgery. Otolaryngol.—Head Neck Surg. 2007,
+      136, 907–913. [CrossRef]
+76.   Marmulla, R.; Eggers, G.; Mühling, J. Laser surface registration for lateral skull base surgery. Minim. Invasive Neurosurg. 2005,
+      48, 181–185. [CrossRef]
+77.   Bozorg Grayeli, A.; Esquia-Medina, G.; Nguyen, Y.; Mazalaigue, S.; Vellin, J.F.; Lombard, B.; Kalamarides, M.; Ferrary, E.; Sterkers,
+      O. Use of anatomic or invasive markers in association with skin surface registration in image-guided surgery of the temporal
+      bone. Acta Oto-Laryngol. 2009, 129, 405–410. [CrossRef]
+78.   Eggers, G.; Kress, B.; Mühling, J. Automated registration of intraoperative CT image data for navigated skull base surgery. Minim.
+      Invasive Neurosurg. 2008, 51, 15–20. [CrossRef] [PubMed]
+79.   Labadie, R.F.; Davis, B.M.; Fitzpatrick, J.M. Image-guided surgery: What is the accuracy? Curr. Opin. Otolaryngol. Head Neck Surg.
+      2005, 13, 27–31. [CrossRef] [PubMed]
+80.   Hamming, N.M.; Daly, M.J.; Irish, J.C.; Siewerdsen, J.H. Effect of fiducial configuration on target registration error in intraoperative
+      cone-beam CT guidance of head-and-neck surgery. In Proceedings of the 2008 30th Annual International Conference of the IEEE
+      Engineering in Medicine and Biology Society, Vancouver, BC, Canada, 20–25 August 2008; pp. 3643–3648.
+81.   Smith, T.R.; Mithal, D.S.; Stadler, J.A.; Asgarian, C.; Muro, K.; Rosenow, J.M. Impact of fiducial arrangement and registration
+      sequence on target accuracy using a phantom frameless stereotactic navigation model. J. Clin. Neurosci. 2014, 21, 1976–1980.
+      [CrossRef] [PubMed]
+82.   Alp, S.; Dujovny, M.; Misra, M.; Charbel, F.; Ausman, J. Head registration techniques for image-guided surgery. Neurol. Res. 1998,
+      20, 31–37. [CrossRef]
+83.   Lavenir, L.; Zemiti, N.; Akkari, M.; Subsol, G.; Venail, F.; Poignet, P. HFUS Imaging of the Cochlea: A Feasibility Study for
+      Anatomical Identification by Registration with MicroCT. Ann. Biomed. Eng. 2021, 49, 1308–1317. [CrossRef]
+84.   Kral, F.; Url, C.; Widmann, G.; Riechelmann, H.; Freysinger, W. The learning curve of registration in navigated skull base surgery.
+      Laryngo-Rhino-Otologie 2010, 90, 90–93. [CrossRef]
+85.   Chu, Y.; Yang, J.; Ma, S.; Ai, D.; Li, W.; Song, H.; Li, L.; Chen, D.; Chen, L.; Wang, Y. Registration and fusion quantification of
+      augmented reality based nasal endoscopic surgery. Med. Image Anal. 2017, 42, 241–256. [CrossRef] [PubMed]
+86.   Mirota, D.J.; Wang, H.; Taylor, R.H.; Ishii, M.; Gallia, G.L.; Hager, G.D. A system for video-based navigation for endoscopic
+      endonasal skull base surgery. IEEE Trans. Med. Imaging 2011, 31, 963–976. [CrossRef]
+87.   Ingram, W.S.; Yang, J.; Wendt, R., III; Beadle, B.M.; Rao, A.; Wang, X.A.; Court, L.E. The influence of non-rigid anatomy and
+      patient positioning on endoscopy-CT image registration in the head-and-neck. Med. Phys. 2017, 44, 4159–4168. [CrossRef]
+      [PubMed]
+88.   Hauser, R.; Westermann, B.; Probst, R. A non-invasive patient registration and reference system for interactive intraoperative
+      localization in intranasal sinus surgery. Proc. Inst. Mech. Eng. Part H J. Eng. Med. 1997, 211, 327–334. [CrossRef] [PubMed]
+89.   Zhou, C.; Anschuetz, L.; Weder, S.; Xie, L.; Caversaccio, M.; Weber, S.; Williamson, T. Surface matching for high-accuracy
+      registration of the lateral skull base. Int. J. Comput. Assist. Radiol. Surg. 2016, 11, 2097–2103. [CrossRef] [PubMed]
+90.   Schneider, D.; Hermann, J.; Gerber, K.; Ansó, J.; Caversaccio, M.; Weber, S.; Anschuetz, L. Noninvasive Registration Strategies
+      and Advanced Image Guidance Technology for Submillimeter Surgical Navigation Accuracy in the Lateral Skull Base. Otol.
+      Neurotol. 2018, 39, 1326–1335. [CrossRef] [PubMed]
+91.   Brouwer de Koning, S.; Riksen, J.; ter Braak, T.P.; van Alphen, M.J.; van der Heijden, F.; Schreuder, W.H.; Karssemakers, L.;
+      Karakullukcu, M.B.; van Veen, R.L.P. Utilization of a 3D printed dental splint for registration during electromagnetically navigated
+      mandibular surgery. Int. J. Comput. Assist. Radiol. Surg. 2020, 15, 1997–2003. [CrossRef] [PubMed]
+92.   Reaungamornrat, S.; Liu, W.; Wang, A.; Otake, Y.; Nithiananthan, S.; Uneri, A.; Schafer, S.; Tryggestad, E.; Richmon, J.; Sorger, J.;
+      et al. Deformable image registration for cone-beam CT guided transoral robotic base-of-tongue surgery. Phys. Med. Biol. 2013,
+      58, 4951. [CrossRef] [PubMed]
+93.   Ledderose, G.J.; Hagedorn, H.; Spiegl, K.; Leunig, A.; Stelter, K. Image guided surgery of the lateral skull base: Testing a new
+      dental splint registration device. Comput. Aided Surg. 2012, 17, 13–20. [CrossRef] [PubMed]
+J. Clin. Med. 2023, 12, 5398                                                                                                       20 of 22
+
+
+
+
+94.  O’Reilly, M.A.; Jones, R.M.; Birman, G.; Hynynen, K. Registration of human skull computed tomography data to an ultrasound
+     treatment space using a sparse high frequency ultrasound hemispherical array. Med. Phys. 2016, 43, 5063–5071. [CrossRef]
+     [PubMed]
+95. Gooroochurn, M.; Kerr, D.; Bouazza-Marouf, K.; Ovinis, M. Facial recognition techniques applied to the automated registration of
+     patients in the emergency treatment of head injuries. Proc. Inst. Mech. Eng. Part H J. Eng. Med. 2011, 225, 170–180. [CrossRef]
+96. Saß, B.; Pojskic, M.; Bopp, M.; Nimsky, C.; Carl, B. Comparing fiducial-based and intraoperative computed tomography-based
+     registration for frameless stereotactic brain biopsy. Stereotact. Funct. Neurosurg. 2021, 99, 79–89. [CrossRef]
+97. Xu, F.; Jin, H.; Yang, X.; Sun, X.; Wang, Y.; Xu, M.; Tao, Y. Improved accuracy using a modified registration method of ROSA in
+     deep brain stimulation surgery. Neurosurg. Focus 2018, 45, E18. [CrossRef]
+98. Hunsche, S.; Sauner, D.; El Majdoub, F.; Neudorfer, C.; Poggenborg, J.; Goßmann, A.; Maarouf, M. Intensity-based 2D 3D
+     registration for lead localization in robot guided deep brain stimulation. Phys. Med. Biol. 2017, 62, 2417. [CrossRef]
+99. Van Krevelen, D.; Poelman, R. A survey of augmented reality technologies, applications and limitations. Int. J. Virtual Real. 2010,
+     9, 1–20. [CrossRef]
+100. Woodworth, B.; Davis, G.; Schlosser, R. Comparison of Laser versus Surface-Touch Registration for Image-Guided Sinus Surgery.
+     Am. J. Rhinol. 2005, 19, 623–626. [CrossRef] [PubMed]
+101. Chang, C.M.; Fang, K.M.; Huang, T.; Wang, C.T.; Cheng, P.W. Three-dimensional analysis of the surface registration accuracy of
+     electromagnetic navigation systems in live endoscopic sinus surgery. Rhinology 2013, 51, 343–348. [CrossRef] [PubMed]
+102. Chang, C.M.; Jaw, F.S.; Lo, W.C.; Fang, K.M.; Cheng, P.W. Three-dimensional analysis of the accuracy of optic and electromagnetic
+     navigation systems using surface registration in live endoscopic sinus surgery. Rhinology 2016, 54, 88–94. [CrossRef] [PubMed]
+103. Ieiri, S.; Uemura, M.; Konishi, K.; Souzaki, R.; Nagao, Y.; Tsutsumi, N.; Akahoshi, T.; Ohuchida, K.; Ohdaira, T.; Tomikawa, M.;
+     et al. Augmented reality navigation system for laparoscopic splenectomy in children based on preoperative CT image using
+     optical tracking device. Pediatr. Surg. Int. 2012, 28, 341–346. [CrossRef] [PubMed]
+104. Metson, R.B.; Cosenza, M.J.; Cunningham, M.J.; Randolph, G.W. Physician experience with an optical image guidance system for
+     sinus surgery. Laryngoscope 2000, 110, 972–976. [CrossRef] [PubMed]
+105. Matsumoto, N.; Hong, J.; Hashizume, M.; Komune, S. A minimally invasive registration method using surface template-assisted
+     marker positioning (STAMP) for image-guided otologic surgery. Otolaryngol.—Head Neck Surg. 2009, 140, 96–102. [CrossRef]
+106. Berkels, B.; Cabrilo, I.; Haller, S.; Rumpf, M.; Schaller, K. Co-registration of intra-operative brain surface photographs and
+     pre-operative MR images. Int. J. Comput. Assist. Radiol. Surg. 2014, 9, 387–400. [CrossRef]
+107. Mascott, C.R.; Sol, J.C.; Bousquet, P.; Lagarrigue, J.; Lazorthes, Y.; Lauwers-Cances, V. Quantification of true in vivo (application)
+     accuracy in cranial image-guided surgery: Influence of mode of patient registration. Oper. Neurosurg. 2006, 59, ONS-146–ONS-156.
+     [CrossRef] [PubMed]
+108. Yamamoto, S.; Taniike, N.; Takenobu, T. Application of an open position splint integrated with a reference frame and registration
+     markers for mandibular navigation surgery. Int. J. Oral Maxillofac. Surg. 2020, 49, 686–690. [CrossRef] [PubMed]
+109. Hong, J.; Matsumoto, N.; Ouchida, R.; Komune, S.; Hashizume, M. Medical navigation system for otologic surgery based on
+     hybrid registration and virtual intraoperative computed tomography. IEEE Trans. Biomed. Eng. 2008, 56, 426–432. [CrossRef]
+110. Bale, R.J.; Burtscher, J.; Eisner, W.; Obwegeser, A.A.; Rieger, M.; Sweeney, R.A.; Dessl, A.; Giacomuzzi, S.M.; Twerdy, K.; Jaschke,
+     W. Computer-assisted neurosurgery by using a non-invasive vacuum-affixed dental cast that acts as a reference base: Another
+     step toward a unified approach in the treatment of brain tumors. J. Neurosurg. 2000, 93, 208–213. [CrossRef] [PubMed]
+111. Meeks, S.L.; Bova, F.J.; Wagner, T.H.; Buatti, J.M.; Friedman, W.A.; Foote, K.D. Image localization for frameless stereotactic
+     radiotherapy. Int. J. Radiat. Oncol. Biol. Phys. 2000, 46, 1291–1299. [CrossRef]
+112. Fenlon, M.R.; Jusczyzck, A.S.; Edwards, P.J.; King, A.P. Locking acrylic resin dental stent for image-guided surgery. J. Prosthet.
+     Dent. 2000, 83, 482–485. [CrossRef]
+113. Hofer, M.; Dittrich, E.; Baumberger, C.; Strauß, M.; Dietz, A.; Lüth, T.; Strauß, G. The influence of various registration procedures
+     upon surgical accuracy during navigated controlled petrous bone surgery. Otolaryngol.–Head Neck Surg. 2010, 143, 258–262.
+     [CrossRef] [PubMed]
+114. Grauvogel, T.D.; Soteriou, E.; Metzger, M.C.; Berlis, A.; Maier, W. Influence of different registration modalities on navigation
+     accuracy in ear, nose, and throat surgery depending on the surgical field. Laryngoscope 2010, 120, 881–888. [CrossRef] [PubMed]
+115. Albritton, F.D.; Kingdom, T.T.; DelGaudio, J.M. Malleable Registration Mask: Application of a Novel Registration Method in
+     Image Guided Sinus Surgery. Am. J. Rhinol. Allergy 2001, 15, 219–224. [CrossRef]
+116. Hubley, E.; Mooney, K.; Schelin, M.; Shi, W.; Yu, Y.; Liu, H. Geometric and dosimetric effects of image co-registration workflows
+     for Gamma Knife frameless radiosurgery. J. Radiosurg. SBRT 2020, 7, 47–55. [PubMed]
+117. Chen, M.J.; Gu, L.X.; Zhang, W.J.; Yang, C.; Zhao, J.; Shao, Z.Y.; Wang, B.L. Fixation, registration, and image-guided navigation
+     using a thermoplastic facial mask in electromagnetic navigation–guided radiofrequency thermocoagulation. Oral Surg. Oral Med.
+     Oral Pathol. Oral Radiol. Endodontol. 2010, 110, e43–e48. [CrossRef] [PubMed]
+118. Yamamoto, S.; Hara, S.; Takenobu, T. A Splint-to-CT Data Registration Strategy for Maxillary Navigation Surgery. Case Rep. Dent.
+     2020, 2020, 8871148. [CrossRef] [PubMed]
+119. Traxdorf, M.; Hartl, M.; Angerer, F.; Bohr, C.; Grundtner, P.; Iro, H. A novel nasopharyngeal stent for the treatment of obstructive
+     sleep apnea: A case series of nasopharyngeal stenting versus continuous positive airway pressure. Eur. Arch. Oto-Rhino-Laryngol.
+     2016, 273, 1307–1312. [CrossRef] [PubMed]
+J. Clin. Med. 2023, 12, 5398                                                                                                           21 of 22
+
+
+
+
+120. Regodić, M.; Freyschlag, C.F.; Kerschbaumer, J.; Galijašević, M.; Hörmann, R.; Freysinger, W. Novel microscope-based visual
+     display and nasopharyngeal registration for auditory brainstem implantation: A feasibility study in an ex vivo model. Int. J.
+     Comput. Assist. Radiol. Surg. 2022, 17, 261–270. [CrossRef] [PubMed]
+121. Snyderman, D.C.; Zimmer, D.L.A.; Kassam, D.A. Sources of Registration Error with Image Guidance Systems During Endoscopic
+     Anterior Cranial Base Surgery. Otolaryngol.–Head Neck Surg. 2004, 131, 145–149. [CrossRef] [PubMed]
+122. Bettschart, C.; Kruse, A.; Matthews, F.; Zemann, W.; Obwegeser, J.A.; Grätz, K.W.; Lübbers, H.T. Point-to-point registration with
+     mandibulo-maxillary splint in open and closed jaw position. Evaluation of registration accuracy for computer-aided surgery of
+     the mandible. J. Cranio-Maxillofac. Surg. 2012, 40, 592–598. [CrossRef]
+123. Kao, J.; Tarng, Y. The registration of CT image to the patient head by using an automated laser surface scanning system—A
+     phantom study. Comput. Methods Programs Biomed. 2006, 83, 1–11. [CrossRef] [PubMed]
+124. Li, F.; Song, Z. Surface-based automatic coarse registration of head scans. Bio-Med. Mater. Eng. 2014, 24, 3207–3214. [CrossRef]
+     [PubMed]
+125. Kim, Y.; Li, R.; Na, Y.H.; Lee, R.; Xing, L. Accuracy of surface registration compared to conventional volumetric registration
+     in patient positioning for head-and-neck radiotherapy: A simulation study using patient data. Med. Phys. 2014, 41, 121701.
+     [CrossRef]
+126. Drakopoulos, F.; Foteinos, P.; Liu, Y.; Chrisochoides, N.P. Toward a real time multi-tissue Adaptive Physics-Based Non-Rigid
+     Registration framework for brain tumor resection. Front. Neuroinformatics 2014, 8, 11. [CrossRef] [PubMed]
+127. Clatz, O.; Delingette, H.; Talos, I.F.; Golby, A.J.; Kikinis, R.; Jolesz, F.A.; Ayache, N.; Warfield, S.K. Robust nonrigid registration to
+     capture brain shift from intraoperative MRI. IEEE Trans. Med. Imaging 2005, 24, 1417–1427. [CrossRef] [PubMed]
+128. Cooper, M.D.; Restrepo, C.; Hill, R.; Hong, M.; Greene, R.; Weise, L.M. The accuracy of 3D fluoroscopy (XT) vs computed
+     tomography (CT) registration in deep brain stimulation (DBS) surgery. Acta Neurochir. 2020, 162, 1871–1878. [CrossRef]
+129. Peng, T.; Kramer, D.R.; Lee, M.B.; Barbaro, M.F.; Ding, L.; Liu, C.Y.; Kellis, S.; Lee, B. Comparison of intraoperative 3-dimensional
+     fluoroscopy with standard computed tomography for stereotactic frame registration. Oper. Neurosurg. 2020, 18, 698. [CrossRef]
+130. Jones, M.R.; Baskaran, A.B.; Nolt, M.J.; Rosenow, J.M. Intraoperative computed tomography for registration of stereotactic frame
+     in frame-based deep brain stimulation. Oper. Neurosurg. 2021, 20, E186–E189. [CrossRef] [PubMed]
+131. Jermakowicz, W.J.; Diaz, R.J.; Cass, S.H.; Ivan, M.E.; Komotar, R.J. Use of a mobile intraoperative computed tomography
+     scanner for navigation registration during laser interstitial thermal therapy of brain tumors. World Neurosurg. 2016, 94, 418–425.
+     [CrossRef] [PubMed]
+132. Eggers, G.; Kress, B.; Rohde, S.; Muhling, J. Intraoperative computed tomography and automated registration for image-guided
+     cranial surgery. Dentomaxillofacial Radiol. 2009, 38, 28–33. [CrossRef] [PubMed]
+133. Shah, K.H.; Slovis, B.H.; Runde, D.; Godbout, B.; Newman, D.H.; Lee, J. Radiation exposure among patients with the highest CT
+     scan utilization in the emergency department. Emerg. Radiol. 2013, 20, 485–491. [CrossRef] [PubMed]
+134. Granger, C.; Alexander, J.; McMurray, J. New England Journal of Medicine. NEJM 2011, 365, 981–992. [CrossRef] [PubMed]
+135. Frane, N.; Megas, A.; Stapleton, E.; Ganz, M.; Bitterman, A.D. Radiation exposure in orthopaedics. JBJS Rev. 2020, 8, e0060.
+     [CrossRef] [PubMed]
+136. Carlson, J.D. Stereotactic registration using cone-beam computed tomography. Clin. Neurol. Neurosurg. 2019, 182, 107–111.
+     [CrossRef]
+137. Carl, B.; Bopp, M.; Saß, B.; Nimsky, C. Intraoperative computed tomography as reliable navigation registration device in 200
+     cranial procedures. Acta Neurochir. 2018, 160, 1681–1689. [CrossRef]
+138. Carl, B.; Bopp, M.; Saß, B.; Pojskic, M.; Gjorgjevski, M.; Voellger, B.; Nimsky, C. Reliable navigation registration in cranial and
+     spine surgery based on intraoperative computed tomography. Neurosurg. Focus 2019, 47, E11. [CrossRef] [PubMed]
+139. Zhou, C.; Cha, T.; Peng, Y.; Li, G. Transfer learning from an artificial radiograph-landmark dataset for registration of the anatomic
+     skull model to dual fluoroscopic X-ray images. Comput. Biol. Med. 2021, 138, 104923. [CrossRef] [PubMed]
+140. Su, Y.; Sun, Y.; Hosny, M.; Gao, W.; Fu, Y. Facial landmark-guided surface matching for image-to-patient registration with an
+     RGB-D camera. Int. J. Med. Robot. Comput. Assist. Surgery 2022, 18, e2373. [CrossRef] [PubMed]
+141. Duay, V.; Sinha, T.K.; D’Haese, P.F.; Miga, M.I.; Dawant, B.M. Non-rigid registration of serial intra-operative images for automatic
+     brain shift estimation. In Biomedical Image Registration: Proceedings of the Second InternationalWorkshop, WBIR 2003, Philadelphia, PA,
+     USA, 23–24 June 2003; Revised Papers 2; Springer: Berlin/Heidelberg, Germany, 2003; pp. 61–70.
+142. Arbel, T.; Arbel, T.; Morandi, X.; Comeau, R.M.; Collins, D.L. Automatic non-linear MRI-ultrasound registration for the correction
+     of intra-operative brain deformations. Comput. Aided Surg. 2004, 9, 123–136. [CrossRef] [PubMed]
+143. Reinertsen, I.; Descoteaux, M.; Siddiqi, K.; Collins, D.L. Validation of vessel-based registration for correction of brain shift. Med.
+     Image Anal. 2007, 11, 374–388. [CrossRef] [PubMed]
+144. Teske, H.; Bartelheimer, K.; Meis, J.; Bendl, R.; Stoiber, E.M.; Giske, K. Construction of a biomechanical head-and-neck motion
+     model as a guide to evaluation of deformable image registration. Phys. Med. Biol. 2017, 62, N271. [CrossRef]
+145. Neylon, J.; Qi, X.; Sheng, K.; Staton, R.; Pukala, J.; Manon, R.; Low, D.; Kupelian, P.; Santhanam, A. A GPU based high-resolution
+     multilevel biomechanical head-and-neck model for validating deformable image registration. Med. Phys. 2015, 42, 232–243.
+     [CrossRef]
+J. Clin. Med. 2023, 12, 5398                                                                                                   22 of 22
+
+
+
+
+146. Mohammadi, A.; Ahmadian, A.; Rabbani, S.; Fattahi, E.; Shirani, S. A combined registration and finite element analysis method
+     for fast estimation of intraoperative brain shift; phantom and animal model study. Int. J. Med. Robot. Comput. Assist. Surg. 2017,
+     13, e1792. [CrossRef] [PubMed]
+147. Wittek, A.; Miller, K.; Kikinis, R.; Warfield, S.K. Patient-specific model of brain deformation: Application to medical image
+     registration. J. Biomech. 2007, 40, 919–929. [CrossRef]
+148. Hagemann, A.; Rohr, K.; Stiehl, H.S.; Spetzger, U.; Gilsbach, J.M. Biomechanical modeling of the human head for physically
+     based, nonrigid image registration. IEEE Trans. Med. Imaging 1999, 18, 875–884. [CrossRef]
+149. Constantin, B.N.; Marina, T.C.; Eugen, S.H.; Ileana, E.; Adrian, G. Tongue Base Ectopic Thyroid Tissue—Is It a Rare Encounter?
+     Medicina 2023, 59, 313. [CrossRef]
+
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+

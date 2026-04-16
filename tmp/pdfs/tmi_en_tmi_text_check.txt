@@ -1,0 +1,1221 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, MONTH 2026
+
+1
+
+A Biplanar Marker-Structure Framework for
+Decoupled Error Assessment in 2D/3D Registration
+for Intraoperative Planning and Navigation
+Author Name
+
+Abstract—Accurate intraoperative planning and navigation
+require reliable spatial localization, but system-level error measurements often confound algorithmic, calibration, imaging,
+tracking, and execution factors. This paper presents a biplanar
+marker-structure framework for 2D/3D registration, target-point
+recovery, and decoupled assessment of the core geometric computation. The method does not require preoperative 3D images,
+digitally reconstructed radiographs, iterative optimization, or
+GPU acceleration. Projection geometry is estimated from 2D–3D
+marker correspondences, 3D target points are recovered from
+multiview back-projection constraints, and the same calibrated
+model forward-projects 3D points for 2D navigation display.
+Experiments on two volume datasets under perspective and
+orthographic projection settings yielded 810 valid observations.
+The median target registration error was 0.150–0.205 mm, the
+median reprojection error was 0.120–0.150 pixels, and the median
+explicit computation-chain time was 0.659 s. View separation
+was the dominant factor affecting 3D recovery accuracy and
+repeatability, whereas the projection-model assumption had a
+comparatively small effect. These results indicate that biplanar
+marker geometry can provide an interpretable, reproducible
+basis for algorithm-level evaluation before hardware-intensive
+system integration. Source code is available at https://github.com/
+CodingHHW/Biplane.
+Index Terms—2D/3D registration, biplanar marker structure,
+error decoupling, geometric calibration, intraoperative navigation, reprojection error.
+
+I. I NTRODUCTION
+
+I
+
+MAGE-GUIDED orthopedic intervention and robotic assistance rely on accurate spatial relationships among intraoperative images, anatomical targets, instruments, and planned
+trajectories. In many procedures, these relationships must be
+inferred from limited two-dimensional (2D) X-ray or fluoroscopic views. Therefore, image-to-patient registration and geometric localization are central to the reliability, repeatability,
+and safety of computer-assisted surgery [1]–[3].
+A widely used solution is 2D/3D registration between preoperative computed tomography (CT) or magnetic resonance
+(MR) images and intraoperative X-ray images. Intensitydriven methods typically synthesize digitally reconstructed
+radiographs (DRRs) from preoperative volumes and optimize
+an image-similarity objective [2], [5]–[10]. Multiview and
+fluoroscopy-guided registration methods have demonstrated
+the feasibility of this paradigm in orthopedic navigation
+Manuscript received Month XX, 2026; revised Month XX, 2026. This work
+was supported in part by [funding information].
+Author Name is with [Department], [Institution], [City, Country] (e-mail:
+author@example.com).
+
+[11]–[16]. More recently, learning-based methods have improved capture range, initialization, and computational efficiency through pose regression, learned similarity, differentiable rendering, and domain randomization [17]–[22], [25],
+[26]. Despite these advances, most methods remain tied to
+the “preoperative 3D image plus intraoperative 2D image”
+paradigm and often report the final accuracy of an integrated
+system.
+For intraoperative planning and navigation, two questions
+remain insufficiently separated. First, when the final navigation
+error is reported, it is often unclear how much of that error
+arises from the core geometric algorithm rather than image formation, calibration, tracking, software implementation, instrument motion, or workflow execution. Second, for workflows
+based on a known marker structure rather than patient-specific
+CT-to-X-ray registration, the effects of view geometry, target
+location, and projection-model assumptions are rarely analyzed as independent factors. Standardized 2D/3D registration
+evaluations have emphasized controlled data, unified metrics,
+and ground-truth geometry [27], [28], but most benchmarks
+remain centered on CT-to-X-ray registration.
+This paper investigates a different route: 2D/3D registration
+and target recovery driven by a known biplanar marker structure. Here, “biplanar” refers to the spatial arrangement of the
+marker structure rather than to biplanar X-ray acquisition. The
+marker geometry supplies depth constraints that reduce the
+degeneracy of point back-projection, while the same calibrated
+projection model supports forward projection of 3D target or
+instrument points for 2D navigation display. The objective
+is not to replace system-level navigation validation, but to
+quantify the algorithm-level accuracy, conditioning, and timing
+of the core planning-navigation geometry under controlled
+conditions before committing to hardware-intensive system
+integration. Fig. 1 summarizes the assessment scope and a
+staged validation strategy.
+The contributions of this work are threefold:
+• A biplanar marker-structure method is proposed for
+2D/3D registration and target-point recovery without preoperative 3D images, DRR generation, iterative optimization, or GPU acceleration.
+• A unified bidirectional geometry is formulated, in which
+2D back-projection supports 3D target recovery and 3D
+forward projection supports real-time 2D navigation display.
+• A decoupled error assessment framework is established
+using target registration error (TRE), reprojection er-
+
+2
+
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, MONTH 2026
+
+ror (RE), ray gap, repeatability, and computation-chain
+timing to analyze the core geometric workflow under
+controlled conditions.
+II. R ELATED W ORK
+A. 2D/3D Registration for Image-Guided Intervention
+Intensity-driven 2D/3D registration methods optimize a
+similarity measure between intraoperative X-ray images and
+DRRs generated from preoperative volumes. Mutual information, gradient-based measures, pattern-intensity formulations,
+and multiresolution strategies have been used extensively [2],
+[4]–[8]. These methods can achieve high accuracy but depend
+on accurate projection geometry and may incur substantial
+DRR computation cost [9]–[11]. In real intraoperative scenes,
+content mismatch, tools, implants, tissue changes, and occlusion further challenge intensity-based objectives [12].
+Feature-driven approaches reduce dependence on dense
+intensity matching by using fiducials, anatomical landmarks,
+instrument contours, or known components [29]–[31]. Such
+methods are closely related to the present work because they
+exploit prior geometry to regularize an otherwise ill-posed reconstruction problem. However, much of this literature focuses
+on C-arm tracking, known-component localization, or quality
+assurance rather than target-point recovery and algorithm-level
+error decomposition for intraoperative planning and navigation.
+Learning-based registration has expanded the design space
+through convolutional pose regression, multi-agent refinement,
+Riemannian pose-gradient estimation, iterative update operators, differentiable projective transformations, and differentiable X-ray rendering [19], [21], [24]–[26], [33], [34]. Realistic X-ray simulation and domain randomization have also been
+used to improve transfer from synthetic to real fluoroscopic
+images [22], [23]. These approaches address capture range
+and computational speed, but they usually require training
+data, simulation-to-real considerations, or patient-specific preoperative volumes. The method studied here instead targets
+a lightweight geometric workflow in which a known marker
+structure provides the primary spatial constraint.
+B. Multiview Geometry and Evaluation
+Multiview constraints are known to improve 2D/3D registration robustness [35]. Otake et al. combined fiducial-based
+C-arm tracking, multiview registration, and GPU acceleration
+for orthopedic image guidance [11]; related work has also used
+3D–2D registration for vertebral level localization [36]. Biplanar X-ray constraints and statistical shape models have been
+used for 3D bone reconstruction [37], and fluoroscopy-based
+hip or pelvic navigation studies have used anatomical annotation, fragment pose estimation, and patch-based similarity
+measures [13], [38], [39]. Recent work has revisited biplanar
+X-ray-to-CT registration for navigation [40]. In contrast, the
+present work uses a biplanar marker structure, not a biplanar
+imaging setup, and focuses on geometric target recovery from
+marker-constrained views.
+Evaluation is equally important. A single final navigation
+error is informative but does not reveal which subsystem
+
+caused the error. Prior standardized evaluation studies and
+verification methods have provided important foundations for
+reproducible 2D/3D registration assessment [27], [28], [41].
+Visualization and quality-assurance studies have also emphasized that how registration output is displayed can affect safety
+and interpretation [42]. Motivated by these observations, this
+work separately evaluates 3D recovery accuracy, 2D navigation consistency, view-geometry sensitivity, repeatability, and
+computation time.
+III. M ETHODS
+A. Problem Definition and Workflow
+Let a 3D point in the world coordinate system be
+P = [X, Y, Z, 1]T ,
+
+(1)
+
+and let its 2D image projection be
+p = [u, v]T .
+
+(2)
+
+Given a known biplanar marker structure and its 2D observations in intraoperative views, the goal is to estimate the
+projection geometry, recover the 3D target point P̂ from 2D
+target observations, and forward-project recovered or updated
+3D points to 2D views for navigation display. The resulting
+geometric chain is evaluated independently from full-system
+tracking and execution errors. This study treats marker and
+target image coordinates as measured inputs; automatic marker
+detection, segmentation robustness, and clinical image-quality
+degradation are outside the present scope.
+The workflow contains seven steps: constructing a geometric
+simulation environment; acquiring multiview 2D projections of
+the biplanar marker structure; calibrating projection geometry
+from 2D–3D marker correspondences; back-projecting 2D
+target points into 3D constraints; recovering a 3D target point
+from multiview geometry; forward-projecting 3D target or
+instrument points to 2D views; and computing decoupled error
+metrics. Fig. 2 summarizes the workflow.
+B. Simulation Environment and Marker Geometry
+Experiments were conducted in a 3D Slicer-based geometric
+simulation environment. The Slicer world coordinate system
+represents the common reference frame; rendered volume data
+represent the anatomical scene; a biplanar marker structure
+represents the calibration fiducial; and an interactively updated
+knife-point object represents the tracked instrument tip or
+target point. Since C-arm calibration and fiducial localization
+are important determinants of multiview registration accuracy
+[11], [29], [32], the simulation abstracts these geometric components while excluding physical X-ray attenuation, scatter,
+noise, soft-tissue appearance, and tool occlusion. Therefore,
+the reported results characterize the algorithmic performance
+of the geometric chain rather than the final accuracy of
+a complete clinical navigation system. The correspondence
+between the simulated components and a real intraoperative
+navigation workflow is summarized in Fig. 3.
+The marker structure contains points distributed on two
+planes. This non-coplanar arrangement supplies stronger depth
+
+AUTHOR et al.: A BIPLANAR MARKER-STRUCTURE FRAMEWORK FOR DECOUPLED ERROR ASSESSMENT
+
+(a) Decoupled error assessment
+Image
+formation
+
+Marker /
+target picking
+
+C-arm
+calibration
+
+Software /
+latency
+
+Tracking /
+execution
+
+Instrument
+motion
+
+Operator
+interaction
+
+Workflow
+setup
+
+(b) Pre-hardware staged validation
+current evidence
+Controlled
+geometry
+
+Core geometric chain
+2D--3D marker
+correspondence
+
+2D point-noise
+stress tests
+
+Projection
+calibration
+
+Marker / view
+ablation
+
+Back-projection /
+3D recovery
+Forward projection /
+2D display
+
+Optional after
+algorithmic feasibility
+
+Reproducible code
+and data logs
+
+TRE | RE
+ray gap | time
+
+Final navigation
+error
+(mixed)
+
+3
+
+Hardware integration
+future stage
+
+Reported here:
+algorithm-level geometry,
+not full clinical system error
+
+Fig. 1. Rationale for decoupled algorithm-level assessment. (a) Complete navigation error mixes system and workflow factors, whereas this study isolates
+the core geometric computation. (b) The present work is positioned as a hardware-free feasibility stage; additional low-cost evidence can be obtained through
+point-noise stress tests, marker/view ablations, and reproducible code/data logs before any future hardware integration.
+
+Biplanar marker geometry and analytic 3D target recovery
+
+Biplanar-marker-based 2D/3D registration and decoupled error evaluation
+
+Two non-coplanar marker planes provide geometric constraints; the target is recovered from backprojected multi-view constraints.
+
+No preoperative CT/MR | No DRR generation | No iterative optimization | No GPU required
+
+Intraoperative
+2D views
+
+Biplanar marker
+correspondence
+
+Projection geometry
+calibration
+
+2D target
+backprojection
+
+3D target
+reconstruction
+
+2D consistency
+check in view 2
+
+Metrics
+
+Algorithm-level evaluation: geometry-driven recovery separated from hardware/system-level mixed errors
+Perspective Orthographic
+C-arm-like
+control
+
+TRE
+(mm)
+
+RE
+(px)
+
+Backprojected rays
+closest-point midpoint
+
+Ray gap
+(mm)
+
+2.5
+
+View 1
+
+2.0
+Marker plane B
+View 2
+Estimated target P_hat
+Marker plane A
+
+1.5
+1.0
+
+Z
+
+0.5
+0.0
+−0.5
+
+Fig. 2. Workflow of the proposed biplanar marker-structure framework. The
+same calibrated geometry supports 2D back-projection for target recovery and
+3D forward projection for 2D navigation display.
+
+−1
+0
+1
+X
+
+2
+3
+4
+
+3.0
+2.5
+2.0
+1.5
+1.0
+0.5
+Y
+0.0
+−0.5
+−1.0
+
+Simulation environment mapped to the real intraoperative navigation system
+Real intraoperative system
+
+C-arm projection
+2D fluoroscopic view
+
+3D Slicer simulation
+geometric abstraction
+
+C-arm imaging geometry
+
+NDI optical tracker
+world frame
+
+3D view screenshot
+under a chosen view
+Simulated projection capture
+
+geometric abstraction
+
+Unified navigation frame
+
+Slicer world
+coordinate system
+Unified simulation frame
+
+geometric abstraction
+
+Patient anatomy
+
+Registration constraint
+
+in Fig. 5.
+
+Volume rendering
+
+Physical 3D object
+
+Biplanar marker
+fixture
+
+Fig. 4. Geometric relationship among the biplanar marker structure, 2D point
+back-projection, and 3D target recovery.
+
+Virtual anatomical object
+geometric abstraction
+
+Focus: projection geometry
+and coordinate consistency
+Not modeling X-ray physics
+
+Biplanar marker
+model
+Known geometric constraint
+
+Fig. 3. Relationship between the geometric simulation and an intraoperative
+navigation system. The simulation models projection geometry, a common
+world coordinate system, the anatomical volume, the biplanar marker structure, and 3D-to-2D navigation projection.
+
+constraints than a single planar marker and reduces degeneracy
+in point back-projection. The geometric relationship among
+the biplanar marker, back-projected rays, and recovered target
+point is shown in Fig. 4.
+Optional evidence for a future hardware-integration study,
+after algorithmic feasibility has been established, is indicated
+
+C. Projection Calibration
+For perspective projection, the mapping from a 3D point to
+a 2D image point is modeled as
+ 
+ 
+X
+u
+Y 
+
+s v  = K [R t] 
+Z  ,
+1
+1
+
+(3)
+
+where K is the intrinsic matrix and R and t denote rotation
+and translation. In this implementation, K is constructed from
+the view size and field-of-view setting, and the extrinsic parameters are solved from the 2D–3D marker correspondences
+by a perspective-n-point formulation.
+
+4
+
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, MONTH 2026
+
+(a) Optional marker CAD/photo
+
+(b) Optional C-arm overlay
+
+Future hardware stage: marker CAD/photo
+
+Future hardware stage: AP/lateral frames
+
+plane separation / angle
+height
+
+marker coordinate frame
+
+AP / View 1
+Lateral / View 2
+same
+RE 3D point
+RE
+scale
+
+scale
+
+overall width / marker spacing
+
+Fill in only after C-arm acquisition:
+raw fluoroscopic images, detected marker points,
+target/tool overlay, reference point, RE and scale bar.
+
+Fill in only after hardware integration:
+marker material, marker diameter, point IDs,
+3D coordinates, plane spacing, mounting relation.
+
+Fig. 5. Optional placeholder for a future hardware-integration study, not a prerequisite for the present algorithm-level validation. (a) A later physical
+implementation should report the marker material, marker diameter, point IDs, 3D coordinates, plane spacing/angle, and mounting relation. (b) A later C-arm
+experiment should show representative AP/lateral fluoroscopic images with detected marker points, target or tool overlay, reference point, RE annotation, and
+a scale bar.
+
+For orthographic projection, the 3D-to-2D mapping is approximated by
+ 
+X
+ 
+Y 
+u
+
+(4)
+= Portho 
+Z  ,
+v
+1
+
+spatial constraints, the recovered target point is defined as the
+midpoint of the shortest segment between two constraint lines:
+P̂ =
+
+X1 + X 2
+,
+2
+
+(8)
+
+where X1 and X2 are the nearest points on the two lines.
+
+2×4
+
+where Portho ∈ R
+is estimated by least squares. Perspective projection approximates C-arm imaging geometry,
+whereas orthographic projection serves as an idealized control
+to test sensitivity to the projection-model assumption. Both
+formulations follow standard multiview geometry [43].
+D. Back-Projection and 3D Target Recovery
+After calibration, a 2D target observation is back-projected
+into a 3D geometric constraint. Under perspective projection,
+the image point defines a ray through the camera center,
+L(λ) = C + λd,
+
+(5)
+
+where C is the camera center and d is the back-projected
+direction. Under orthographic projection, the image point
+defines a parallel ray with fixed direction.
+Let a plane of the biplanar marker structure be
+nT X + d = 0.
+
+(6)
+
+The intersection between a ray and this plane is
+nT O + d
+,
+X∗ = O + λ∗ d,
+(7)
+nT d
+where O is the ray origin. The ray-plane intersection induces a constraint that can be transferred to another view
+and combined with the second-view target observation to
+recover the 3D target point. Because calibration and pointpicking errors may prevent strict intersection of the resulting
+λ∗ = −
+
+E. Forward Projection and Error Metrics
+The same calibrated model is used for forward projection.
+For a 3D point Q(t) = [X(t), Y (t), Z(t)]T , the ith perspective
+view is updated as
+
+
+
+
+X(t)
+ui (t)
+ Y (t) 
+
+(9)
+si (t)  vi (t)  = Ki [Ri ti ] 
+ Z(t)  ,
+1
+1
+and the orthographic case is
+
+
+X(t)
+
+
+ Y (t) 
+ui (t)
+(i)
+
+= Portho 
+ Z(t)  .
+vi (t)
+1
+
+(10)
+
+In the experiments, Q(t) is the recovered target point or a
+scene-defined instrument tip. Thus, the planning result and
+navigation display share the same projection geometry.
+Three metrics are used. The target registration error is
+eTRE = P̂ − Pgt
+
+,
+2
+
+(11)
+
+where Pgt is the reference 3D target point. The reprojection
+error in the second view is
+eRE = p̂(2) − pref
+2
+
+,
+2
+
+(12)
+
+AUTHOR et al.: A BIPLANAR MARKER-STRUCTURE FRAMEWORK FOR DECOUPLED ERROR ASSESSMENT
+
+where p̂(2) is the forward projection of P̂ and pref
+is the
+2
+second-view reference point. The ray gap is
+egap = ∥X1 − X2 ∥2 .
+
+(13)
+
+TRE measures 3D recovery accuracy, RE measures 2D
+navigation-display consistency, and ray gap measures the
+consistency of multiview spatial constraints. In the present experiments, ray gap is used as a geometric diagnostic, whereas
+the primary analyses focus on TRE, RE, repeatability, view
+separation, target location, and runtime. Fig. 6 illustrates the
+complementary roles of view-geometry conditioning, 3D target
+recovery, and 2D navigation-display projection.
+IV. E XPERIMENTS AND R ESULTS
+
+TABLE I
+OVERALL R ESULTS BY DATASET AND P ROJECTION M ODE
+Dataset
+
+Mode
+
+n
+
+TRE mean
+mm
+
+TRE SD
+mm
+
+TRE med.
+mm
+
+RE mean
+px
+
+RE SD
+px
+
+RE med.
+px
+
+CTChest
+CTChest
+Panoramix
+Panoramix
+
+Perspective
+Orthographic
+Perspective
+Orthographic
+
+194
+193
+216
+207
+
+0.2541
+0.2479
+0.2987
+0.3017
+
+0.3196
+0.2549
+0.2765
+0.3399
+
+0.150
+0.180
+0.205
+0.180
+
+0.1680
+0.1835
+0.1899
+0.2175
+
+0.1640
+0.1882
+0.1669
+0.1990
+
+0.120
+0.120
+0.140
+0.150
+
+TABLE II
+I NDEPENDENT-S AMPLE C OMPARISON B ETWEEN P ERSPECTIVE AND
+O RTHOGRAPHIC P ROJECTION
+Dataset
+
+Metric
+
+Persp. med.
+
+Ortho. med.
+
+Diff.
+
+95% CI
+
+p
+
+Cliff’s δ
+
+CTChest
+CTChest
+Panoramix
+Panoramix
+
+TRE/mm
+RE/px
+TRE/mm
+RE/px
+
+0.150
+0.120
+0.205
+0.140
+
+0.180
+0.120
+0.180
+0.150
+
+-0.030
+0.000
+0.025
+-0.010
+
+[-0.060, 0.020]
+[-0.045, 0.030]
+[-0.030, 0.050]
+[-0.060, 0.030]
+
+0.5191
+0.6467
+0.5479
+0.3190
+
+-0.0379
+-0.0269
+0.0338
+-0.0560
+
+A. Experimental Setup
+Experiments were performed on two volume datasets, denoted CTChest and Panoramix-cropped. Each dataset
+was tested under perspective and orthographic projection settings. In each trial, three projection views were acquired.
+The first two views were used for target-point recovery and
+second-view RE computation; the third view characterized the
+multiview acquisition geometry and view-separation condition.
+The experiment was designed to test the geometric algorithm
+under controlled inputs rather than to emulate the full physical
+appearance of fluoroscopic images.
+View separation was grouped according to the smallest
+angle among the three views. For CTChest, the low, medium,
+and high separation settings were 16.17◦ /0.40◦ /15.89◦ ,
+46.99◦ /43.10◦ /67.87◦ , and 79.61◦ /73.60◦ /85.47◦ , respectively. For Panoramix-cropped, the corresponding settings were 17.00◦ /22.14◦ /14.70◦ , 35.41◦ /57.49◦ /56.59◦ , and
+86.82◦ /81.34◦ /85.85◦ . Twenty target points were used in
+each dataset. Overall, 810 valid observations were obtained:
+387 from CTChest, 423 from Panoramix-cropped, 410
+under perspective projection, and 400 under orthographic
+projection.
+Statistical analysis was performed at two levels. First,
+single-trial errors were summarized and compared between
+projection modes by independent-sample analysis. Second,
+repeated trials were aggregated by dataset, target point, viewseparation group, and projection mode to analyze conditionlevel effects. View-separation effects were tested using the
+Kruskal–Wallis test; distance effects were analyzed using
+Spearman correlation; and repeatability was quantified by the
+within-condition standard deviation of TRE and RE. Runtime
+was summarized by the explicit computation-chain time, defined as the sum of marker initialization, dark-point extraction,
+marker ordering, projection calibration, target-point update,
+and TRE/RE computation. View acquisition, interface refresh,
+and scene switching were excluded from this algorithmic
+timing measure.
+B. Overall Accuracy and Projection-Mode Comparison
+Table I summarizes the overall results. Across the two
+datasets and two projection modes, median TRE ranged from
+0.150 to 0.205 mm, and median RE ranged from 0.120 to
+0.150 pixels.
+
+5
+
+TABLE III
+E XPLICIT C OMPUTATION -C HAIN RUNTIME
+Mode
+
+n
+
+Median
+ms
+
+Mean
+ms
+
+95th perc.
+ms
+
+Calib. median
+ms
+
+Perspective
+Orthographic
+
+410
+400
+
+692.739
+631.838
+
+695.146
+631.065
+
+707.194
+650.695
+
+32.052
+3.143
+
+The two projection modes showed no consistent dominance
+across all metrics. In CTChest, perspective projection had a
+slightly lower median TRE, while the median RE values were
+identical. In Panoramix-cropped, orthographic projection
+had a slightly lower median TRE, while perspective projection
+had a slightly lower median RE. Independent-sample comparisons are shown in Table II. All 95% confidence intervals
+crossed zero, and no stable statistically significant projectionmode effect was observed.
+C. Computation Time
+Table III reports the explicit computation-chain time. Across
+all 810 observations, the median time was 658.686 ms and the
+95th percentile was 704.738 ms. Perspective and orthographic
+projection had median times of 692.739 ms and 631.838 ms,
+respectively.
+Module-level timing showed that marker ordering dominated the current implementation, with a median of 562.903
+ms. Marker initialization had a median of 55.510 ms; perspective and orthographic calibration had medians of 32.052 ms
+and 3.143 ms, respectively; and TRE and RE computation
+were both sub-millisecond, with medians of 0.560 ms and
+0.544 ms.
+D. Effect of View Separation
+Fig. 7 shows the effect of view separation on TRE and
+RE. TRE was substantially more sensitive to view separation
+than RE. In all four dataset-by-projection combinations, the
+Kruskal–Wallis test on condition means indicated a statistically
+significant group difference for TRE, whereas the corresponding RE differences were not significant.
+The trend was consistent across datasets. In CTChest,
+the median condition-level TRE decreased from 0.378 mm
+
+6
+
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, MONTH 2026
+
+(a) View-geometry conditioning
+High separation
+
+Low separation
+target
+
+improve
+conditioning
+
+target
+
+near-parallel
+constraints
+
+well-separated
+constraints
+
+higher
+TRE
+view
+view
+
+TRE
+view lower
+variability view
+
+variability
+
+(b) Marker-constrained navigation display
+Known biplanar
+marker structure
+
+3D target /
+tool tip View 1
+
+forward
+projection
+View 2
+
+RE
+
+TRE reflects
+3D recovery
+
+RE reflects
+2D display
+
+The same calibrated geometry supports
+planning recovery and navigation overlay.
+
+Fig. 6. Geometric interpretation of the proposed framework. (a) Small view separation produces poorly conditioned spatial constraints and larger TRE
+variability, whereas well-separated views improve 3D recovery. (b) The known biplanar marker structure provides the geometric constraint, and the calibrated
+projection model maps the recovered 3D target or tool point onto 2D navigation views; RE quantifies the display consistency in the navigation image.
+
+Fig. 7. TRE and RE across low, medium, and high view-separation groups
+for both datasets and both projection modes.
+
+Fig. 8. Matched-condition error differences between perspective and orthographic projection. Positive values indicate larger errors under perspective
+projection.
+
+in the low-separation group to 0.1175 mm in the highseparation group under orthographic projection, and from
+0.4529 mm to 0.125 mm under perspective projection. In
+Panoramix-cropped, the corresponding decreases were
+from 0.4754 mm to 0.1235 mm and from 0.4627 mm to 0.1335
+mm. These results indicate that small view angles degrade the
+spatial conditioning of the 3D recovery problem, amplifying
+calibration and point-localization perturbations.
+
+The differences were small and inconsistent in direction.
+In CTChest, the median perspective-minus-orthographic differences were −0.0083 mm for TRE and −0.0124 pixels
+for RE. In Panoramix-cropped, the corresponding values
+were 0.0117 mm and −0.0004 pixels. Thus, projection-model
+choice affected the error distribution, but its magnitude was
+much smaller than the effect of view separation.
+F. Effect of Target Location and Repeatability
+
+E. Sensitivity to Projection-Model Assumption
+To further assess projection-model sensitivity, perspective and orthographic results were compared under matched
+conditions with the same dataset, target point, and viewseparation group. A total of 59 matched condition units
+were available, including 30 for CTChest and 29 for
+Panoramix-cropped. Fig. 8 shows the distribution of
+perspective-minus-orthographic differences.
+
+Target location relative to the marker structure also influenced error. Fig. 9 plots condition-level error against the mean
+target-to-marker distance. In CTChest, Spearman correlations were 0.5862 for TRE and 0.8249 for RE, both significant.
+In Panoramix-cropped, RE also showed a strong positive
+correlation with distance, whereas TRE was less consistently
+explained by distance alone. These results suggest that average
+distance is an important but incomplete descriptor; the full
+
+AUTHOR et al.: A BIPLANAR MARKER-STRUCTURE FRAMEWORK FOR DECOUPLED ERROR ASSESSMENT
+
+Fig. 9. Relationship between mean target-to-marker distance and TRE/RE.
+
+7
+
+geometry: when rays or constraint lines become nearly parallel
+or poorly separated, small perturbations in calibration or point
+localization produce larger 3D deviations. The smaller and
+less systematic RE changes indicate that a 3D point can
+still project consistently into the second view even when its
+recovered 3D position is less stable. Therefore, TRE and
+RE provide complementary information: TRE reflects spatial
+recovery accuracy, whereas RE reflects display consistency in
+the navigation view.
+Projection-model choice had a limited effect in the current
+experiments. Perspective projection approximates C-arm geometry, while orthographic projection is an idealized control.
+The absence of a consistent projection-mode advantage suggests that the proposed geometric recovery is not overly dependent on a single projection approximation. Instead, accuracy
+is primarily governed by the conditioning of the multiview
+constraints and the spatial distribution of targets relative to
+the marker structure. This finding is consistent with prior
+observations that the number and angular distribution of X-ray
+views strongly affect 3D/2D registration performance [35].
+B. Target Location and Image-Scale Effects
+
+Fig. 10. Within-condition standard deviation of TRE and RE across viewseparation groups.
+
+spatial relationship among the target, marker planes, and
+viewing directions also matters.
+Repeatability was quantified by within-condition standard
+deviation. As shown in Fig. 10, low view separation produced
+substantially worse repeatability for TRE than medium or high
+separation. In CTChest, the median within-condition TRE
+standard deviation increased from 0.0513 mm in the highseparation group to 0.2275 mm in the low-separation group.
+In Panoramix-cropped, it increased from 0.0508 mm to
+0.2770 mm. By contrast, RE variability was smaller, with
+median values approximately within 0.086–0.133 pixels.
+V. D ISCUSSION
+A. Methodological Interpretation
+The proposed method should be interpreted as a markergeometry formulation rather than as a lightweight variant of
+CT-to-X-ray registration. It does not estimate the pose of a
+preoperative volume from intraoperative images, synthesize
+DRRs, or optimize an intensity-based similarity objective.
+Instead, it uses known biplanar marker geometry to convert
+2D observations into spatial constraints and to recover target
+points in a shared world coordinate system. This mechanism
+is closer to fiducial- or known-component-driven methods
+[29]–[31], but the endpoint is different: target-point recovery
+and navigation-display projection for planning and navigation,
+combined with algorithm-level error assessment.
+The main empirical finding is that view geometry dominates
+3D recovery accuracy. Low view separation reduced the independence of the spatial constraints and increased both TRE
+and TRE variability. This behavior is expected from multiview
+
+The results also show that target-to-marker distance is
+associated with error but does not fully determine it. Some
+targets at similar distances exhibited different error levels, and
+some intermediate-distance targets produced relatively high
+errors. This indicates that the specific geometric configuration,
+not merely distance, affects the conditioning of the recovery
+problem.
+Image scale is another plausible factor. Repeated acquisitions may differ slightly in field of view and magnification,
+changing the pixel footprint of both target and marker points.
+Larger projected markers and targets generally support more
+stable point localization, whereas smaller pixel coverage increases sensitivity to sampling and manual interaction. Therefore, the observed location-dependent errors likely reflect both
+3D spatial geometry and 2D image-scale variation.
+C. Limitations
+This study has several limitations. First, the experiments
+were conducted in a geometric simulation environment and
+did not model X-ray attenuation, scatter, detector noise, tool
+occlusion, implant artifacts, soft-tissue changes, or automatic
+marker detection. The reported results should therefore be interpreted as algorithm-level geometric performance rather than
+final clinical navigation accuracy. Second, RE was evaluated
+on discrete static target points; continuous instrument motion, latency accumulation, and human-computer interaction
+effects were not analyzed. Third, the marker structure and
+target distribution were fixed for the present experiments, so
+generalization to other marker designs, anatomical regions, and
+imaging conditions requires further study. Finally, image scale
+and pixel coverage were not explicitly controlled, although
+the results suggest that they affect point localization and
+downstream error.
+These limitations should be interpreted in relation to the
+intended validation stage. The aim of the present study is
+
+8
+
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, MONTH 2026
+
+hardware-free pre-integration validation: before investment in
+a C-arm, optical tracker, robot, and synchronized navigation
+platform, the core marker-geometry algorithm is tested under
+controlled conditions to determine whether the computational
+principle merits system construction. Physical phantom or cadaver experiments with fluoroscopy would primarily evaluate
+integrated system performance, including calibration, imaging,
+tracking, and workflow errors, and are therefore reserved for
+a later translational phase. At the present stage, the evidence
+can be strengthened within the same low-cost framework by
+adding controlled 2D marker/target perturbation tests, markerlayout and view-selection ablations, synthetic image-scale
+analyses, and fully reproducible code and data logs.
+VI. C ONCLUSION
+This paper presented a biplanar marker-structure framework
+for 2D/3D registration, target-point recovery, and decoupled
+error assessment in intraoperative planning and navigation.
+The method uses 2D images, projection calibration, and analytic geometry to recover 3D target points without preoperative 3D images, DRR generation, iterative optimization,
+GPU acceleration, or dedicated surgical hardware. In two
+simulated volume datasets, the method achieved submillimeter TRE, subpixel RE, and subsecond explicit computationchain time. View separation was the dominant factor affecting
+3D recovery accuracy and repeatability, whereas projectionmodel choice had a smaller effect. These findings support
+controlled geometric evaluation as a practical pre-hardware
+stage for establishing algorithmic feasibility before systemlevel navigation integration.
+R EFERENCES
+[1] A. Taleb, C. Guigou, S. Leclerc, A. Lalande, and A. B. Grayeli,
+“Image-to-patient registration in computer-assisted surgery of head and
+neck: State-of-the-art, perspectives, and challenges,” Journal of Clinical
+Medicine, vol. 12, no. 16, p. 5398, 2023, doi: 10.3390/jcm12165398.
+[2] P. Markelj, D. Tomaževič, B. Likar, and F. Pernuš, “A review of
+3D/2D registration methods for image-guided interventions,” Medical Image Analysis, vol. 16, no. 3, pp. 642–661, 2012, doi:
+10.1016/j.media.2010.03.005.
+[3] P. Risholm, E. Samset, and W. M. Wells III, “Multimodal image
+registration for preoperative planning and image-guided neurosurgical
+procedures,” Neurosurgery Clinics of North America, vol. 22, no. 2,
+pp. 197–206, 2011, doi: 10.1016/j.nec.2010.11.004.
+[4] J. Weese, T. M. Buzug, G. P. Penney, and P. Desmedt, “2D/3D
+registration of pre-operative CT images and intra-operative fluoroscopy
+images for image-guided surgery,” IEEE Transactions on Information
+Technology in Biomedicine, vol. 1, no. 4, pp. 284–293, 1997.
+[5] F. Maes, A. Collignon, D. Vandermeulen, G. Marchal, and P. Suetens,
+“Multimodality image registration by maximization of mutual information,” IEEE Transactions on Medical Imaging, vol. 16, no. 2, pp. 187–
+198, 1997, doi: 10.1109/42.563664.
+[6] G. P. Penney, J. Weese, J. A. Little, P. Desmedt, D. L. G. Hill, and
+D. J. Hawkes, “A comparison of similarity measures for use in 2-D-3D medical image registration,” IEEE Transactions on Medical Imaging,
+vol. 17, no. 4, pp. 586–595, 1998, doi: 10.1109/42.730403.
+[7] H. Livyatan, Z. Yaniv, and L. Joskowicz, “Gradient-based 2-D/3-D rigid
+registration of fluoroscopic X-ray to CT,” IEEE Transactions on Medical
+Imaging, vol. 22, no. 11, pp. 1395–1406, 2003.
+[8] D. Tomaževič, B. Likar, T. Slivnik, and F. Pernuš, “3-D/2-D registration
+of CT and MR to X-ray images,” IEEE Transactions on Medical
+Imaging, vol. 22, no. 11, pp. 1407–1416, 2003.
+[9] D. B. Russakoff, T. Rohlfing, K. Mori, D. Rueckert, A. Ho, J. R. Adler,
+and C. R. Maurer, “Fast generation of digitally reconstructed radiographs
+using attenuation fields with application to 2D-3D image registration,”
+IEEE Transactions on Medical Imaging, vol. 24, no. 11, pp. 1441–1454,
+2005, doi: 10.1109/TMI.2005.856749.
+
+[10] R. L. Siddon, “Fast calculation of the exact radiological path for a threedimensional CT array,” Medical Physics, vol. 12, no. 2, pp. 252–255,
+1985, doi: 10.1118/1.595715.
+[11] Y. Otake, M. Armand, R. S. Armiger, M. D. Kutzer, E. Basafa,
+P. Kazanzides, and R. H. Taylor, “Intraoperative image-based multiview
+2D/3D registration for image-guided orthopaedic surgery: Incorporation
+of fiducial-based C-arm tracking and GPU-acceleration,” IEEE Transactions on Medical Imaging, vol. 31, no. 4, pp. 948–962, 2012, doi:
+10.1109/TMI.2011.2176555.
+[12] T. De Silva, A. Uneri, M. D. Ketcha, S. Reaungamornrat, G. Kleinszig,
+S. Vogt, N. Aygun, S.-F. Lo, J.-P. Wolinsky, and J. H. Siewerdsen, “3D2D image registration for target localization in spine surgery: Investigation of similarity metrics providing robustness to content mismatch,”
+Physics in Medicine & Biology, vol. 61, no. 8, pp. 3009–3025, 2016,
+doi: 10.1088/0031-9155/61/8/3009.
+[13] R. B. Grupp, R. A. Hegeman, R. J. Murphy, C. P. Alexander, M. Unberath, Y. Otake, B. A. McArthur, M. Armand, and R. H. Taylor, “Pose
+estimation of periacetabular osteotomy fragments with intraoperative Xray navigation,” IEEE Transactions on Biomedical Engineering, vol. 67,
+no. 2, pp. 441–452, 2020, doi: 10.1109/TBME.2019.2915165.
+[14] C. Gao, A. Farvardin, R. B. Grupp, M. Bakhtiarinejad, L. Ma, M. Thies,
+M. Unberath, R. H. Taylor, and M. Armand, “Fiducial-free 2D/3D
+registration for robot-assisted femoroplasty,” IEEE Transactions on
+Medical Robotics and Bionics, vol. 2, no. 3, pp. 437–446, 2020, doi:
+10.1109/TMRB.2020.3012460.
+[15] C. Gao, H. Phalen, A. Margalit, J. Ma, P. C. Ku, M. Unberath, R. H.
+Taylor, A. Jain, and M. Armand, “Fluoroscopy-guided robotic system
+for transforaminal lumbar epidural injections,” IEEE Transactions on
+Medical Robotics and Bionics, vol. 4, no. 4, pp. 901–909, 2022, doi:
+10.1109/TMRB.2022.3196321.
+[16] C. Gao, H. Phalen, S. Sefati, J. Ma, R. H. Taylor, M. Unberath,
+and M. Armand, “Fluoroscopic navigation for a surgical robotic
+system including a continuum manipulator,” IEEE Transactions on
+Biomedical Engineering, vol. 69, no. 1, pp. 453–464, 2022, doi:
+10.1109/TBME.2021.3097631.
+[17] G. Haskins, U. Kruger, and P. Yan, “Deep learning in medical image
+registration: A survey,” Machine Vision and Applications, vol. 31, p. 8,
+2020, doi: 10.1007/s00138-020-01060-x.
+[18] M. Unberath, C. Gao, Y. Hu, M. Judish, R. H. Taylor, M. Armand,
+and R. Grupp, “The impact of machine learning on 2D/3D registration for image-guided interventions: A systematic review and perspective,” Frontiers in Robotics and AI, vol. 8, p. 716007, 2021, doi:
+10.3389/frobt.2021.716007.
+[19] S. Miao, Z. J. Wang, and R. Liao, “A CNN regression approach for
+real-time 2D/3D registration,” IEEE Transactions on Medical Imaging,
+vol. 35, no. 5, pp. 1352–1363, 2016, doi: 10.1109/TMI.2016.2521800.
+[20] M. Grimm, J. Esteban, M. Unberath, and N. Navab, “Pose-dependent
+weights and domain randomization for fully automatic X-ray to CT
+registration,” IEEE Transactions on Medical Imaging, vol. 40, no. 9,
+pp. 2221–2232, 2021.
+[21] S. Jaganathan, J. Wang, A. Borsdorf, K. Shetty, and A. Maier, “Deep iterative 2D/3D registration,” in Medical Image Computing and Computer
+Assisted Intervention – MICCAI 2021, Cham, Switzerland: Springer,
+2021, pp. 383–392.
+[22] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel,
+“Domain randomization for transferring deep neural networks from simulation to the real world,” in Proceedings of the IEEE/RSJ International
+Conference on Intelligent Robots and Systems, 2017, pp. 23–30.
+[23] M. Unberath, J.-N. Zaech, C. Gao, B. Bier, F. Goldmann, S. H. Lee,
+J. Fotouhi, R. H. Taylor, M. Armand, and N. Navab, “Enabling machine
+learning in X-ray-based procedures via realistic simulation of image
+formation,” International Journal of Computer Assisted Radiology and
+Surgery, vol. 14, no. 9, pp. 1517–1528, 2019, doi: 10.1007/s11548-01902011-2.
+[24] M. Jaderberg, K. Simonyan, A. Zisserman, and K. Kavukcuoglu,
+“Spatial transformer networks,” in Advances in Neural Information
+Processing Systems, vol. 28, 2015, pp. 2017–2025.
+[25] C. Gao, A. Feng, X. Liu, R. H. Taylor, M. Armand, and M. Unberath, “A
+fully differentiable framework for 2D/3D registration and the projective
+spatial transformers,” IEEE Transactions on Medical Imaging, vol. 43,
+no. 1, pp. 275–285, 2024, doi: 10.1109/TMI.2023.3299588.
+[26] V. Gopalakrishnan, N. Dey, and P. Golland, “Intraoperative 2D/3D image
+registration via differentiable X-ray rendering,” in Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2024, doi: 10.1109/CVPR52733.2024.01108.
+[27] E. B. van de Kraats, G. P. Penney, D. Tomaževič, T. van Walsum,
+and W. J. Niessen, “Standardized evaluation methodology for 2-D-3-
+
+AUTHOR et al.: A BIPLANAR MARKER-STRUCTURE FRAMEWORK FOR DECOUPLED ERROR ASSESSMENT
+
+D registration,” IEEE Transactions on Medical Imaging, vol. 24, no. 9,
+pp. 1177–1189, 2005, doi: 10.1109/TMI.2005.853240.
+[28] P. Markelj, B. Likar, and F. Pernuš, “Standardized evaluation methodology for 3D/2D registration based on the Visible Human data
+set,” Medical Physics, vol. 37, no. 9, pp. 4643–4647, 2010, doi:
+10.1118/1.3476414.
+[29] A. K. Jain, T. Mustafa, Y. Zhou, C. Burdette, G. S. Chirikjian, and
+G. Fichtinger, “FTRAC–a robust fluoroscope tracking fiducial,” Medical
+Physics, vol. 32, no. 10, pp. 3185–3198, 2005, doi: 10.1118/1.2047782.
+[30] A. Uneri, J. W. Stayman, T. De Silva, A. S. Wang, G. Kleinszig, S. Vogt,
+A. J. Khanna, Z. L. Gokaslan, J.-P. Wolinsky, and J. H. Siewerdsen,
+“Known-component 3D-2D registration for image guidance and quality
+assurance in spine surgery pedicle screw placement,” in Medical Imaging
+2015: Image-Guided Procedures, Robotic Interventions, and Modeling,
+vol. 9415, SPIE, 2015, Art. no. 94151F, doi: 10.1117/12.2082210.
+[31] T. Yi, V. Ramchandran, J. H. Siewerdsen, and A. Uneri, “Technical
+note: Known-component registration for robotic drill guide positioning,”
+in Medical Imaging 2018: Image-Guided Procedures, Robotic Interventions, and Modeling, vol. 10576, SPIE, 2018, Art. no. 105760L, doi:
+10.1117/12.2322408.
+[32] M. J. Daly, J. H. Siewerdsen, Y. B. Cho, D. A. Jaffray, and J. C.
+Irish, “Geometric calibration of a mobile C-arm for intraoperative conebeam CT,” Medical Physics, vol. 35, no. 5, pp. 2124–2136, 2008, doi:
+10.1118/1.2907563.
+[33] S. Miao, S. Piat, P. Fischer, A. Tuysuzoglu, P. Mewes, T. Mansi, and
+R. Liao, “Dilated FCN for multi-agent 2D/3D medical image registration,” in Proceedings of the AAAI Conference on Artificial Intelligence,
+2018, pp. 4694–4701.
+[34] W. Gu, C. Gao, R. B. Grupp, J. Fotouhi, and M. Unberath, “Extended
+capture range of rigid 2D/3D registration by estimating Riemannian
+pose gradients,” in Machine Learning in Medical Imaging, Cham,
+Switzerland: Springer, 2020, pp. 281–291.
+[35] D. Tomaževič, B. Likar, and F. Pernuš, “3D/2D image registration: The
+impact of X-ray views and their number,” in Medical Image Computing
+and Computer-Assisted Intervention – MICCAI 2007, Berlin, Germany:
+Springer, 2007, pp. 450–457, doi: 10.1007/978-3-540-75757-3 55.
+[36] Y. Otake, S. Schafer, J. W. Stayman, W. Zbijewski, G. Kleinszig,
+R. Graumann, A. J. Khanna, and J. H. Siewerdsen, “Automatic localization of vertebral levels in x-ray fluoroscopy using 3D-2D registration: A tool to reduce wrong-site surgery,” Physics in Medicine
+& Biology, vol. 57, no. 17, pp. 5485–5505, 2012, doi: 10.1088/00319155/57/17/5485.
+[37] N. Baka, B. L. Kaptein, M. de Bruijne, T. van Walsum, J. E. Giphart,
+W. J. Niessen, and B. P. F. Lelieveldt, “2D-3D shape reconstruction
+of the distal femur from stereo X-ray imaging using statistical shape
+models,” Medical Image Analysis, vol. 15, no. 6, pp. 840–850, 2011,
+doi: 10.1016/j.media.2011.04.001.
+[38] R. B. Grupp, M. Unberath, C. Gao, R. A. Hegeman, R. J. Murphy,
+C. P. Alexander, Y. Otake, B. A. McArthur, M. Armand, and R. H.
+Taylor, “Automatic annotation of hip anatomy in fluoroscopy for robust
+and efficient 2D/3D registration,” International Journal of Computer
+Assisted Radiology and Surgery, vol. 15, no. 5, pp. 759–769, 2020, doi:
+10.1007/s11548-020-02162-7.
+[39] R. B. Grupp, M. Armand, and R. H. Taylor, “Patch-based image
+similarity for intraoperative 2D/3D pelvis registration during periacetabular osteotomy,” in OR 2.0/CARE/CLIP/ISIC 2018, Cham, Switzerland:
+Springer, 2018, pp. 153–163, doi: 10.1007/978-3-030-01201-4 17.
+[40] D. Yang, H. Shi, B. Zeng, and X. Chen, “2D/3D registration based
+on biplanar X-ray and CT images for surgical navigation,” Computer
+Methods and Programs in Biomedicine, vol. 257, p. 108444, 2024, doi:
+10.1016/j.cmpb.2024.108444.
+[41] A. Varnavas, T. Carrell, and G. Penney, “Fully automated 2D-3D
+registration and verification,” Medical Image Analysis, vol. 26, no. 1,
+pp. 108–119, 2015, doi: 10.1016/j.media.2015.08.005.
+[42] W. C. Cho, A. Habert, J. W. Stayman, A. Uneri, and J. H. Siewerdsen,
+“Visualization in 2D/3D registration matters for assuring technologyassisted image-guided surgery,” International Journal of Computer Assisted Radiology and Surgery, vol. 18, no. 6, pp. 1039–1048, 2023, doi:
+10.1007/s11548-023-02847-9.
+[43] R. Hartley and A. Zisserman, Multiple View Geometry in Computer
+Vision, 2nd ed. Cambridge, U.K.: Cambridge University Press, 2003.
+
+9
+
+

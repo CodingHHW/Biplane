@@ -1,0 +1,410 @@
+       3D/2D Image Registration: The Impact of X-Ray
+                 Views and Their Number
+
+                    Dejan Tomaževič, Boštjan Likar, and Franjo Pernuš
+
+                     University of Ljubljana, Faculty of Electrical Engineering
+                               Tržaška 25, 1000 Ljubljana, Slovenia
+                          Tel.: +386 1 4768 248, Fax: +386 1 4768 279
+                        {dejan.tomazevic,bostjan.likar,
+                           franjo.pernus}@fe.uni-lj.si
+
+
+
+        Abstract. An important part of image-guided radiation therapy or surgery is
+        registration of a three-dimensional (3D) preoperative image to two-dimensional
+        (2D) images of the patient. It is expected that the accuracy and robustness of a
+        3D/2D image registration method do not depend solely on the registration
+        method itself but also on the number and projections (views) of intraoperative
+        images. In this study, we systematically investigate these factors by using
+        registered image data, comprising of CT and X-ray images of a cadaveric
+        lumbar spine phantom and the recently proposed 3D/2D registration method
+        [1], [2]. The results indicate that the proportion of successful registrations
+        (robustness) significantly increases when more X-ray images are used for
+        registration.
+
+        Keywords: 3D/2D image registration, computed tomography, image-guided
+        surgery, X-ray images.
+
+
+
+1    Introduction
+
+In radiation therapy and surgery, there is a constant demand to render the therapeutic
+procedures less and less invasive and to improve the accuracy with which a given
+procedure can be performed compared to conventional methods. Image guidance is
+the emerging technology that has the potential to decrease the invasiveness and
+increase the accuracy of procedures [3].The crucial part of image-guided systems that
+enable intra-therapy patient setup or provide intraoperative navigation guidance is
+registration of a patient in the treatment room to preoperative patient images or to
+models obtained from these images. A variety of rigid registration techniques have
+been proposed in the past that may be classified according to the data they use to
+compute the registration transformation [2], [4]. Geometry-based methods use points
+[5] or surfaces [6], [7], while intensity-based methods use contours of anatomical
+structures obtained by preoperative image segmentation [8] or image voxel intensity
+or gradient information [2], [4], [9]. Most of these techniques implement rigid
+registration of a 3D image to 2D images, while another set of methods exists, where a
+3D anatomy model is non-rigidly registered to intraoperative 2D X-ray images [10,
+
+N. Ayache, S. Ourselin, A. Maeder (Eds.): MICCAI 2007, Part I, LNCS 4791, pp. 450–457, 2007.
+© Springer-Verlag Berlin Heidelberg 2007
+          3D/2D Image Registration: The Impact of X-Ray Views and Their Number       451
+
+
+11]. The methods that register preoperative 3D images/models to one or more
+intraoperative 2D images are commonly referred to as 3D/2D or 2D/3D registration
+methods. The accuracy and robustness of a 3D/2D registration method based on
+intraoperative X-ray images don’t depend solely on the registration method but also
+on the specific anatomy, projections (views) and the number of X-ray images used for
+registration. To the best of our knowledge, we are not aware of any systematic study
+that would report on the impact of X-ray views and their number on the performance
+of a 3D/2D registration method. In the present study, we have therefore used image
+data, comprising of a CT and 18 X-ray images of a cadaveric lumbar spine phantom
+[1] and the validation protocol and validation metrics [2] to study the impact of the
+number of intraoperative X-ray images and selected projections (views) on the
+capture range and registration accuracy and robustness of our recently proposed
+3D/2D registration method [2].
+
+
+2 3D/2D Registration Method
+
+Features that we use for rigid 3D/2D registration are normals vA to surfaces of bony
+structures found in preoperative CT volumes and back-projected intensity gradients vB
+of intraoperative X-ray images (Fig. 1) [2]. Let riSv, a point on the surface of a 3D
+structure, be defined in the coordinate system Sv of a CT volume (Fig. 1). The
+position ri of the same point in reference (patient) coordinate system Sref is given by
+rigid transformation T defined by six parameters q=(tx, ty, tz, ωx, ωy, ωz)T
+
+                          riS = ri = T(riS ) = RriS + t
+                             ref                    v   v
+                                                                                     (1)
+
+where R and t describe, respectively, the rotation and translation of coordinate system
+Sv with respect to Sref. Let rs be the position of the X-ray source in the reference
+coordinate system Sref. For a given position of a 3D image, defined by vector q, the
+line which connects rs and ri and has direction defined by unit vector ei, intersects the
+X-ray image plane U at point pi=p(ri) (Fig. 1).
+
+
+                                   T
+                                             Sref
+
+                                                                      U
+                        Sv
+
+            rs                          ri
+                  ei                   α                                   vui
+                         vAi                  vBi
+                                                                          vwi
+
+
+                       Fig. 1. 3D/2D registration geometrical setup
+452      D. Tomaževič, B. Likar, and F. Pernuš
+
+
+Rigid registration of a 3D preoperative image to M intraoperative 2D images is
+concerned with finding the set of parameters q that optimizes the criterion function
+CF
+                                               N
+
+                                         M     ∑v         j
+                                                          Ai   ⋅ v Bi
+                                                                   j
+                                                                      ⋅ f (α )
+                               CF = ∑          i =1
+                                                      N             N                                   (2)
+                                         j=1
+                                                   ∑ v ⋅∑ v
+                                                   i =1
+                                                               j
+                                                               Ai
+                                                                    i =1
+                                                                               j
+                                                                               Bi
+
+
+
+where N is the number of surface points riSv, vAi is the vector normal to the surface at
+point riSv, vBi is the X-ray image gradient vUi back-projected to the riSv, and f(α) is the
+weighting function depending on angle α between vAi and vBi. The gradient vBi is
+obtained by back-projecting the gradient vUi(pi), vUi(pi)=gradUI(pi), of X-ray image
+intensity I(pi)
+
+              v Bi (ri ) =
+                             p i − rs
+                                        ⋅ v w (p) =
+                                                               p i − rs
+                                                                           ⋅
+                                                                               (n × v Ui (p i )) × ei
+                             ri − rs                           ri − rs                n ⋅ ei            (3)
+
+where |ri-rs| and |pi-rs| are the distances from X-ray source rs to points ri and pi,
+respectively, vw(pi), vw(pi)=gradwI(pi), is the intensity gradient in the plane
+perpendicular to projection beam defined by ei, and n is the unit normal to projection
+plane U.
+
+
+
+
+Fig. 2. Axial slice from a CT (left) and one of the 18 acquired X-ray images (right) of the spine
+phantom
+
+
+3     Images and “Gold Standard” Registrations
+
+Images used in the experiment were part of our 3D/2D registration “gold standard”
+lumbar spine phantom data set, which has been made publicly available [1]. A lumbar
+spine phantom had been constructed by placing a cadaveric lumbar spine, comprising
+vertebra L1-L5 with intervertebral disks and several millimeters of soft tissue, into a
+plastic tube filled with water. Six fiducial markers were rigidly attached to the surface
+of the tube. The CT image was obtained using a General Electric HiSpeed CT/i
+scanner. Axial slices were taken with intra-slice resolution of 0.27 x 0.27 mm and 1
+mm inter-slice distance. X-ray images were obtained by PIXIUM 4600 (Trixell)
+          3D/2D Image Registration: The Impact of X-Ray Views and Their Number     453
+
+
+digital X-ray detector with a 429 x 429 mm large active surface, 0.143 x 0.143 mm
+pixel size, and 14 bits of dynamic range. The X-ray source and detector-plane were
+fixed during image acquisition while the spine phantom was rotated on a turntable to
+simulate a setup with C-arm. By rotating (step=20°) the spine phantom around its
+long axis, 18 X-ray images were acquired. “Gold standard” registrations of CT to X-
+ray images were obtained by rigid registration of CT marker points to 3D marker
+points reconstructed from X-ray images, respectively. As such, the obtained “gold
+standard” registration defines the relative position of each of the X-ray images to CT
+volume and, consequently, relative positions between X-ray images. After
+registration, cubic sub-images of single vertebrae without markers, were defined
+manually in CT images. Each sub-volume was blurred using a Gaussian filter (σ = 0.5
+mm) and isotropically re-sampled to the resolution of 1 mm. The Canny edge detector
+and a threshold were applied to automatically extract locations of points on surfaces
+of bony structures and to estimate surface normal directions at these points. The X-ray
+images were blurred with a Gaussian filter (σ = 0.5 mm) and the Roberts edge
+detector was applied to calculate intensity gradients gradUI(p).
+
+
+4 Experiments
+
+To test the impact of X-ray views and their number on the accuracy and robustness of
+the 3D/2D registration method, registrations were performed from a wide range of
+starting positions and orientations around the “gold standard” registration position
+using different projections and different numbers of X-ray images. Before
+registrations, the 6-dimensional parametrical space was normalized, so that a rotation
+of the volume containing a single vertebra of size 80 mm around its center for 0.1
+radians (5.7°) was equivalent to mean translation of volume points for 2 mm. In this
+way, Euclidean metrics could be used to calculate the displacement (in parametrical
+space) of a starting position from the “gold standard” position [2]. Values of
+parameters defining a starting point were chosen randomly within 18mm (51.6°)
+around the “gold standard” position. Optimization of transformation parameters q=(tx,
+ty, tz, ωx, ωy, ωz)T was performed by Powel’s method. To measure the registration error
+before and after registration, target registration error (TRE) [12] was calculated for
+eight target points (four on each pedicle) as the distance between target points in
+registered and “gold standard” position. Sixteen X-ray image sets, each containing 18
+image subsets were formed (Table 1). The first set contained the 18 single images.
+Subsets in the next eight sets were comprised of image pairs taken at views, which
+differed by 20o, 40o,…, 160o, respectively. Subsets in the next four sets contained
+three images. The angles between the three images in a subset were 20o, 40o, 60o, or
+80o. In the next two subsets of set 4 there were four images, the angles between them
+were 20o and 40o. In the 18 subsets of the last set there were eight images taken at
+views 20o apart. The 5 CT sub-volumes, each containing one of the vertebra L1-L5,
+were registered from 50 initial positions to each of the 18 subsets of X-ray images
+from all 16 image sets, which yielded 4500 (5x50x18) registrations for each set.
+454        D. Tomaževič, B. Likar, and F. Pernuš
+
+
+Table 1. The number and angle between two consecutive views in 16 sets of X-ray images
+registered to CT images
+
+                                        X-ray images
+          Set                                        Subsets
+    No. M      Δ             1                     2           …                18
+      1   1                 (0°)                 (20°)         …              (340°)
+      2   2   20°         (0°,20°)             (20°,40°)       …             (340°,0°)
+      3       40°         (0°,40°)             (20°,60°)       …            (340°,20°)
+      4       60°         (0°,60°)             (20°,80°)       …            (340°,40°)
+      5       80°         (0°,80°)            (20°,100°)       …            (340°,60°)
+      6       100°       (0°,100°)            (20°,120°)       …            (340°,80°)
+      7       120°       (0°,120°)            (20°,140°)       …           (340°,100°)
+      8       140°       (0°,140°)            (20°,160°)       …           (340°,120°)
+      9       160°       (0°,160°)            (20°,180°)       …           (340°,140°)
+     10 3     20°       (0°,20°,40°)         (20°,40°,60°)     …          (340°,0°,20°)
+     11       40°       (0°,40°,80°)        (20°,60°,100°)     …         (340°,20°,60°)
+     12       60°      (0°,60°,120°)        (20°,80°,140°)     …        (340°,40°,100°)
+     13       80°      (0°,80°,160°)       (20°,100°,180°)     …        (340°,60°,140°)
+     14 4     20°    (0°,20°,40°,60°)     (20°,40°,60°,80°)    …       (340°,0°,20°,40°)
+     15       40° (0°,40°,80°,120°) (20°,60°,100°,140°)        …      (340°,20°,60°,100°)
+     16 8     20°    (0°,20°,…,140°) (20°,40°,…,160°)          …       (340°,0°,…,120°)
+    M - number of images in a subset, Δ - angle between consecutive images in a subset .
+
+
+
+5     Results
+
+Table 2 shows means and standard deviations of TREs before and after successful
+(TRE of all 8 targets smaller than 2mm) registration and the proportion of successful
+registrations for three intervals of displacements. The results show that the
+registration errors fell with the higher number of images utilized for registration. The
+mean TRE achieved with one image was 0.9 mm, with 2 images between 0.32 and
+0.41, and with 8 images 0.3 mm. The accuracy of registrations did not significantly
+depend on the projections. For instance, when registering image pairs to CT images,
+the best results were achieved with X-ray images being 80 or 100 degrees apart.
+However, the values for 80 and 100 degrees (0.32 mm) were not significantly smaller
+than the values for other angles between image pairs. The percentage of successful
+registrations increased with the higher number of images used for registration. It
+increased from 96% for two images to 99.5% for eight images if the initial
+displacements were between 0 and 6 mm. For the initial displacements between 6 and
+12 mm the increase was much more dramatic. The proportion of successful
+registrations increased from 30% (one image), to 59% (two images), to 66% (three
+images), to 79% (four images) and, finally, to 80% for eight images. The same trend
+could be observed for displacements between 12 and 18 mm although, even with
+eight images the proportion of successful registrations was smaller than 40%.
+          3D/2D Image Registration: The Impact of X-Ray Views and Their Number          455
+
+
+Table 2. Registration errors and proportion of successful registrations for CT to X-ray
+registration using different X-ray projections and number of projections
+
+                      Before             After
+         Sets                                         Successful registrations (%)
+                    registration     registration
+                    TRE [mm]         TRE [mm]       0÷6mm      6÷12mm 12÷18mm
+   No. M      Δ
+                    Mean (Std)       Mean (Std)     0÷17.2° 17.2÷34.4° 34.4÷51.7°
+    1   1              3.3 (2.9)       0.90 (0.49)   61.8%       30.6%       13.5%
+    2   2    20°       5.2 (3.7)       0.41 (0.18)   96.4%       56.4%       13.7%
+    3        40°       5.1 (3.6)       0.34 (0.13)   95.6%       55.4%       13.1%
+    4        60°       5.0 (3.5)       0.33 (0.11)   95.2%       52.7%       11.3%
+    5        80°       4.9 (3.5)       0.32 (0.11)   94.7%       52.0%       10.5%
+    6       100°       4.9 (3.5)       0.32 (0.12)   94.2%       48.3%       11.2%
+    7       120°       5.0 (3.6)       0.34 (0.11)   93.8%       52.1%       12.3%
+    8       140°       5.1 (3.6)       0.34 (0.12)   95.8%       55.0%       13.6%
+    9       160°       5.3 (3.7)       0.40 (0.17)   95.3%       59.0%       15.1%
+   10 3      20°       5.5 (3.8)       0.34 (0.13)   98.4%       63.6%       18.6%
+   11        40°       5.4 (3.7)       0.31 (0.11)   98.6%       64.5%       16.4%
+   12        60°       5.5 (3.8)       0.31 (0.11)   97.9%       66.0%       19.4%
+   13        80°       5.4 (3.7)       0.31 (0.12)   97.7%       64.4%       18.2%
+   14 4      20°       5.8 (3.9)       0.32 (0.11)   98.9%       69.0%       23.8%
+   15        40°       5.7 (3.9)       0.30 (0.11)   99.2%       70.3%       23.1%
+   16 8      20°       6.3 (4.1)       0.30 (0.11)   99.5%       80.4%       36.7%
+  M - number of images in a subset, Δ - angle between consecutive images in a subset.
+
+
+6 Discussion
+The accuracy and robustness of registering a 3D preoperative image with 2D
+intraoperative images depends on the registration method and the anatomical structures
+that are to be registered. However, it is expected that the quality of 3D/2D registration
+also depends on the number of 2D intraoperative images and the projections under
+which these images are acquired. In the past, researchers have used one, two or more
+intra-operative images but have not systematically studied the impact of X-ray views
+and their number on the performance of an intensity-based 3D/2D registration method
+[13], [14]. To confirm the expectations that better registrations results can be achieved
+with more intraoperative images and with images taken at certain projections, we have
+conducted a study using the recently proposed 3D/2D intensity-based registration
+method and images and “gold standard” registration data.
+   As expected, the accuracy of successful CT/X-ray registrations for different initial
+displacements increased when more X-ray images had been used. Using two instead
+of one X-ray image, more than doubles registration accuracy, i.e. from 0.9 mm to 0.4
+mm, which is more than enough for orthopedic procedures. The impact of the number
+of images used in registration accuracy could be explained with a fact that, when
+using a single X-ray image, the registration is well-defined for two in-plane
+translations and two in-plane rotations and ill-posed for one out-of-plane translation
+and one out-of-plane rotation [9, 13]. By adding an additional X-ray image, with
+significantly different angle of view, one out-of-plane translation becomes in-plane
+and thereby well-defined. Our experimental results on vertebra data suggested that a
+456     D. Tomaževič, B. Likar, and F. Pernuš
+
+
+significantly different angle of view between two images would be 20 degrees, where
+sufficient accuracy of 0.41 mm was achieved, while the best accuracy of 0.32 mm
+was obtained for almost perpendicular views (80 and 100 degrees). The minimal
+angle between views can be useful information for those clinical applications that
+cannot afford time and space for acquiring X-rays with perpendicular views.
+Regardless of the angle of view, one out-of-plane rotation still remains, even if more
+than two X-ray views are employed in a single plane, which is the case when using C-
+arm with single rotation axis. However, even out-of-plane, the rotation could be well-
+defined, if the object of registration is not symmetric around one of its axis. This can
+explain our registration results, where adding additional X-ray images into the
+registration procedure has a small and clinically irrelevant impact on registration
+accuracy, since single vertebra body does not have symmetrical rotational axis.
+However, for other anatomy, for example for the shaft of the femur, which is close
+but not perfectly symmetric around one of the rotational axes, two X-ray images may
+not be sufficient to obtain the desired registration accuracy.
+    Similarly to registration accuracy, the percentage of successful registrations also
+increases where more X-ray images are used. The largest improvement is observed
+when deploying two, instead of one X-ray image, which can again be explained with
+ill-posed out-of-plane transformations. However, the percentage of successful
+registrations of 96% for initial displacement 0-6 mm (0÷17.2 degrees), when using
+two X-ray views, would probably be a border line for most spine clinical applications.
+Our results suggested that the percentage of registration increases significantly when
+more than two X-ray views were used. Adding more X-ray images into registration
+process increases the statistical power of criterion function calculation. Moreover, the
+information from additional images can also reduce the effect of outliers, e.g.
+occlusions, which can be present on one of X-ray images but not on the other images,
+while outliers can impose additional local optima into criterion function. Both, the
+increase of statistical power and the decreased effect of outliers, result in a smoother
+criterion function, which reduces the probability of optimization algorithm to
+converge to some local optimum.
+    This study justified the assumption that more X-ray image views improve registration
+accuracy and reliability. For the given imaged anatomy, e.g. for single vertebra object,
+and the given intensity based registration method [2], at least two X-ray images should
+be employed in the registration process to achieve desire registration accuracy, while for
+desired registration reliability, more X-ray images should be used. On the other hand,
+increasing the number of X-ray images to increase the reliability of registration result in
+increases radiation and acquisition times. Some care has to be taken when generalizing
+our registration results to clinical applications. Even though a real cadaver anatomy was
+used in our experiments, our gold standard images lack the presence of soft tissue and
+ribs that can occlude vertebra on X-ray images and can consequently harm the
+registration. Moreover, the calibration of our X-ray imaging system is almost ideal in
+comparison with the calibration of standard C-arm used in clinical procedures. By van
+Kraats et al. [13], it was reported that C-arm calibration errors have linear impact on
+registration errors. As a result, lower accuracy and reliability can be expected in real
+clinical use. However, we believe that our study provides general trends on how the
+number and the relative angle between X-ray image views affect the 3D/2D registration
+and gives some useful guidelines for further studies.
+          3D/2D Image Registration: The Impact of X-Ray Views and Their Number             457
+
+
+Acknowledgments. This work was supported by the Ministry of Higher Education,
+Science and Technology, Republic of Slovenia under Grant P2-0232.
+
+
+References
+ 1. Tomaževič, D., Likar, B., Pernuš, F.: Gold standard data for evaluation and comparison of
+    3D/2D registration methods. Comput. Aided Surg. 9, 137–144 (2004)
+ 2. Tomaževič, D., Likar, B., Slivnik, T., Pernuš, F.: 3-D/2-D registration of CT and MR to X-
+    ray images. IEEE Trans. Med. Imaging 22, 1407–1416 (2003)
+ 3. Galloway, R.L.: The process and development of image-guided procedures. Annu. Rev.
+    Biomed. Eng. 3, 83–108 (2001)
+ 4. Livyatan, H., Yaniv, Z., Joskowicz, L.: Gradient-based 2-D/3-D rigid registration of
+    fluoroscopic X-ray to CT. IEEE Trans. Med. Imaging 22, 1395–1406 (2003)
+ 5. Maurer, C.R., Fitzpatrick Jr., J.M., Wang, M.Y., Galloway, R.L., Jr., M.R.J., Allen, G.S.:
+    Registration of head volume images using implantable fiducial markers. IEEE Trans. Med.
+    Imaging 16, 447–462 (1997)
+ 6. Colchester, A.C.F., Zhao, J., Holton-Tainter, K.S., Henri, C.J., Maitland, N., Roberts,
+    P.T.H., Harris, C.G., Evans, R.J.: Development and preliminary evaluation of VISLAN, a
+    surgical planning and guidance system using intra-operative video imaging. Medical
+    Image Analysis 1, 73–90 (1996)
+ 7. Grimson, W.E.L., Ettinger, G.J., White, S.J., Lozano-Perez, T., Wells III, W.M., Kikinis,
+    R.: Automatic registration method for frameless stereotaxy, image guided surgery, and
+    enhanced reality visualization. IEEE Transactions on Medical Imaging 15, 129–140
+    (1996)
+ 8. Gueziec, A., Kazanzides, P., Williamson, B., Taylor, R.H.: Anatomy-based registration of
+    CT-scan and intraoperative X-ray images for guiding a surgical robot. IEEE Trans Med
+    Imaging 17, 715–728 (1998)
+ 9. Weese, J., Penney, G.P., Desmedt, P., Buzug, T.M., Hill, D.L., Hawkes, D.J.: Voxel-based
+    2-D/3-D registration of fluoroscopy images and CT scans for image-guided surgery. IEEE
+    Trans. Inf. Technol. Biomed. 1, 284–293 (1997)
+10. Zheng, G.Y., Ballester, M.A.G., Styner, M., Nolte, L.P.: Reconstruction of patient-specific
+    3D bone surface from 2D calibrated fluoroscopic images and point distribution model. In:
+    Larsen, R., Nielsen, M., Sporring, J. (eds.) MICCAI 2006. LNCS, vol. 4190, pp. 25–32.
+    Springer, Heidelberg (2006)
+11. Fleute, M., Lavallee, S.: Nonrigid 3-D/2-D registration of images using statistical models.
+    In: Taylor, C., Colchester, A. (eds.) MICCAI 1999. LNCS, vol. 1679, pp. 138–147.
+    Springer, Heidelberg (1999)
+12. Fitzpatrick, J.M., West, J.B., Maurer Jr., C.R.: Predicting error in rigid-body point-based
+    registration. IEEE Trans. Med. Imaging 17, 694–702 (1998)
+13. van de Kraats, E.B., Penney, G.P., Tomaževič, D., van Walsum, T., Niessen, W.J.:
+    Standardized evaluation methodology for 2-D-3-D registration. IEEE Trans. Med.
+    Imaging 24, 1177–1189 (2005)
+14. McLaughlin, R.A., Hipwell, J., Hawkes, D.J., Noble, J.A., Byrne, J.V., Cox, T.C.: A
+    comparison of a similarity-based and a feature-based 2-D-3-D registration method for
+    neurointerventional use. IEEE Transactions on Medical Imaging 24, 1058–1066 (2005)
+

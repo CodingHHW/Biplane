@@ -1,0 +1,676 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003                                                                                    1395
+
+
+
+
+          Gradient-Based 2-D/3-D Rigid Registration of
+                   Fluoroscopic X-Ray to CT
+               Harel Livyatan, Ziv Yaniv, Student Member, IEEE, and Leo Joskowicz*, Senior Member, IEEE
+
+
+
+
+   Abstract—We present a gradient-based method for rigid regis-                      One of the most sought after methods is anatomy image-
+tration of a patient preoperative computed tomography (CT) to its                 based rigid registration between preoperative and intraopera-
+intraoperative situation with a few fluoroscopic X-ray images ob-                 tive data sets. The goal is to enable surgeons to use preopera-
+tained with a tracked C-arm. The method is noninvasive, anatomy-
+based, requires simple user interaction, and includes validation. It              tive plans and computed tomography (CT) and magnetic res-
+is generic and easily customizable for a variety of routine clinical              onance imaging (MRI) data in the operating room for image-
+uses in orthopaedic surgery. Gradient-based registration consists                 guided navigation and robot positioning. The registration can
+of three steps: 1) initial pose estimation; 2) coarse geometry-based              be performed with a few intraoperative fluoroscopic X-ray or
+registration on bone contours, and; 3) fine gradient projection reg-              ultrasound images, which are ubiquitous, noninvasive, and easy
+istration (GPR) on edge pixels. It optimizes speed, accuracy, and
+robustness. Its novelty resides in using volume gradients to elimi-               to acquire. Current CAS systems rely on implanted fiducials,
+nate outliers and foreign objects in the fluoroscopic X-ray images,               which require an additional surgical procedure, or on points ob-
+in speeding up computation, and in achieving higher accuracy. It                  tained by direct contact from the anatomy surface, which re-
+overcomes the drawbacks of intensity-based methods, which are                     quire additional exposure of the anatomy and can be time-con-
+slow and have a limited convergence range, and of geometry-based                  suming and error-prone. The alternative is to use the imaged
+methods, which depend on the image segmentation quality. Our
+simulated, in vitro, and cadaver experiments on a human pelvis                    bone shapes, which are rigid, to perform the registration. This al-
+CT, dry vertebra, dry femur, fresh lamb hip, and human pelvis                     lows for less invasive procedures, is faster and less human-error
+under realistic conditions show a mean 0.5–1.7 mm (0.5–2.6 mm                     prone, and does not require surgeon training.
+maximum) target registration accuracy.                                               Anatomy image-based rigid registration is technically much
+  Index Terms—Fluoroscopic X-ray to CT registration, gradient                     harder than fiducial or contact-based registration because it
+based, image registration, 2D/3D rigid registration.                              requires analyzing the intraoperative images. The images may
+                                                                                  include foreign objects such as surgical tools and implants not
+                                                                                  present in the preoperative data. Fluoroscopic X-ray images
+                            I. INTRODUCTION
+                                                                                  have a small field of view, limited resolution, and orienta-
+
+R     EGISTRATION is the task of finding a transformation
+      from the coordinate system of one data set to another
+so that all features that appear in both data sets are aligned.
+                                                                                  tion-dependent geometric and intensity distortions. Research
+                                                                                  on anatomy image-based registration started in 1994 [8], [9]
+                                                                                  and is very active [10]–[20]. However, with the exception of
+Registration is an essential step in most computer-aided surgery                  the Cyberknife radiosurgery system [7], none of these methods
+(CAS) systems, since it is necessary to match information                         is in routine clinical use. The main obstacles are robustness,
+from different data modalities obtained at different times. In                    accuracy, computation time, and lack of integration.
+image-guided surgery, it is required to match the preoperative                       In this paper, we present a new gradient-based method for
+images and plans to the intraoperative situation, and to deter-                   rigid registration of a patient preoperative CT to its intraoper-
+mine the relative positions of surgical tools and anatomical                      ative situation with a few fluoroscopic X-ray images acquired
+structures. Examples of deployed CAS systems include preop-                       by a tracked C-arm [21]. The method is noninvasive, requires
+erative planning, intraoperative navigation and robotics systems                  simple user interaction, and includes validation. It is generic and
+for orthopaedic surgery [1]–[4], for neurosurgery [5], [6], and                   easily customizable for a variety of routine orthopaedic proce-
+for radiosurgery [7], among many others. Practical, accurate,                     dures. It consists of three steps: 1) initial pose estimation; 2)
+and robust registration has emerged as one of the key technical                   coarse geometry-based registration using bone contours; and 3)
+challenges of CAS.                                                                fine gradient projection registration (GPR) using edge pixels.
+                                                                                     This hybrid method optimizes speed, accuracy, and robust-
+                                                                                  ness. Its novelty resides in using the relationship between CT
+   Manuscript received June 4, 2003; revised August 4, 2003. This research was    and fluoroscopic X-ray image gradients instead of geometric or
+supported in part by a grant from the Israel Ministry of Industry and Trade for   intensity information. Volume gradients and their projections
+the IZMEL Consortium on Image-Guided Therapy. Asterisk indicates corre-           help eliminate foreign objects present in fluoroscopic X-ray
+sponding author.
+   H. Livyatan and Z. Yaniv are with the School of Engineering and Computer       images and achieve higher accuracy. Our method overcomes
+Science, The Hebrew University of Jerusalem, Jerusalem 91904, Israel.             the drawbacks of intensity-based methods, which are slow and
+   *L. Joskowicz is with the School of Engineering and Computer Science,          have a narrow convergence range, and those of geometry-based
+The Hebrew University of Jerusalem, Jerusalem 91904, Israel (e-mail:
+josko@cs.huji.ac.il).                                                             methods, which depend on the contour segmentation quality of
+   Digital Object Identifier 10.1109/TMI.2003.819288                              the fluoroscopic X-ray and CT images.
+                                                               0278-0062/03$17.00 © 2003 IEEE
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1396                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+                                                                                  known very accurately. Geometry-based registration works best
+                                                                                  with a high quality segmentation, an efficient feature pairing
+                                                                                  scheme, and a good outlier removal. For point/point registra-
+                                                                                  tion, an initial position independent, closed-form solution that
+                                                                                  minimizes the sum of distances is known [32]. In practice, ro-
+                                                                                  bustness is achieved by first performing coarse registration with
+                                                                                  landmarks followed by fine registration with surfaces. Com-
+                                                                                  mercial systems rely on implanted fiducials and on “cloud of
+                                                                                  points” to perform the registration. Geometry-based registra-
+                                                                                  tion between fluoroscopic X-ray images and CT has not yet
+Fig. 1. Classification of rigid registration methods.                             reached the market, most likely because robustly segmenting
+                                                                                  fluoroscopic X-ray images is technically challenging.
+                          II. PREVIOUS WORK                                          Intensity-based algorithms match the intensities of one image
+                                                                                  data set with the intensity of the other by minimizing a measure
+   For a comprehensive survey of medical image registration                       of difference between them, such as histogram difference, nor-
+methods, see [22]. We classify rigid registration algorithms                      malized cross-correlation, or mutual information [33]–[35]. The
+along a line, based on how much of the original data is used                      matching can be restricted to regions of interest (ROIs) in the
+to compute the transformation (Fig. 1). On one side are ge-                       image, such as regions around bone surfaces in CT and fluoro-
+ometry-based algorithms, which use a few selected points or                       scopic X-ray images. In this case, the matching is closer to ge-
+features. On the other are intensity-based algorithms, which                      ometry-based registration. Algorithms can be classified into two
+use most of the intensity information in both data sets.                          categories: 1) ROIs/ROIs: ROIs in both data sets, usually in the
+   Geometry-based registration algorithms match selected geo-                     vicinity of the anatomy surface ( -        pixels/voxels) for each
+metric features from each data set by finding the transformation                  data set [10], [12], [14], [36], [16]–[18], and 2) image/image:
+that minimizes the sum of distances between paired features.                      the entire CT or X-ray image is used ( -         for CT data sets,
+Features can be implanted fiducials, anatomical landmarks,                        2–10 images, each about         pixels for X-ray images) [8].
+or surface contour features. The algorithms can be classified                        Intensity-based registration consists of three steps: 1) gen-
+into four categories: 1) point/point: contact or image landmark                   eration of digitally reconstructed radiographs (DRRs) for each
+points on anatomy surface to CT landmark points (5–10 points                      camera pose; 2) measurement of the pose difference by com-
+in each) [4]; 2) point/surface: contact “cloud of points” on                      paring the DRRs with the real fluoroscopic X-ray images; and 3)
+anatomy surface to CT surface (10–30 points versus             –                  computation of a pose that reduces the difference. The first step
+surface points) [23]–[25]; 3) contour/surface: contours in flu-                   requires precomputation and fast DRR generation [15], [36].
+oroscopic X-ray or ultrasound images to CT surface ( –                            The second step requires computing a similarity measure which
+points or 1–10 splines versus       –     surface points) [9], [11],              is not guaranteed to lead to an optimal solution [37]. Algorithms
+[13], [26]; 4) surface/surface: CT or skin surface data from                      for intensity-based registration between X-rays and CT started
+scanning laser to CT ( –          points,    –     ridges/surfaces)               with Lemieux et al. [8], which was followed by many others
+[27].                                                                             [10], [12], [14], [16], [17], [36], [37]. The Cyberknife radio-
+   Geometry-based registration consists of four steps: 1) feature                 surgery system [7] is the only commercial system in routine
+extraction: choosing the features of interest in each data set;                   clinical use that uses this registration method.
+2) feature pairing: establishing correspondences between fea-                        The key characteristic of intensity-based registration is that
+tures of each data set; 3) dissimilarity formulation and outliers                 it does not require segmentation. The rationale is that using as
+removal: quantifying the dissimilarity between paired features,                   much information as available and “averaging it out” reduces
+e.g., the sum of pairwise distances; and 4) dissimilarity reduc-                  the influence of outliers and is, thus, more robust. However, this
+tion: finding the transformation that optimally minimizes the                     approach is computationally expensive since it requires gener-
+dissimilarity. Steps 2)–4) are repeated until convergence. Fea-                   ating high-quality DRRs and searching a six-dimensional (6-D)
+ture extraction requires segmenting the CT and fluoroscopic                       space with local minima which depend on the similarity mea-
+X-ray images. Features are paired by finding for each feature                     sure employed. It requires an initial pose guess close to the final
+in one data set, the closest (distance-wise) feature on the other                 pose and the definition of ROIs.
+data set [23], [24]. Removal of outliers can be either explicit                      Very recent work, conducted independently to ours, describes
+[24] or implicit by weighing the paired features [25]. Algorithms                 gradient-based registration between X-rays and CT or MR im-
+for geometry-based point to CT registration include the iterative                 ages [20], [38]. The idea is to compute projections of the vol-
+closest point (ICP) algorithm [23], [24] and its variations [25],                 umetric data gradients, compare them with X-ray image gradi-
+[28]–[30]. X-ray contours to CT surface mesh algorithms have                      ents, and adjust the volumetric data set pose accordingly. The
+been developed by Hamadeh et al. [9], [11] and Guéziec et al.                     gradients need not be computed on all rays, but rather on se-
+[13], [26]. Fitzpatrick et al. [31] show how to estimate the reg-                 lected rays in the vicinity of the anatomy contours, as proposed
+istration error of point-based rigid registration.                                in [39]. While the idea of using gradients to establish the cor-
+   The key characteristic of geometry-based methods is that they                  respondence is similar to ours, the algorithm described in [20]
+use a small fraction of the image data, usually fiducial centers                  relies on the pairing between rays emanating from the camera
+and anatomy surface points, whose location is assumed to be                       focal point and passing through image pixels and points on the
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+LIVYATAN et al.: GRADIENT-BASED 2-D/3-D RIGID REGISTRATION OF FLUOROSCOPIC X-RAY TO CT                                                                 1397
+
+
+
+
+Fig. 2. (a) Registration chain between the actual bone and its preoperative CT and (b) 2-D/3-D image registration geometry between X-ray and CT.
+
+
+bone surface. This pairing is very sensitive to discontinuities on                                      IV. PROBLEM DEFINITION
+both data sets and can produce outliers, which degrade the ac-
+                                                                                    The problem consists of finding the rigid transformation
+curacy of the computed transformation. The experimental re-
+                                                                                         that relates the preoperative CT bone model to the
+sults reported in [20] assume distortion-less X-ray images, ini-
+                                                                                 intraoperative bone coordinate frame. This transformation can
+tial pose guesses near the final pose, and do not account for
+                                                                                 be obtained with a location tracker and a fluoroscopic X-ray
+tracking errors, as our experiments do.
+                                                                                 imaging system by constructing the transformations chain
+                                                                                 shown in Fig. 2(a). The C-arm is modeled as a pinhole camera,
+                                                                                 with the camera focal point at the X-ray source and the image
+                  III. GOALS AND SPECIFICATIONS                                  plane at the image intensifier. Since the imaging characteristics
+                                                                                 of the C-arm are orientation dependent, this calibration is
+   Our goal is to develop a practical anatomical image-based                     computed anew for every orientation [40]. Fig. 2(b) illustrates
+rigid registration protocol and algorithm for preoperative CT                    the registration geometry.
+to intraoperative fluoroscopic X-ray registration. The method                       The transformation chain consists of five transformations
+should be generic and easily customizable to a variety of rigid
+anatomical structures (pelvis, vertebra, femur, tibia) and condi-
+tions (healthy, fractured, with tumors). Following a careful anal-
+ysis of the most common orthopaedic procedures, we compiled
+the following specifications.                                                    where     indicates the C-arm viewpoint.                   and
+   The system requirements are: 1) accuracy: a target registra-                           are given directly by the tracker.              is the
+tion error of 1–1.5 mm on average (2- to 3-mm worst case) mea-                   orientation-dependent calibration transformation, which is
+sured on the bone surface; 2) robustness: the registration suc-                  computed as described in [40].                  are the desired
+ceeds on the first try at least 95% of the time with an error of                 transformations relating the camera poses with the bone model
+at most 2 mm; 3) speed: the registration process takes at most 1                 as shown in Fig. 2(b).           is the initial bone pose esti-
+min; 4) user interaction: simple and minimal preoperative and                    mate, which is successively refined with the two-dimensional
+intraoperative user interaction; and 5) validation: both qualita-                (2-D)/three-dimensional (3-D) rigid registration algorithm
+tive and quantitative after the registration.                                    described in Section V until convergence.
+   The data characteristics are: 1) a CT data set with 0.5- to
+1.5-mm-thick slices 1–3 mm apart, 12-bit gray-scale, and pixel
+                                                                                           V. REGISTRATION PROTOCOL AND ALGORITHM
+size of 0.5       mm or less; 2) two to five fluoroscopic X-ray
+images 800 600 pixels, 8-bit gray-scale and pixel size of                           The registration protocol is as follows. Preoperatively, we ob-
+0.5        mm or less, possibly including anatomy and surgical                   tain the CT data and automatically compute off-line from it three
+objects not present in the CT; and 3) C-arm position and orien-                  data structures: a bone surface mesh, a bounding sphere octree,
+tation are computed using an optically tracked target which is                   and a volume gradient vector field. Intraoperatively, before the
+rigidly attached to the C-arm image intensifier. Target position                 surgery starts, the tracking system is set up and the calibration
+is known to an accuracy of 0.3–0.5 mm at a distance of 1–2 m                     grid is mounted on the C-arm. Then, the patient is prepared,
+(the current performance of commercial optical trackers).                        and 2–5 fluoroscopic X-ray images from various orientations
+   The system consists of: 1) a PC with a monitor; 2) a video                    are taken. The fluoroscopic X-ray images are corrected for dis-
+frame grabber; 3) a position sensor for the C-arm (e.g., an op-                  tortion and the camera parameters are computed for each pose
+tical tracker); and 4) a calibration and distortion correction grid              [40]. The transformation            is then computed with the al-
+mounted on the C-arm.                                                            gorithm described below. For validation, the algorithm shows
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1398                                                                         IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+a projection of the volume gradients projected onto the fluoro-
+scopic X-ray images. When there is close correspondence, the
+CT data set pose is very close to the actual patient pose.
+   The algorithm consists of three steps: 1) initial pose estima-
+tion; 2) coarse geometry-based registration on the bone con-
+tours; and 3). fine GPR on edge pixels. Each step has a fun-
+nelling effect: it brings the data sets closer, has a narrower con-
+vergence range, uses more information, and is more accurate
+than its predecessor. The first two steps, which we describe first,
+are based on previous work.
+
+
+            VI. VOLUME GRADIENT PROJECTIONS
+   The initial pose can be obtained in several ways, depending                  Fig. 3. Successive smallest bounding sphere approximations of a proximal
+on the type of surgery and data available: 1) from the clinical                 femur surface mesh.
+setup, which usually indicates the position of the patient on the
+operating table (e.g., supine, on the side) and the C-arm imaging
+views (e.g., anterior-posterior, lateral); 2) intraoperatively, by
+having the surgeon touch implanted fiducials or by acquiring
+landmark points on the anatomy surface with a tracked pointer;
+3) by placing skin markers prior to the CT scan and having the
+surgeon touch them with a tracked pointer intraoperatively; and
+4) intraoperatively by having the user identify a few matching
+landmarks on X-ray images, estimating their actual location as
+the intersection of rays, and performing weighted point-based
+registration as described in [25]. Options 1, 3, and 4 are appro-
+priate for percutaneous procedures. Regardless of the method
+employed, the initial pose estimate is usually within 10–20 mm
+and 5 –15 of the final pose.
+   Coarse registration further reduces the distance between the
+bone surface mesh and sampled points on the fluoroscopic
+X-ray bone contours with the ICP method [23], [24]. It yields
+the best transformation that can be obtained from the segmented
+images, which provide an estimate of the real contour location                  Fig. 4.   The integral gradient projection property.
+and have occlusions and may contain foreign objects. GPR
+further reduces the difference by incorporating contour pixel                   box is decomposed into eight cells and the edges are placed
+and volume gradient data. It eliminates foreign objects which                   in the containing cells. Mesh edges which belong to several
+appear in the X-ray images and not in the CT data. It is more                   cells are split into segments, with each segment placed in its
+efficient than intensity-based registration with predefined ROIs,               corresponding cell. The minimal bounding sphere for the edges
+although it has a narrow convergence range.                                     in each cell is computed and is recursively subdivided until the
+   Coarse geometry-based registration computes a transforma-                    sphere size is below a predefined threshold. The closest point
+tion that positions the bone surface mesh such that the rays em-                to a ray is found by traversing the tree and using a priority
+anating from the camera focal point passing through the bone                    queue according to the ray sphere distance, considering only
+contours on the fluoroscopic X-ray images are tangent to it. It                 the edges which are part of the apparent contour.
+optimizes the distances between the rays and apparent bone sur-                    We now present the gradient projection property, which is the
+face mesh contour. The bone contour is extracted from the fluo-                 basis of the GPR step. We define the following entities:
+roscopic X-ray images using a livewire segmentation algorithm                                       region of space containing the imaged
+[41]. Then, 100–500 contour points are sampled and matched to                                       anatomy;
+the corresponding bone surface mesh points with the 2-D/3-D                                         CT image of the anatomy in region ;
+ICP registration method [13]. The basic operation is to find for                                    X-ray image of the anatomy in region ;
+each ray the closest point on the bone apparent contour.                                            point in region ;
+   To speed up the search for the nearest point on the ap-                                          CT density value of point ;
+parent contour, we construct a hierarchical structure, called the                                   X-ray intensity value of the image point cor-
+bounding sphere octree, in which we place the bone surface                                          responding to ;
+mesh edges (Fig. 3). Each edge holds the normal information                                         3-D gradient field of      ;
+of its coincident faces. The tree is recursively constructed as                                     2-D gradient field of        .
+follows: initially, the entire bone surface mesh is enclosed in                    We model the imaging process as follows (Fig. 4). The pin-
+the smallest bounding sphere [42], [43]. The sphere’s bounding                  hole camera is defined by its focal length positioned at focal
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+LIVYATAN et al.: GRADIENT-BASED 2-D/3-D RIGID REGISTRATION OF FLUOROSCOPIC X-RAY TO CT                                                                  1399
+
+
+
+point and oriented in viewing direction . The image plane                       where         is the pixel intensity value of image point . For
+of camera      is                       , where is the image                    every point along the projection ray,                         .
+principle point and and are the horizontal and vertical di-                     Thus
+rections of the image plane (             ). We denote by the
+projection of a point on the image plane               . The ray
+     emanates from the camera focal point and passes through
+point . A point       on this ray is given by the line equation                 The image gradient is defined as the vector of partial image
+                         where               and           . The                derivatives in the horizontal and vertical directions
+distance between the point and the camera focal point is
+                  .
+   Gradient Projection Theorem: The image gradient of a point
+  in the image plane is linearly proportional to the integral of                The partial derivative of the X-ray image in direction                is de-
+the weighted volume gradients of points        along the ray em-                fined as
+anating from the camera focal point and passing through the
+point
+
+                                                                                Substituting, we obtain
+                                                                         (1)
+
+      Proof: Following the physical model of X-ray propaga-
+tion presented in [44], the ratio between the number of photons
+that enter and exit the imaged object for a given ray is
+
+
+
+
+where          and      are number of exiting and entering pho-                    Similarly, the partial derivative of the X-ray image in direc-
+tons,          is the material attenuation coefficient, and is an               tion is
+element of length along the ray.
+   In our context, the number of exiting photons logarithmically
+corresponds to the pixel intensity value of an image point. The
+number of photons entering the imaged object corresponds to                     Combining the two expressions we obtain
+the initial intensity of the ray, which is constant and equal for
+all rays. The attenuation coefficient per element of length along
+the ray corresponds to the intensity value of the CT voxels along
+the ray,       , where is a point on the ray. Substituting into the             The X-ray image gradient is equal to the integral over the
+above equation, we obtain                                                       weighted projections of the volume gradient onto the image
+                                                                                plane, where the weight is the relative distance of the 3-D point
+                                                                         (2)    from the focal point. Note that the weight increases as the 3-D
+                                                                                point is further away from the focal point because variations
+  Let                  be the distance between the camera focal                 in the 2-D image are a result of larger variations in the 3-D
+point and a point along the ray. can be written as                              volume.
+
+                                                                                    VII. FINE GRADIENT PROJECTION REGISTRATION (GPR)
+                                                                                   We perform fine registration based on the gradient projec-
+differentiating, we get                                                         tion property. This step is based on the following observation:
+                                                                                when the CT is aligned with the anatomy in the world, the rays
+                                                                                emanating from the camera focal point that pass through con-
+                                                                                tour pixels in the fluoroscopic X-ray images are tangent to the
+Substituting into (2) and omitting the constant               we get            bone surface, as illustrated in Fig. 2(b). In this case, these rays
+                                                                                pass through local magnitude maxima of the 3-D gradient vector
+                                                                                field, since they are tangent to the surface. The desired transfor-
+                                                                                mation is, thus, the one that maximizes the sum of 3-D gradient
+Assuming a standard logarithmic sensor response, the above                      magnitudes which are incident on these rays.
+equation becomes                                                                   Formally, let be a 6-D pose transformation matrix, and
+                                                                                   the horizontal and vertical directions of the image plane
+                                                                                (Fig. 4). Let         be a point on a ray emanating from the
+                                                                                camera focal point and passing through an edge pixel , in the
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1400                                                                            IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+
+Fig. 5. Experimental setup: in vitro (left) and cadaver study (right). The insert on the upper right corner shows the implanted aluminum sphere.
+
+
+fluoroscopic X-ray image. The expected fluoroscopic X-ray                         segmentation. Like the intensity-based approach, it selectively
+gradient,         , at edge pixel for a given pose     is,                        uses all the CT information, without relying on segmentation
+according to (1)                                                                  or pairing between fluoroscopic X-ray pixels and CT voxels.
+                                                                                  Unlike it, it automatically defines focused ROIs, which speeds
+                                                                          (3)     up the computation.
+
+(we omit        and to speed up the computation since their                                           VIII. EXPERIMENTAL RESULTS
+influence on the optimization is minor).                                             We have implemented the gradient based algorithm and have
+   The goal is to find the transformation that maximizes the                      validated it with the proposed protocol on three types of sit-
+sum of gradient projections over all image edges , that is                        uations: 1) simulation experiments with clinical CT data and
+                                                                                  simulated fluoroscopic X-rays; 2) in vitro experiments with dry
+                                                                          (4)     bones; and 3) two cadaver experiments. The simulation experi-
+                                                                                  ments establish a lower bound on the error for ideal fluoroscopic
+   The fine GPR step is as follows. Preoperatively, we compute                    X-ray imaging and tracking conditions and show how the algo-
+the CT volume gradient by convolving it with a Gaussian deriva-                   rithm copes with soft tissue and partial occlusions. The in vitro
+tive kernel and up-sample it to a 0.5 mm resolution to obtain                     experiments establish a lower bound on the error for real CT
+a fast, high-quality nearest neighbor ray sampling. Intraoper-                    and fluoroscopic X-ray images for ideal conditions. The cadaver
+atively, we extract edge pixels from each fluoroscopic X-ray                      experiments emulate the surgical situation and establish the ex-
+image with the Canny edge detector [45] and construct the set of                  pected error for intraoperative navigation with CT images. To
+rays emanating from the camera focal point and passing through                    demonstrate the generality of our method, we applied it to four
+the pixels. We then apply the Downhill Simplex method [46] on                     different structures: human femur, spine, pelvis, and lamb hip.
+the function defined in (4). The value of             is computed                    We used a CT scanner, a 9 in BV29 C-arm (Phillips, The
+by sampling each ray in 1 millimeter intervals.                                   Netherlands), a Polaris optical tracking camera (NDI, Calgary,
+   To achieve high accuracy, it is essential to filter out outlier                AB, Canada), a FluoroTrax C-arm calibration ring and active
+edge pixels from the fluoroscopic X-ray images. Outlier edges                     optical trackers (Traxtal, Toronto, ON, Canada), and a Matrox
+are edges from foreign objects or from other anatomical struc-                    Meteor II digital frame grabber. Processing was on a 2.4-GHz,
+tures. Outlier edges that are far from the anatomy of interest                    1-GB RAM PC running Windows XP. Fig. 5 shows the experi-
+will be automatically filtered out: the gradient projection value                 mental setup.
+of their rays will be small because there is no corresponding ob-
+ject in the CT. Outliers that are close to the anatomy of interest                A. Registration Error Measurement and Validation
+are eliminated by comparing the direction of the gradient pro-                       To quantify the registration error, we use the target regis-
+jection and the actual gradient. When the directions diverge, the                 tration error (TRE) as defined in [31]. The target registration
+magnitude of the gradient projection is set to zero.                              error is defined as the distance between the actual and the com-
+   GPR combines the advantages of both geometry and inten-                        puted position of selected target features, which can be land-
+sity-based registration while overcoming their deficiencies.                      mark points or the bone surface itself. The difficulty in esti-
+Like the geometry-based approach, it uses only edge pixels                        mating the TRE lies in determining the actual position of the tar-
+(from both the inner and outer bone contours). These pixels                       gets, which itself is prone to measurement errors. The most ac-
+are only a small fraction of all pixels, so the computation                       curate but expensive and cumbersome method is to use a custom
+time is significantly reduced. Unlike it, it does not rely on                     mechanical device which allows controlled precise positioning
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+LIVYATAN et al.: GRADIENT-BASED 2-D/3-D RIGID REGISTRATION OF FLUOROSCOPIC X-RAY TO CT                                                                1401
+
+
+
+of the anatomy. The next best option is to use implanted fidu-                  where it should be. The overlaid edges are computed as follows.
+cials (spheres) and perform point-to-point registration between                 For each pixel in the fluoroscopic X-ray image, we create a ray
+their centers on the CT images and their actual centers as mea-                 starting at the camera focal point and passing through the pixel.
+sured by direct contact with a tracked pointer. This establishes a              For each such ray, we compute its gradient projection using the
+ground-truth transformation to which the computed transforma-                   CT volume gradient, which is the expected 2-D gradient di-
+tion can then be compared. We opted, as many others, for this                   rection and magnitude for the pixel. Nonmaxima suppression
+option in our experiments.                                                      and thresholding on these pixels leave the expected edge pixels
+   The fiducials TRE (       ) is defined as the distance between               which are overlaid on the original fluoroscopic X-ray image.
+the actual and computed position of the fiducials [31]                          Note that this approach yields more accurate results than gen-
+                                                                                erating DRRs from the CT at the computed position and then
+                                                                                extracting bone contours from them, since edges in the DRR
+                                                                                are usually more blurred than actual fluoroscopic images [47].
+where is a fiducial point in space,         are its coordinates in
+the CT image coordinate frame,                 are its coordinates              B. Experiments
+as measured by the tracking system, and                is the com-
+                                                                                   We performed a simulation experiment on a real clinical
+puted transformation. The accuracy of the            measurement
+                                                                                pelvis CT. We first generated DRRs at known poses and input
+depends on the accuracies of the tracking device, of the fidu-
+                                                                                these as fluoroscopic X-ray images, together with an initial
+cial center localization on the CT, and on the computed trans-
+                                                                                guess transformation with a realistic            of 9.5 mm, to the
+formation. Its advantages are that it can be computed with one
+                                                                                algorithm. We then computed the final            error as described
+or more fiducials with no restrictions on their relative positions
+                                                                                above. The first entry in Tables I and II shows the results
+and that it does not require the computation of a ground-truth
+                                                                                averaged over ten runs. The mean measured error is 0.5 mm,
+transformation. Its disadvantages are that it requires fiducials,
+                                                                                about the size of X-ray image pixel.
+that it depends on very few points and their spatial distribution,
+                                                                                   Since the reported           for all other cases depends on the
+and that it is only an indirect estimate of the error that the sur-
+                                                                                accuracy of the ground-truth registration, we performed fidu-
+geon will observe when using the CT images for intraoperative
+                                                                                cial point-based registration and applied the method described
+navigation.
+                                                                                in Fitzpatrick et al. [31] to compute the expected error over the
+   We propose an alternative measure, the surface TRE (          ),
+which we define as the distance between the actual and the com-                 entire imaged anatomy. We obtained an expected average accu-
+puted position of points on the bone surface identified on the CT               racy of 0.3-0.5 mm (0.4-mm to 0.7-mm maximum) for all the
+image                                                                           points on the bone surface.
+                                                                                   We performed in vitro experiments on a single vertebra of
+                                                                                a dry spine and on a dry proximal femur. First, we implanted
+                                                                                seven 6-mm aluminum spheres (Fig. 5 top right insert) and CT
+where         is the ground-truth (gold) rigid transformation com-              scanned them at 0.6-mm slice interval. We extracted from each
+puted by fiducial contact-based registration.                                   data set the sphere centers at a resolution of 0.1 mm. In the op-
+   Although the              is relative to the ground-truth reg-               erating room, we acquired two sets of three fluoroscopic X-ray
+istration, it does not require additional implanted fiducials,                  images at various C-arm orientations, one with, and one without
+including instead many points uniformly distributed over                        anatomy for optimal camera calibration. The fluoroscopic X-ray
+the entire anatomy surface which do not require individual                      images were 800 600 pixels, 8-bit gray-scale with pixel size of
+actual measurement. We quantify the expected error of the                       0.45 mm . We performed C-arm calibration to mean accuracy of
+ground-truth registration with the method described in Fitz-                    0.3 mm (0.6-mm maximum), as described in our previous work
+patrick et al. [31] for all points on the bone surface. Although in             [40]. We performed fiducial contact-based registration on the
+the worst case this error should be added to the            results,            spheres and established the ground-truth registration. We then
+the error will be smaller in most cases since it also depends on                performed image-based registration with the gradient based al-
+the same optical tracker inaccuracies.                                          gorithm and compared the resulting transformations.
+   The           includes all the errors in the registration chain,                The second and third entries in Tables I and II show the re-
+thus providing a faithful estimate of tool positioning errors                   sults. The 20-s to 50-s computation time for the ideal case in-
+during intraoperative navigation based on CT images. In our                     creased to 60–270 s for the worst case when foreign objects
+experiments, the ground-truth bone position for the in vitro and                and surrounding anatomy appeared in the fluoroscopic X-ray
+cadaver experiments are obtained from implanted fiducials by                    images. However, the accuracy error is still acceptable. We ob-
+contact-based registration. The ground-truth transformation for                 served a small decrease in error when using three fluoroscopic
+the simulation experiments is known in advance. Note that the                   X-ray images instead of two, and no further significant decrease
+        can also be used to quantify how far the initial guess is               beyond three. We observed little or no influence when foreign
+from the final one by substituting the initial guess transforma-                objects were present in the fluoroscopic X-ray images.
+tion         instead of the computed transformation                .               We performed cadaver experiments on a fresh lamb hip and
+   For validation, we show the bone model position with respect                 a human pelvis following the same protocol as in the in vitro
+to the actual bone position by overlaying the gradient projec-                  experiment, except that we implanted four spheres instead of
+tions magnitude directly onto the fluoroscopic X-ray images                     seven. The last entries in Tables I and II show the results. For the
+[Fig. 6(b) and (c)]. This shows how far the bone model is from                  lamb hip, the decrease in accuracy as compared to the in vitro
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1402                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+
+Fig. 6. Registration experiments: real pelvis with simulated fluoroscopic X-ray images (DRRs), in vitro dry vertebra and dry femur with surgical instruments,
+and cadaver lamb hip. The first column shows the CT model. The second and third column show one fluoroscopic X-ray image with contours at (b) initial and (c)
+final pose superimposed on them (white lines).
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+LIVYATAN et al.: GRADIENT-BASED 2-D/3-D RIGID REGISTRATION OF FLUOROSCOPIC X-RAY TO CT                                                                              1403
+
+
+
+                            TABLE I                                                                  the initial pose guess on the coarse and fine registration steps,
+ SUMMARY OF EXPERIMENTAL RESULTS. EACH SCENARIO (IDEAL, REALISTIC,
+   AND BAD) IS DEFINED BY THE CT SLICE SPACING h (MM) AND THE        1                               we applied the gradient based algorithm on many initial pose
+                                                                                                     guesses between 1 and 85 mm            from the ground-truth reg-
+   PRESENCE OF FOREIGN OBJECTS IN THE FLUOROSCOPIC X-RAY IMAGES
+(NONE, SOME). EACH ENTRY SHOWS THE MEAN (MAXIMUM) SURFACE TRE IN                                     istration. For each 1-mm interval, we randomly generated 50
+           MILLIMETERS. COMPUTATION TIMES ARE 20–370 s
+                                                                                                     initial positions and performed the registration. To isolate regis-
+                                                                                                     tration error from the ground-truth error, we also computed the
+                                                                                                              for 5–7 representative implanted fiducials. Fig. 7 sum-
+                                                                                                     marizes the results of the 4250 runs. We conclude that the mean
+                                                                                                     registration accuracy is nearly independent of the initial guess,
+                                                                                                     but that the percentage of failures (registrations with
+                                                                                                        mm) increases as the initial guess is further away. A mean
+                                                                                                     failure rate of 5% occurs at 72-mm           (16-mm maximum).
+                                                                                                        To better understand the characteristics of the fine gra-
+                                                                                                     dient-based projection registration search space, we recorded
+                                                                                                     the value of the optimization function              as the search
+                                                                                                     converges toward the final transformation. Fig. 8 shows the
+                             TABLE II
+                                                                                                     results for the human pelvis cadaver study (the other cases
+ DETAILED EXPERIMENTAL RESULTS FOR THE RREALISTIC CASES (CT SLICE                                    are very similar). The plots show a unique minimum near the
+ SPACING OF 2.4 MM, SOME FOREIGN OBJECTS IN THE FLUOROSCOPIC X-RAY                                   ground-truth value, an appropriate convergence range, and rela-
+      IMAGES), WITH THE NUMBER OF IMAGES AS SHOWN IN TABLE I
+                                                                                                     tively smooth, monotonically decreasing values. This validates
+                                                                                                     our choice of optimization function and search method.
+
+
+                                                                                                                             IX. CONCLUSION
+                                                                                                        We have presented the GPR algorithm, a new method for rigid
+                                                                                                     registration of a patient preoperative CT to its intraoperative
+                                                                                                     situation with a few fluoroscopic X-ray images obtained with
+                                                                                                     a tracked C-arm. The three-step hybrid method progressively
+                                                                                                     brings the data sets closer with landmark point-based registra-
+                                                                                                     tion, coarse geometry-based registration on the bone contours,
+                                                                                                     and fine GPR on edge pixels. Each step uses more informa-
+                                                                                                     tion than its predecessor, has a narrower convergence range, is
+                                                                                                     slower than its predecessor, but adds accuracy. The last step,
+                                                                                                     GPR, which exploits the volume gradient projection property
+                                                                                                     achieves good accuracy even in the presence of other anatom-
+                                                                                                     ical structures and foreign objects, such as implants and surgical
+                                                                                                     tools in the fluoroscopic X-ray images. It does not rely on the ac-
+                                                                                                     curacy of segmentation, as do geometry-based approaches, and
+                                                                                                     is more efficient than intensity-based registration, although it
+                                                                                                     has a narrow convergence range.
+                                                                                                        We conclude from our experimental results that the desired
+ For each data set, three rows of results are shown, one after the initial guess registration step   goal, e.g., 1- to 1.5-mm mean target registration error (2- to
+(first row), one after the coarse geometry-based registration step (second row) following it,        3-mm maximum), obtained within 60 s 95% of the time with
+and one after the fine gradient-projection registration step following it (third row). Each
+                                                                                                     simple and minimal user interaction, including validation, with
+row of results shows the average over ten runs                error at the end of the step, the
+individual position (                ) and orientation parameters (                      ) and the   standard imaging and tracking equipment in clinical conditions
+running time in seconds. The real pelvis, dry femur, and lamb hip have a success rate of             is within reach. We achieved on the cadaver studies, for the
+100% and the dry vertebra and human pelvis have a success rate of 70%. Note that a small
+                                                                                                     lamb hip 1.4 mm (2.5-mm maximum) in 60–120 s 100% of the
+angular deviation from the correct transformation can yield a large               , depending on
+the location of the origin. The origins of the dynamic reference frames are at a distance of         time and for the human pelvis 1.7 mm (2.6-mm maximum) in
+80–150 mm from the surface of the anatomy.                                                           200–270 s 70% of the time with some user interaction (CT pro-
+                                                                                                     cessing, initial pose estimation and livewire bone contour seg-
+case is most likely due to a less accurate ground-truth registra-                                    mentation on fluoroscopic X-ray images). For validation, we
+tion and the fact that the lamb femur has fewer salient features                                     show how far the bone model is from where it should be by
+than the other anatomical structures. For the human pelvis, the                                      overlaying the bone edge contours directly onto the fluoroscopic
+decrease in accuracy is due to the larger size of the pelvic bone                                    X-ray images.
+as compared to the other structures.                                                                    We plan to further reduce the GPR algorithm computation
+   To better understand and quantify the various aspects of the                                      time with space leaping techniques adapted from volume ren-
+proposed method, we conducted an extensive series of experi-                                         dering. We also plan to improve the robustness of the GPR al-
+ments on the dry femur data set. To determine the influence of                                       gorithm by implementing genetic or simulated annealing tech-
+                Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1404                                                                             IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+
+Fig. 7. Detailed results of in vitro dry femur experiments. The horizontal axis indicates the initial surface TRE from the ground-truth transformation. The vertical
+                                                                                                                       >
+axes indicate (a) the final fiducial TRE; (b) the final surface TRE; (c) the cumulative percentage TRE failures (sTRE 2 mm), and; (d) the average running time.
+
+
+
+
+Fig. 8. Optimization function values (vertical axis) for individual pose parameters as a function of their deviation from the ground truth value, (zero for all
+parameters). Translational deviations are in millimeters, rotational deviations are in degrees. The lower dark curves correspond to the values for ideal conditions,
+the upper light curves correspond to the values for realistic conditions.
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+LIVYATAN et al.: GRADIENT-BASED 2-D/3-D RIGID REGISTRATION OF FLUOROSCOPIC X-RAY TO CT                                                                      1405
+
+
+
+                          TABLE III                                             at 1-mm intervals. Finally, in the gradient based registration
+   MAIN PARAMETERS AND THEIR SETTINGS USED IN THE EXPERIMENTS                   step we use the downhill simplex optimization algorithm.
+
+
+                                                                                                           ACKNOWLEDGMENT
+                                                                                   The authors would like to thank Dr. A. Khoury, Prof. M.
+                                                                                Leibergall, and Dr. R. Mosheiff of the Hadassah Medical Center,
+                                                                                Ein Karem, Jerusalem, for providing the CT data sets and for
+                                                                                their invaluable assistance in preparing and performing the in
+                                                                                vitro and the cadaver experiments.
+
+
+                                                                                                                REFERENCES
+                                                                                   [1] A. M. DiGioia, D. A. Simon, B. Jaramaz, M. Blackwell, F. Morgan, R.
+                                                                                       V. O’Toole, and B. Colgan, “Hipnav: Preoperative planning and intraop-
+                                                                                       erative navigational guidance for acetabular implant placement in total
+                                                                                       hip replacement surgery,” in Computer Assisted Orthopedic Surgery, L.
+                                                                                       P. Nolte and R. Ganz, Eds. Seattle, WA: Hogrefe & Huber, 1999.
+                                                                                   [2] R. Hofstetter, M. Slomczykowski, M. Sati, and L. P. Nolte, “Fluo-
+                                                                                       roscopy as an imaging means for computer assisted surgical navigation,”
+                                                                                       Comput. Aided Surg., vol. 4, no. 2, pp. 65–76, 1999.
+                                                                                   [3] L. Joskowicz, C. Milgrom, A. Simkin, L. Tockus, and Z. Yaniv,
+                                                                                       “FRACAS: A system for computer-aided image-guided long bone
+                                                                                       fracture surgery,” Comput. Aided Surg., vol. 3, no. 6, pp. 271–288,
+                                                                                       1998.
+                                                                                   [4] R. H. Taylor, B. D. Mittelstadt, H. A. Paul, W. Hanson, P. Kazanzides, J.
+                                                                                       F. Zuhars, B. Williamson, B. L. Musits, E. Glassman, and W. L. Bargar,
+                                                                                       “An image-directed robotic system for precise orthopaedic surgery,”
+                                                                                       IEEE Trans. Robot. Automat., vol. 10, pp. 261–275, 1994.
+                                                                                   [5] K. Smith, K. Frank, and R. Bucholz, “The neurostation: A highly accu-
+niques to help avoid local minima. We plan to embed the al-                            rate, minimally invasive solution to frameless stereotactic neurosurgery,”
+gorithm in navigation and positioning systems for minimally                            Comp. Med. Imag. Graphics, vol. 18, no. 1, pp. 247–56, 1994.
+invasive and percutaneous orthopaedic procedures, including                        [6] Q. H. Li, L. Zamorano, A. Pandya, R. Perez, J. Gong, and F. Diaz, “The
+                                                                                       application accuracy of the neuromate robot – a quantitative comparison
+the FRACAS system for long bone fracture reduction [3], the                            with frameless and frame-based surgical localization systems,” Comput.
+MARS robot for percutaneous spinal pedicle screw insertion                             Aided Surg., vol. 7, no. 2, pp. 90–98, 2002.
+[48], and a new system for percutaneous pelvic fraction reduc-                     [7] J. R. Adler Jr, M. J. Murphy, S. D. Chang, and S. L. Hancock,
+                                                                                       “Image-guided robotic radiosurgery,” Neurosurgery, vol. 44, no. 6, pp.
+tion.                                                                                  1299–1307, 1999.
+                                                                                   [8] L. Lemieux et al., “A patient-to-computed-tomography image registra-
+                                                                                       tion method based on digitally reconstructed radiographs,” Med. Phys.,
+                      APPENDIX                                                         vol. 21, no. 11, 1994.
+           MAIN PARAMETERS AND THEIR SETTINGS                                      [9] A. Hamadeh, P. Sautot, S. Lavallée, and P. Cinquin, “Towards automatic
+                                                                                       registration between CT and X-ray images: Cooperation between 3D/2D
+   The proposed algorithm, as any of its kind, relies on tens of                       registration and 2D edge detection,” in Proc. Medical Robotics and Com-
+parameters with preset values. Table III lists the most important                      puter Assisted Surgery Conf., 1995, pp. 39–46.
+                                                                                  [10] M. J. Murphy, “An automatic six-degree-of-freedom registration algo-
+ones and their values. The parameters are classified in six cat-                       rithm for image-guided frameless stereotaxic radiosurgery,” Med. Phys.,
+egories, with the first four used in coarse geometry-based reg-                        vol. 24, no. 6, 1997.
+istration [Step 2)] and the last three used in fine gradient-based                [11] A. Hamadeh, S. Lavallée, and P. Cinquin, “Automated 3-Dimensional
+                                                                                       computed tomographic and fluoroscopic image registration,” Comput.
+projection registration [Step 3)]. No parameters are used for the                      Aided Surg., vol. 3, no. 1, 1998.
+initial registration.                                                             [12] M. Roth, C. Brack, R. Burgkart, and A. Czopf, “Multi-view contourless
+   The 3-D model parameters include the iso-value threshold                            registration of bone structures using a single calibrated X-ray fluoro-
+                                                                                       scope,” in Proc. Computer-Assisted Radiology and Surgery Conf., 1999,
+used by the Marching Cubes algorithm to segment out the bone                           pp. 756–761.
+surface and the maximum depth of the hierarchical sphere tree                     [13] A. Guéziec et al., “Providing visual information to validate 2D to 3D
+described at the end of Section V. The Livewire parameters                             registration,” Med. Image Anal., vol. 4, no. 4, 2000.
+                                                                                  [14] G. P. Penney, P. G. Batchelor, D. L. G. Hill, D. J. Hawkes, and J. Weese,
+include the number of points input by the user on each fluoro-                         “Validation of a 2D to 3D registration algorithm for aligning preopera-
+scopic X-ray image and the number of points sampled on the                             tive CT images and intraoperative fluoroscopy images,” Med. Phys., vol.
+segmented bone contours. The ICP parameter is the maximum                              28, no. 6, 2001.
+                                                                                  [15] D. A. LaRose, “Iterative X-ray/CT Registration Using Accelerated
+number of iterations. For processing the fluoroscopic X-ray                            Volume Rendering,” Ph.D. dissertation, Robotics Inst., Carnegie Mellon
+image parameters, we use the Canny edge detector. As input to                          Univ., Pittsburgh, PA, 2001.
+the edge detector we specify a Gaussian mask which is used                        [16] L. Zöllei, W. E. L. Grimson, A. Norbash, and W. M. Wells III, “2-D-3-D
+                                                                                       rigid registration of X-ray fluoroscopy and CT images using mutual in-
+for computing the image gradient and two thresholds which                              formation and sparsely sampled histogram estimators,” in Proc. IEEE
+are defined relative to the gradient magnitude data. As a post                         Computer Vision and Pattern Recognition Conf., 2001, pp. 696–703.
+processing step to the edge detection we discard edges which                      [17] D. Sarrut and S. Clippe, “Geometrical transformation approximation for
+                                                                                       2D/3D intensity-based registration of portal images and CT scan,” in
+are shorter than 30 pixels. For computing the gradient of the CT                       Proc. Medical Image Computing and Computer Assisted Intervention
+image, we use a Gaussian filter and sample the image with rays                         Conf., 2001, pp. 532–540.
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+1406                                                                               IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+ [18] T. Rohlfing and C. R. Maurer Jr, “A novel image similarity measure for          [34] F. Maes, A. Collignon, D. Vandermeulen, G. Marchal, and P. Suetens,
+      registration of 3-D MR images and X-ray projection images,” in Proc.                 “Multi-modality image registration by maximization of mutual informa-
+      Medical Image Computing and Computer Assisted Intervention Conf.,                    tion,” in Proc. Workshop on Mathematical Methods in Biomedical Image
+      2002, pp. 467–476.                                                                   Analysis (MMBIA ’96), 1996, pp. 14–22.
+ [19] B. Brendel, S. Winter, A. Rick, M. Stockheim, and H. Ermert, “Regis-            [35] J. P. W. Pluim, J. B. A. Maintz, and M. A. Viergever, “Image registration
+      tration of 3D CT and ultrasound datasets of the spine using bone struc-              by maximization of combined mutual information and gradient informa-
+      tures,” Comput. Aided Surg., vol. 7, no. 3, pp. 146–155, 2002.                       tion,” IEEE Trans. Med. Imag., vol. 19, pp. 809–814, Aug. 2000.
+ [20] D. Tomaževič, B. Likar, and F. Pernuš, “Rigid 2D/3D registration of in-      [36] D. A. LaRose, J. Bayouth, and T. Kanade, “Transgraph: Interactive in-
+      traoperative digital X-ray images and preoperative CT and MR images,”                tensity-based 2D/3D registration of X-ray and CT data,” SPIE Image
+      in Proc. SPIE Medical Imaging Conf., 2002, pp. 507–517.                              Processing, 2000.
+ [21] H. Livyatan, “Calibration and Gradient-Based Rigid Registration of Flu-         [37] G. P. Penney, J. Weese, J. A. Little, P. Desmedt, D. L. G. Hill, and D. J.
+      oroscopic X-ray to CT, for Intra-Operative Navigation,” masters thesis,              Hawkes, “A comparison of similarity measures for use in 2-D-3-D med-
+      Sch. Eng. Comput. Sci., The Hebrew Univ. Jerusalem, Jerusalem, Israel,               ical image registration,” IEEE Trans. Med. Imag., vol. 17, pp. 586–595,
+      2003.                                                                                Aug. 1998.
+ [22] J. B. A. Maintz and M. A. Viergever, “A survey of medical image regis-          [38] D. Tomaževič, B. Likar, and F. Pernuš, “Gradient-based registration
+      tration,” Med. Image Anal., vol. 2, no. 1, pp. 1–37, 1998.                           of 3D MR and 2D X-ray images,” Comput. Assist. Radiol. Surg., pp.
+ [23] P. J. Besl and N. D. McKay, “A method for registration of 3-D shapes,”               327–332, 2001.
+      IEEE Trans. Pattern Anal. Machine Intell., vol. 14, pp. 239–255, Feb.           [39] K. G. A. Gilhuijs, P. J. H. van de Ven, and M. van Herk, “Automatic
+      1992.                                                                                three-dimensional inspection of patient set-up in radiation therapy using
+ [24] Z. Zhang, “Iterative point matching for registration of free-form curves             portal images, simulator images, and computed tomography data,” Med.
+      and surfaces,” Int. J. Comput. Vis., vol. 13, no. 2, pp. 119–148, 1994.              Phys., vol. 23, pp. 389–399, 1996.
+ [25] C. R. Maurer Jr, G. B. Aboutanos, B. M. Dawant, R. J. Maciunas, and J.          [40] H. Livyatan, Z. Yaniv, and L Joskowicz, “Robust automatic C-arm
+      M. Fitzpatrick, “Registration of 3-D images using weighted geometrical               calibration for fluoroscopy-based navigation: A practical approach,” in
+      features,” IEEE Trans. Med. Imag., vol. 15, pp. 836–849, Dec. 1996.                  Proc. Medical Image Computing and Computer Assisted Intervention
+ [26] A. Guéziec, P. Kazanzides, B. Williamson, and R. H. Taylor,                          Conf., T. Dohi and R. Kikinis, Eds., 2002, pp. 60–68.
+      “Anatomy-based registration of CT-scan and intraoperative X-ray                 [41] E. N. Mortensen and W. A. Barrett, “Interactive segmentation with in-
+      images for guiding a surgical robot,” IEEE Trans. Med. Imag., vol. 17,               telligent scissors,” Graph. Models Image Processing, vol. 60, no. 5, pp.
+      pp. 715–728, Oct. 1998.                                                              349–384, 1998.
+ [27] S. Lavallée, R. Szeliski, and L. Brunie, “Anatomy-based registration of         [42] B. Gärtner, “Fast and robust smallest enclosing balls,” in Proc. Eur.
+      three-dimensional medical images, X-ray projections, and three-dimen-                Symp. Algorithms (ESA), 1999, pp. 325–338.
+      sional models using octree-splines,” in Computer-integrated surgery,            [43]       , (2002) Smallest Enclosing Balls of Points – Fast and
+      Technology and clinical applications, R. H. Taylor, S. Lavallée, G. C.               Robust in C++. [Online]. Available: http://www.inf.ethz.ch/per-
+      Burdea, and R. Mösges, Eds. Cambridge, MA: MIT Press, 1995, ch.                      sonal/gaertner/miniball.html
+      7.                                                                              [44] A. C. Kak and M. Slaney, Principles of Computerized Tomographic
+ [28] B. Ma, R. E. Ellis, and D. J. Fleet, “Spotlights: A robust method for                Imaging. Piscataway, NJ: IEEE Press, 1988.
+      surface-based registration in orthopedic surgery,” in Proc. Medical             [45] R. Jain, R. Kasturi, and B. G. Schunk, Machine Vision. New York:
+      Image Computing and Computer Assisted Intervention Conf., 1999, pp.                  McGraw-Hill, 1995.
+      936–944.                                                                        [46] W. H. Press, S. A. Teukolsky, W. T. Vetterling, and B. P. Flannery, Nu-
+ [29] O. Sadowski, Z. Yaniv, and L. Joskowicz, “Comparative in vitro study                 merical Recipes in C, 2nd ed. Cambridge Univ. Press, Cambridge,
+      of contact and image-based rigid registration for Comput. Aided Surg.,”              U.K., 1999.
+      Comput. Aided Surg., vol. 7, no. 4, 2002.                                       [47] W. Cai, “Transfer functions in DRR volume rendering,” in Proc. Com-
+ [30] R. Bächler, H. Bunke, and L. P. Nolte, “Restricted surface matching-                 puter-Assisted Radiology and Surgery Conf., H. Lemke, et al., Ed., 1999,
+      numerical optimization and technical evaluation,” Comput. Aided Surg.,               pp. 284–289.
+      vol. 6, no. 3, 2001.                                                            [48] L. Joskowicz, C. Milgrom, M. Shoham, Z. Yaniv, and A. Simkin,
+ [31] J. M. Fitzpatrick, J. B. West, and C. R. Maurer, Jr., “Predicting error in           “Robot-guided long bone intramedullary distal locking: Concept and
+      rigid-body, point-based registration,” IEEE Trans. Med. Imag., vol. 17,              preliminary results,” in Proc. 3rd Int. Symp. Robotics and Automation,
+      pp. 694–702, Oct. 1998.                                                              Toluca, Mexico, 2002, pp. 463–468.
+ [32] B. K. P. Horn, “Closed-form solution of absolute orientation using unit
+      quaternions,” J. Opt. Soc. Amer. A, vol. 4, no. 4, pp. 629–642, Apr. 1987.
+ [33] W. M. Wells, III, P. Viola, and R. Kikinis, “Multi-modal volume registra-
+      tion by maximization of mutual information,” in Proc. Medical Robotics
+      and Computer Assisted Surgery Conf., 1995, pp. 55–62.
+
+
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:25:16 UTC from IEEE Xplore. Restrictions apply.
+

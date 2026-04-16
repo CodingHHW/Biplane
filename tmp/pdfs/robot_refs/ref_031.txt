@@ -1,0 +1,647 @@
+586                                                                            IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 17, NO. 4, AUGUST 1998
+
+
+
+
+        A Comparison of Similarity Measures for Use
+          in 2-D–3-D Medical Image Registration
+      Graeme P. Penney, Jürgen Weese, John A. Little, Paul Desmedt, Derek L. G. Hill, and David J. Hawkes*
+
+
+
+   Abstract— A comparison of six similarity measures for use                     D), so they lack the spatial information contained in CT and
+in intensity-based two-dimensional–three-dimensional (2-D–3-D)                   MR images. There are also a number of important anatomical
+image registration is presented. The accuracy of the similarity                  features which are not visualized well using these modalities,
+measures are compared to a “gold-standard” registration which
+has been accurately calculated using fiducial markers. The sim-                  but can be observed using CT and/or MR. One method of
+ilarity measures are used to register a computed tomography                      allowing information from CT images to be used during
+(CT) scan of a spine phantom to a fluoroscopy image of the                       interventional procedures is to register the CT scan to an
+phantom. The registration is carried out within a region-of-                     intra-operative X-ray fluoroscopy image. A number of papers
+interest in the fluoroscopy image which is user defined to contain               have described techniques to achieve this registration. These
+a single vertebra. Many of the problems involved in this type
+of registration are caused by features which were not modeled                    can be split into two main categories: feature-based methods
+by a phantom image alone. More realistic “gold-standard” data                    and intensity-based methods. Feature-based methods [1], [7],
+sets were simulated using the phantom image with clinical image                  [12] register on salient features that have been segmented
+features overlaid. Results show that the introduction of soft-tissue             from each image. They use a reduced amount of data which
+structures and interventional instruments into the phantom image                 makes the algorithms fast, once the segmentation has been
+can have a large effect on the performance of some similarity
+measures previously applied to 2-D–3-D image registration. Two                   undertaken. Unfortunately, the segmentation stage is very hard
+measures were able to register accurately and robustly even when                 to achieve automatically and errors in segmentation can lead
+soft-tissue structures and interventional instruments were present               to errors in the final registration. Intensity-based methods [6],
+as differences between the images. These measures were pattern                   [13], [22] compare the voxel and pixel values directly using a
+intensity and gradient difference. Their registration accuracy, for              measure based on image statistics. These are typically slower,
+all the rigid-body parameters except for the source to film trans-
+lation, was within a root-mean-square (rms) error of 0.54 mm or                  but require little or no segmentation.
+degrees to the “gold-standard” values. No failures occurred while                   This paper compares six intensity-based similarity measures
+registering using these measures.                                                to determine which is the most accurate and robust. Rigid-
+  Index Terms— Gold-standard, image-guided interventions,                        body registrations are carried out between a CT scan and a
+image registration, similarity measures, two-dimensional–three-                  fluoroscopy image of a spine phantom. The final registrations
+dimensional (2-D–3-D).                                                           are compared to a “gold-standard” registration calculated
+                                                                                 using fiducial markers. More clinically realistic fluoroscopy
+                                                                                 images were simulated by overlaying structures segmented
+                          I. INTRODUCTION
+                                                                                 from clinical fluoroscopy images on to the fluoroscopy image
+
+T    HREE-dimensional (3-D) imaging modalities such as
+     computed tomography (CT) and magnetic resonance
+(MR) imaging are widely used in clinical diagnosis and
+                                                                                 of the spine phantom.
+
+                                                                                       II. COMPARING FLUOROSCOPIC IMAGES AND DRR’S
+treatment planning, but at present their use as interventional
+imaging modalities has been limited. Common modalities for
+guiding interventions are ultrasound or X-ray fluoroscopy.                       A. Production of DRR’s
+These modalities are “real-time” but only two-dimensional (2-                       Digitally reconstructed radiographs (DRR’s) are produced
+                                                                                 by casting rays through a CT volume (Fig. 1). Each of these
+   Manuscript received December 12, 1997; revised July 28, 1998. This            rays will go through a number of voxels. If the Hounsfield
+work was supported by Philips Medical Systems, EasyVision Advanced               numbers of these voxels are integrated along the ray and
+Development, Best, the Netherlands. The Associate Editor responsible for         projected onto an imaging plane the resultant image should
+coordinating the review of this paper and recommending its publication was
+A. Manduca. Asterisk indicates corresponding author.                             resemble a radiograph.
+   G. P. Penney, J. A. Little, and D. L. G. Hill are with the Division of
+Radiological Sciences, UMDS, Guy’s and St. Thomas’ Hospitals, London
+SE1 9RT, U.K.                                                                    B. Differences Between Fluoroscopy Images and DRR’s
+   J. Weese is with Philips Research Hamburg, Rontgenstraße 24-26, 22335            There are two main types of difference between fluoroscopy
+Hamburg, Germany.
+   P. Desmedt is with EasyVision Advanced Development, Philips Medical           images and DRR’s, those which are caused by changes in the
+Systems, Veenpluis 4-6, 5680 DA Best, the Netherlands.                           imaged object and those due to differences in image formation.
+   *D. J. Hawkes is with the Division of Radiological Sciences, UMDS,            Examples of the first set of differences are the presence of
+Guy’s and St. Thomas’ Hospitals, London SE1 9RT, U.K. (e-mail:
+d.hawkes@ipg.umds.ac.uk).                                                        interventional instruments and soft-tissue deformation. These
+   Publisher Item Identifier S 0278-0062(98)08048-3.                             differences would still exist even if DRR’s could be produced
+                                                            0278–0062/98$10.00  1998 IEEE
+
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+PENNEY et al.: SIMILARITY MEASURES FOR USE IN 2-D–3–D MEDICAL IMAGE REGISTRATION                                                                         587
+
+
+
+
+                                                                                                  (a)                                       (b)
+                                                                                 Fig. 2. (a) Clinical fluoroscopy image and (b) DRR’s at registration.
+
+
+Fig. 1. How a DRR is created by casting rays through the CT volume.              threshold (by 50 Hounsfield units) has negligible effect on
+                                                                                 the final registrations.
+                                                                                      b) Interventional instruments in the field-of-view: Inter-
+to perfectly resemble a fluoroscopy image. The second set rep-
+resent differences caused by the inherent dissimilarity between                  ventional instruments are often made from materials with a
+CT and fluoroscopic images. We have corrected for some of                        high attenuation coefficient and therefore create large differ-
+these differences, such as pincushion distortion correction and                  ences between the images. The difference is usually so large
+blurring the fluoroscopy to more accurately represent the CT                     that these pixels contain very little useful information to aid
+resolution. No attempt has been made to correct for other                        registration. Similarity measures should ideally, therefore, be
+differences such as the X-ray tube anode heel effect and                         insensitive to these highly altered pixels. Fig. 2 shows three of
+effects due to differences in X-ray energies. A good similarity                  these features: a ruler which is used to define positions during
+measure for 2-D–3-D image registration should be able to                         the procedure, a guidewire, and a deployed aortic stent.
+achieve accurate registrations despite the presence of these                           c) Spinal deformation: The relative positions of the ver-
+differences between the images.                                                  tebrae may be different in the CT and fluoroscopy images.
+   1) Differences Due to Changes in Imaged Object:                               This may effect registration. One method to reduce the effect
+      a) Overlying and underlying structures: We are assum-                      of deformation is to register on a single rigid structure, such
+ing that the transformation between CT and fluoroscopy can                       as one vertebra [22]. Another method, not addressed further
+be described by a perspective projection of rigid 3-D mo-                        in this paper, is to correct for the deformation by warping one
+tion. Soft-tissue structures, however, can deform between                        of the images [14].
+the preoperative CT image and interventional fluoroscopy.                           2) Differences in Image Formation:
+Because of this, we threshold the CT volume so no soft-                               a) Different X-ray energies between the modalities: CT
+tissue structures are projected. Therefore, the registration is                  and fluoroscopy machines work at different effective energies;
+carried out between a DRR which contains only bony detail                        CT at about 80 keV, while fluoroscopy is typically between
+and the fluoroscopy image which contains both bony detail                        50–60 keV. The linear attenuation coefficient of a material
+and soft-tissue structures, as can be seen in Fig. 2.                            is dependent on X-ray energy. As a result, the attenuation
+   Soft-tissue structures usually have a lower attenuation co-                   coefficients measured by a CT scanner are different from the
+efficient than bony structures and therefore play a relatively                   attenuation of a beam of X-rays used in fluoroscopy. At CT
+small role in the intensity distribution in the final image. They                energies, the ratio of bone to soft-tissue attenuation is much
+are, however, present in the majority of pixels and so can form                  lower than at radiographic energies. Therefore, if a DRR is
+a large difference between the images. Soft-tissue structures                    produced from the whole CT volume, the image contrast
+tend to be larger in size and possess low spatial frequencies                    from soft tissue will be comparable with the image contrast
+compared to bony structures. This characteristic can be used                     from bone, reducing the clarity of bony detail. Our approach
+to filter out the effect of soft-tissue structures on the measure                avoids this problem by thresholding the CT volume to remove
+of alignment.                                                                    soft-tissue structures.
+   The threshold value was chosen by visual observation of                            b) Heel effect and nonuniformity of the image intensifier
+the DRR’s. A good threshold value should remove soft tissue                      response: The heel effect is caused by the anode emitting
+but leave as much bony detail as possible. The DRR’s in                          different intensities of X-rays depending on the angle between
+this paper were produced using a threshold value of 400                          the incident electron, emitted X-ray, and anode target angle.
+Hounsfield units. Initial results show that changes in the                       The result is a gradual change in average intensity values in the
+
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+588                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 17, NO. 4, AUGUST 1998
+
+
+
+radiograph from the top to the base of the image, as shown
+by the darker top of the fluoroscopy image in Fig. 2. The
+image intensifier also has a nonuniform response, with images
+slightly brighter in the center of the field-of-view and darker
+at the periphery. These shading effects will not be present in
+a DRR, although they could be corrected for by calibrating
+the fluoroscopy set. The effect is similar to that of underlying
+and overlying tissue, but it is of a lower magnitude and more
+predictable.
+      c) Different resolutions: Fluoroscopy images and CT im-
+ages typically have different resolutions. As a result, some
+structures in the DRR will appear more blurred (especially
+normal to the CT slice plane) than in the fluoroscopy image.
+By blurring the fluoroscopy image so its resolution resembles
+that of the DRR, the difference in resolutions can be reduced.
+To achieve this accurately is a very difficult task, as it not only             Fig. 3. Diagram showing the degrees of freedom in rigid-body perspective
+depends on the resolution of both the CT and fluoroscopy                        projection. Six rigid-body parameters, three translational X , Y , and Z ,
+images, but, as a perspective projection is involved, it also                   and three rotational x ; y ; and z : Four parameters cs ; ls ; k1 ; and k2 are
+                                                                                associated with perspective projection: cs and ls are the coordinates on the
+depends on the position of individual voxels within the CT                      film where the normal to the film goes through the X-ray source and k1 and
+scan relative to the pose of the fluoroscopy set. As a simple                   k2 equal the pixel sizes xpix and ypix divided by the focal length.
+approximation, we smoothed the fluoroscopy image using a
+circular mask (diameter: five pixels). The mask was passed
+                                                                                A. Normalized Cross Correlation
+over the image and the central pixel set equal to the average
+value of all the pixels under the mask. This made the fluo-
+roscopy resolution approximately consistent with the CT slice
+spacing.
+      d) Truncation: Truncation occurs when rays cut through
+the top or bottom of the CT scanned volume. Such rays are
+incomplete and so should not be compared to the fluoroscopy
+image.                                                                                                                                       (1)
+      e) Distortion in the fluoroscopy image: Pincushion dis-                   where      and         are the mean values of the images in the
+tortion is caused by nonlinearities in the electron optics and                  overlap region
+the curved input face of the image intensifier. It can be                          In cross correlation, the contribution from a given pixel is
+corrected for using a suitable phantom and software [8], and                    strongly dependent on the intensity of the pixel, and so, a few
+this has been carried out for the fluoroscopy images used in                    large differences in intensity (such as may be caused by an
+this paper.                                                                     interventional guidewire) can have a substantial effect on the
+      f) Post processing of fluoroscopy images: Clinical fluo-                  similarity measure. This measure has been previously used in
+roscopy images are routinely processed to increase contrast                     [13].
+and suppress noise. These processes may alter the relationship
+between fluoroscopic and DRR intensity. In this investigation,                  B. Entropy of the Difference Image
+we have attempted to simulate registrations to clinical images
+                                                                                   The entropy measure        described here operates on a
+and, therefore, standard clinical settings were used to produce
+                                                                                single difference image      which is created by subtracting
+the fluoroscopy images.
+                                                                                the DRR from the fluoroscopy image using a suitable intensity
+                  III. SIMILARITY MEASURES                                      scaling factor [see (2)]
+   The following sections outline a number of similarity mea-                                                                                                (2)
+sures. Each similarity measure is used to compare a fluoro-
+                                                                                                                                                             (3)
+scopic image (intensity values         with a DRR (intensity
+values          The position and orientation of the CT vol-
+ume with respect to the fluoroscopy set are defined by ten                         A histogram is formed from the difference image and
+parameters                                        and       see                 [see (3)] denotes the probability of obtaining the pixel value
+Fig. 3. The first six parameters are rigid-body translations                       in       Because histograms are used, the same weight is
+           and rotations            of the CT volume. The last                  given to each pixel regardless of its intensity. This should
+four parameters are concerned with the perspective projection                   make the measure robust to differences between the images,
+geometry of the fluoroscopy set. The coordinates        and                     which result in large differences in the intensity of a small
+represent the position on the film where the normal to the film                 number of pixels. This measure has been used previously in
+goes through the X-ray source and       and     equal the pixel                 2-D–2-D registration to correct for motion between images of
+sizes       and      divided by the focal length.                               a digital subtraction angiography (DSA) sequence [3].
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+PENNEY et al.: SIMILARITY MEASURES FOR USE IN 2-D–3–D MEDICAL IMAGE REGISTRATION                                                                       589
+
+
+
+   To calculate       , the optimal scaling value     must be                   of (5) is such that as the number of structures tend to zero,
+determined. The method used here starts with equal to zero                      the measure tends to a maximum value and as the number of
+and increases it in uniform steps until a minimum value of                      structures increase the measure asymptotically tends to zero.
+is found. The size of the steps used in this paper were equal                   A constant       is used to weight the function, so that small
+to the ratio of the intensity ranges in the two images divided                  deviations in intensity (such as those caused by noise) result
+by 100.                                                                         in the measure remaining near to its maximum value. Due
+                                                                                to the asymptotic nature of the measure, large differences
+C. Mutual Information                                                           in intensity have the same effect on the measure regardless
+                                                                                of their magnitude. This makes the measure robust to large
+  Mutual information            or relative entropy is given by
+                                                                                differences in pixel intensity
+                                                                        (4)
+                                                                                                                                                       (5)
+where          and         are the probability distributions in
+individual images and             is the joint probability distri-                                                                                     (6)
+bution. It has been found to be very effective in 3-D–3-D                          The regional nature of pattern intensity is able to reduce
+multimodality image registration between modalities such as                     the effect of differences between the images which are on a
+MR and positron emission tomography (PET), or MR and CT                         larger scale than . Differences with a low spatial frequency,
+[15], [19]–[21]. Mutual information does not assume a linear                    such as soft-tissue structures are filtered out, leaving the high-
+relationship between the pixel values of the two images, but                    frequency bony detail on which the registration is based. The
+instead assumes that the co-occurrence of the most probable                     values chosen for the constants were             and       pixels,
+values in the two images is maximized at registration. This is a                as used in [22], though was increased to five pixels when
+useful property for 3-D–3-D multimodality image registration.                   coarse images (see Section IV-C) were used as this was found
+In the case of 2-D–3-D image registration, the DRR has been                     to increase the robustness of the measure.
+created so that it resembles a fluoroscopy image and so, at
+registration, the relationship should be close to linear.                       F. Gradient Difference
+                                                                                   As mentioned in Section III-D gradient-based measures are
+D. Gradient Correlation
+                                                                                potentially insensitive to soft-tissue deformation, but gradient
+   Gradient-based measures initially transform        and                       correlation is expected to be sensitive to thin line structures.
+by differentiation. Horizontal and vertical Sobel templates                     Because of this we propose another gradient-based measure,
+were used to create gradient images            and           rep-               gradient difference. It uses a difference image as explained
+resenting the derivative of the fluoroscopy intensity in the two                in the entropy measure of Section III-B, though this time the
+orthogonal axes of the image. Normalized cross correlation (1)                  difference image is calculated from gradient images (8). It
+is then calculated between           and           and between                  employs the same                 form as pattern intensity which
+         and             The final value of this measure is the                 should make the measure robust to thin line structures
+average of these normalized cross correlations.
+   Gradient measures have the advantage that they filter out
+low spatial frequency differences between the images, such
+as those caused by soft tissue. They also concentrate the                                                                                              (7)
+contributions to the similarity measure on edge information,
+which intuitively appears sensible. Because this measure uses
+cross correlation, it is expected to be effected by a few
+large differences in intensity. In particular, the presence of
+interventional instruments in the fluoroscopy image, especially                                                                                        (8)
+after they have been enhanced by the Sobel templates, may
+                                                                                   The gradients in (8) are described in Section III-D, and
+effect the performance of this measure. This type of measure
+                                                                                and      are constants, which for these experiments were the
+has been used previously in [6] and [13].
+                                                                                variance of the respective gradient fluoroscopy image. The use
+                                                                                of two images allows the similarity measure to compare the
+E. Pattern Intensity                                                            direction of gradients, as well as their magnitude.
+   Pattern intensity [22] operates on a difference image
+as explained in the entropy measure of Section III-B. If the
+images are registered then, when                is subtracted from                        IV. COMPARISON USING A GOLD STANDARD
+    to give      , the structure from the vertebrae will vanish                    An experiment was carried out to investigate how accurately
+and there will be a minimum number of structures or patterns                    and robustly six similarity measures registered a CT scan of a
+within the difference image           . Pattern intensity considers             spine phantom to a fluoroscopy image of the phantom. The
+a pixel to belong to a structure if it has a significantly different            phantom consisted of the five lumbar vertebrae and pelvis
+intensity value from its neighboring pixels. All the pixels                     encased in acrylic, which is approximately tissue equivalent
+within a radius are considered in this calculation. The form                    at diagnostic X-ray energies. Registrations were compared
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+590                                                                              IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 17, NO. 4, AUGUST 1998
+
+
+
+
+                                                                                  Fig. 5. Fluoroscopy image of the spine phantom. Note the attenuation from
+                                                                                  the tissue equivalent acrylic in which the spine is embedded and the spherical
+                                                                                  fiducial markers.
+
+Fig. 4. Reformatted axial (top left), sagittal (top right) and coronal (bottom
+left) slices from a CT image of a lumbar spine embedded in an acrylic matrix.
+Note one of the fiducial markers is visible in the sagittal slice.
+
+
+with a “gold-standard” registration, calculated using fiducial
+markers. Phantom images were used as it is an extremely
+difficult task to obtain an accurate “gold-standard” registration
+on clinical images. Many of the problems involved in our ap-
+plication are caused by image features which are not modeled
+by the phantom image alone. To assess how the similarity
+measures should perform on clinical images, we combine the
+phantom image with image features delineated from clinical
+images.
+
+A. Calculation of the “Gold-Standard” Registration                                Fig. 6. Diagram to show how the center of the fiducial markers were found
+                                                                                  in the fluoroscopy image. Point p manually picked. Lines drawn out at 45
+                                                                                  intervals (e.g., AB ). Intercepts between AB and edge of marker found q and
+   The “gold-standard” registration has been found using 12
+fiducial markers (5-mm-diameter aluminum ball bearings                            r. Normal to AB drawn equidistant to q and r; line XY . Line XY should
+cast in acrylic resin). A CT scan was acquired using a                            go through center c. Triangulation was used to obtain an average value for
+                                                                                  the position of c.
+Philips TOMOSCAN SR 7000, which had voxel sizes
+1.094 1.094 1.5 mm and image dimensions 320 320
+   119 voxels. A fluoroscopy image was taken on a Philips                         as a function of distance. This function was differentiated to
+multi DIAGNOST 3, which had image size 1024 1024                                  calculated the positions of steepest upslope and downslope.
+pixels. These images can be seen in Figs. 4 and 5. A distortion-                  These positions were refined by calculating a second-order
+correction phantom and software were used to correct for                          derivative to find the positions of the points of inflection.
+pincushion distortion in the fluoroscopy image [8], and a                         These represent points and , which are near to the edge
+cubic phantom of known dimensions was used to correct for                         of the marker. A normal (line        ) was then drawn through
+any geometric scaling errors in the CT scan [11].                                 the line which was equidistant from these points. This normal
+   An intensity weighted method was used to find the center of                    should go through , the center of the marker. Normals are
+the fiducial markers in the CT scan. This method is capable of                    found for each of the four lines at 45 to each other and their
+finding the centroid of a marker to sub-voxel accuracy [2], [4].                  intersection points found. The center of the marker is taken to
+It was not possible to use this method in the fluoroscopy image                   be the average of these intersection points.
+due to underlying and overlying intensity fluctuations, and so,                      Once the position of these markers had been found, a “gold-
+the following method was used. A pixel within the marker was                      standard” registration matrix was calculated using a singular
+manually picked (e.g., point in Fig. 6) and lines were drawn                      value decomposition method [9], [17], [18]. The matrix was
+out from this pixel at 45 intervals (e.g., line       ). Each of                  decomposed into ten perspective projection parameters
+these lines was taken in turn and a graph plotted of intensity                    using a method described by Ganapathy [5].
+
+              Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+PENNEY et al.: SIMILARITY MEASURES FOR USE IN 2-D–3–D MEDICAL IMAGE REGISTRATION                                                                         591
+
+
+
+                             TABLE I
+   EXPECTED STANDARD DEVIATION OF “GOLD-STANDARD” PARAMETERS
+   CALCULATED USING 990 SETS OF PARAMETERS WHICH, WHEN USED
+    TO PROJECT 3-D POINTS TO TWO DIMENSIONS, GIVE AN AVERAGE
+     RMS ERROR OF 1.2 PIXELS IN THE POSITION OF THE 2-D POINTS
+
+
+
+
+   Observed target registration error             , as described
+in Maurer et al. [16], was calculated in the following way.
+Two fiducial markers were removed from the set of 12 so
+they could be used as target points. A matrix was calculated
+using the remaining markers and used to project the 3-D
+positions of the two target points into two dimensions. The
+distance between these projected 2-D positions and the 2-D
+target point positions found from the fluoroscopy image were
+calculated. A distance was calculated for each possible set of
+ten points from 12, resulting in 66 distances. The rms value
+of these distances was 1.2 pixels, which corresponds to an
+error of 0.44 mm at the imaging plane (the input to the image
+intensifier).
+   To relate the 2-D error                   to the rigid-body
+parameters                       , a numerical simulation was
+carried out. The “gold-standard” 3-D points were projected
+into two dimensions to form a “perfect” set of 3-D and 2-D
+points. Two target points were removed from the set of 12
+and a random Gaussian distributed error (standard deviation
+                                                                                Fig. 7. Enlarged portion of the fluoroscopy image with soft-tissue structures
+   pixels) was added to the 2-D positions of the remaining ten                  overlaid.
+points to simulate true target registration error            [16].
+A new perspective projection matrix was calculated using an
+iterative scheme which altered the rigid-body parameters to                     B. Simulating Clinical Images
+minimize the rms distance between the 3-D points projected                         Clinical fluoroscopy images were simulated by overlaying
+into two dimensions, and the 2-D points with random error                       features segmented from clinical images onto the phantom
+added. The perspective parameters                       were kept               image. Three clinical images were simulated by adding soft-
+fixed at their “gold-standard” values. The rms error between                    tissue, a stent, and both soft tissue and a stent. No soft-tissue
+the target points projected into two dimensions using the new                   structures were introduced to the CT volume, as these would
+matrix and their “perfect” 2-D positions was calculated. This                   be removed during the thresholding stage (Section II-B.1).
+rms error represents the           of the new matrix and hence                     1) Overlying Soft Tissue (Fig. 7): a region that contained a
+also the          of the new set of rigid-body parameters. This                 variety of soft-tissue structures was segmented from a clinical
+process was repeated 15 times for each possible set of ten                      fluoroscopy image. The major soft-tissue structure visible
+points from 12, resulting in 990 values of            from which                was the small bowel, which produced some large variations
+an average was calculated. By experiment it was found that                      in images intensity due to the presence of gas. The seg-
+             pixels produced an average            of 1.2 pixels,               mented soft tissue was overlayed on top of the original spine
+which is equal to the            of the “gold-standard” matrix.                 phantom fluoroscopy image by adding the pixel intensities
+This experiment resulted in 990 sets of rigid-body parameters                   of both images together, using a weighting factor
+which, when used to project points from three dimensions                                                                   The weighting factor
+to two dimensions, have an average                 of 1.2 pixels.               was necessary to achieve a visually realistic ratio between
+The standard deviations of these 990 sets of parameters                         the contributions from bone and soft tissue. It was chosen by
+are shown in Table I. They give a good indication of the                        visual inspection; comparing the simulated image with clinical
+expected error in each of the “gold-standard” rigid-body                        images.
+parameters.                                                                        2) An Interventional Stent (Fig. 8): an image of a stent was
+   The          is made up from          and a target localization              segmented from a clinical image and then overlayed
+error (TLE). If TLE is the same in each image space and                         on top of the spine phantom fluoroscopy image. The objective
+uncorrelated, then                                        [16]. In              was to create an overlap with a large number of sharp
+the above, we have set TLE         and have, therefore calculated               edges, which is characteristic of a number of interventional
+an upper bound for                                                              instruments e.g., guidewires or needles.
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+592                                                                             IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 17, NO. 4, AUGUST 1998
+
+
+
+                                                                                     The search strategy uses the current parameters              to
+                                                                                  form a DRR, which is then compared to the fluoroscopy
+                                                                                  image using a similarity measure to obtain a value           . The
+                                                                                  rigid-body parameters of          are then altered one at a time
+                                                                                  by            , a new DRR created, and a new value of the
+                                                                                  similarity measure calculated                      . The weighting
+                                                                                  factor      equals unity for all the rigid-body parameters except
+                                                                                  for translations in the     direction. Because movements along
+                                                                                      have a much smaller effect on the DRR than movements in
+                                                                                  the other degrees-of-freedom,          was set to four. The values
+                                                                                                    indicate which parameters currently have a
+                                                                                  local optimal value and which parameters could be changed to
+                                                                                  improve the value of the similarity measure. A movement was
+                                                                                  made in these latter parameters which was weighted by the
+                                                                                  size of the improvement in the similarity measure. This was
+                                                                                  repeated until all six parameters were at an optimum value
+                                                                                                           . At this point,    was reduced and the
+                                                                                  process restarted.
+                                                                                     A multiresolution approach is used. The fluoroscopy image
+                                                                                  was reduced, by blurring, to 128 128 pixel images, and
+                                                                                  set equal to 4 mm or 4 . When an optimum value was found in
+                                                                                  all six parameters, a finer resolution was used (256 256 pixel
+                                                                                  images) and       was halved to 2 mm or 2 . When subsequent
+                                                                                  optimum values were found in all six parameters,               was
+                                                                                  halved and the resolution is kept at 256 256 pixel images.
+                                                                                  This was repeated for another two steps until             equalled
+                                                                                  0.5 mm or 0.5 and an optimum value had been found in all six
+                                                                                  parameters. This multiresolution approach reduced processing
+                                                                                  time and helped avoid local minima.
+Fig. 8. Enlarged portion of the fluoroscopy image, with interventional stent         The optimization scheme can effect the performance of a
+overlaid.
+                                                                                  similarity measure. If a measure behaves smoothly within the
+                                                                                  search space, then it is unlikely to be penalized by the choice of
+  The third image was a combination of the above two images                       optimization scheme, while a measure which produces a large
+with both soft tissue and a stent overlaid.                                       number of local minima will require a robust optimization
+                                                                                  scheme to reach registration. A similar optimization scheme
+                                                                                  to the one described in this paper has been found to be robust
+C. The Registration Algorithm                                                     for 3-D–3-D registration [19], [20]. We, therefore, believe this
+   We have found that when registering clinical images it is                      type of optimization scheme to be a good choice for this
+advantageous to register on a specific region-of-interest (ROI)                   study. Further reductions in computing time were achieved
+within the fluoroscopy image, rather than the whole image.                        by reducing the size of the CT volume to a region which just
+Instead of casting rays through the CT volume to every pixel                      contains the spine. The amount of data used in the registration
+in the DRR, they are only projected to pixels within the ROI.                     was not effected as DRR’s were produced using only CT
+This has a number of advantages; first, it greatly speeds up                      voxels containing bone.
+the registration, as DRR’s are only produced, and similarity
+measures only need to operate, within this region. Second, as
+the registration is only carried out in the ROI, rather than the                  D. Assessing Accuracy and Robustness
+whole image, it should be more accurate within this region.                          Each similarity measure was used to register a CT scan
+Third, if the ROI contains a single rigid bony structure, then                    of the spine phantom to four different fluoroscopy images
+deformation is not an issue. In this paper, a ROI was manually                    of the phantom (described in Section IV-B). The starting
+drawn around the L3 vertebra and all the registrations were                       estimates for registration were the “gold-standard” value
+carried out in this region.                                                       (see Table II). There are 64 possible combinations of “gold-
+   The search space for the algorithm was the six rigid-body                      standard”         which are at the corners of a six-dimensional
+degrees-of-freedom. The parameters associated with perspec-                       hypercuboid. These values were chosen to simulate how the
+tive projection              and       were held fixed at their                   algorithm operates when registering clinical images which
+“gold-standard” values. Some similarity measures (entropy,                        have no “gold-standard” registration. In clinical practice, a
+pattern intensity, and gradient difference) necessarily calcu-                    starting estimate could be found using knowledge of patient
+late the intensity scaling between the two images         . This                  position and imaging geometry, and by picking corresponding
+introduces another parameter into the optimization.                               anatomical points in the images. It is much easier to obtain
+
+              Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+PENNEY et al.: SIMILARITY MEASURES FOR USE IN 2-D–3–D MEDICAL IMAGE REGISTRATION                                                                       593
+
+
+
+an accurate estimate of some parameters, such as the in-                                                    TABLE II
+plane translations      and      compared to other parameters,                         THE DISPLACEMENT      (1 )
+                                                                                                           P OF THE STARTING POSITIONS FROM
+                                                                                     “GOLD-STANDARD” FOR EACH OF THE SIX RIGID-BODY PARAMETERS
+especially the out-of-plane translation      . The values of
+are two times the estimated accuracy of a 2-D–3-D registration
+carried out by manually picking corresponding anatomical
+points in the two images. The following experiment was
+carried out to estimate how accurately this type of algorithm
+could register. Six anatomical points were picked on the
+spine and projected into two dimensions using the “gold-
+                                                                                                             TABLE III
+standard” matrix. A random Gaussian distributed error was                        THE RMS ERROR VALUES IN RIGID-BODY PARAMETERS FOR REGISTRATIONS TO
+added to the position of these points to simulate observer                         FLUOROSCOPY IMAGE OF SPINE PHANTOM WITH NO ADDED STRUCTURES
+error. The size of the 3-D error (3-mm standard deviation)
+was based on the largest rms error found in a reproducibility
+experiment to find landmarks in a CT volume described in
+Hill et al. [10]. A similar experiment for 2-D errors was
+not found in the literature and so the 2-D error was roughly
+estimated to have a standard deviation of six pixels. An
+iterative scheme was used to alter the rigid-body perspective
+parameters to minimize the rms distance between the new
+3-D points projected into two dimensions and the new 2-D
+points. The perspective parameters                    were kept
+fixed at their “gold-standard” values. This was carried out 150
+times and a mean and standard deviation of the final rigid-
+body parameters calculated. The values of            were set to
+two times this standard deviation. It is very unlikely for all the
+starting positions to be out by two times the standard deviation
+(0.000 002% chance) and so this represents a rigorous test for
+                                                                                                               TABLE IV
+the algorithm.                                                                              THE RMS ERROR VALUES IN RIGID-BODY PARAMETERS
+   For the method to work, it is important that at the start of                             FOR REGISTRATIONS TO FLUOROSCOPY IMAGE OF SPINE
+registration, some corresponding features are at least partially                            PHANTOM WITH SOFT-TISSUE STRUCTURES OVERLAYED
+overlapping. One method of achieving this is to pick a single
+corresponding point in the DRR and in the fluoroscopy image
+and overlay these points. The starting positions for registration
+were modified by simulating this single-point-picking exercise.
+The “gold-standard” matrix was used to calculate a corre-
+sponding 2-D and 3-D point at the top of the L3 spinous
+process. Before registration begins, this 3-D point is cast into
+two dimensions using a matrix calculated from the initial
+parameters, a random Gaussian distributed error (standard
+deviation six pixels) is added to the position of this point and
+to the “gold-standard” 2-D point (to simulate observer error)
+and they are then overlaid by altering the in-plane translational
+parameters       and
+
+                            V. RESULTS
+
+   Our results are presented in four tables, one for each of the                   Table IV shows how accurately the similarity measures
+different fluoroscopy images. They show the rms error between                   registered when soft-tissue structures were present. Soft tissue
+“gold-standard” values and final registration positions (exclud-                caused a large failure rate in mutual information (86%) and a
+ing failures) and the number of failed registrations. A failure                 fairly large failure rate in entropy (30%). The cross-correlation
+was defined as when the final registration position, in any of                  measure failed relatively few times (8%), but the overall
+the six degrees-of-freedom, was further from “gold-standard”                    errors increased, particularly in . Pattern intensity, gradient
+than       as shown in Table II. The average registration took                  correlation, and gradient difference were effected very little
+74 s on a Sun Ultra 30 (300 MHz).                                               by the presence of soft tissue.
+   As can be seen from Table III, all six similarity measures                      When registrations to the fluoroscopy image with stent
+performed well in registering to the fluoroscopy image of the                   overlaid (Table V) were attempted, two of the similarity mea-
+spine phantom. Mutual information can be seen to be the worst                   sures—cross correlation and mutual information—failed to
+of the measures.                                                                register a number of times and showed large errors when
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+594                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 17, NO. 4, AUGUST 1998
+
+
+
+                            TABLE V                                             and gradient difference both achieved accurate registrations to
+THE RMS ERROR VALUES IN RIGID-BODY PARAMETERS FOR REGISTRATIONS TO              this image with no failures.
+    FLUOROSCOPY IMAGE OF SPINE PHANTOM WITH STENT OVERLAYED
+                                                                                                             VI. DISCUSSION
+                                                                                   The least accurate of the six similarity measures was
+                                                                                mutual information. Mutual information has shown itself to
+                                                                                be very useful in 3-D multimodality registration but, with 3-D
+                                                                                images, there are usually a large number of voxels to populate
+                                                                                the 2-D histogram. In the case of 2-D–3-D registration there
+                                                                                are far fewer pixels. Mutual information may therefore be
+                                                                                failing as the 2-D histogram is relatively sparsely populated
+                                                                                compared to the 1-D histogram used by entropy of the
+                                                                                difference image. To investigate this a further experiment
+                                                                                was carried out. A larger ROI was drawn in the fluoroscopy
+                                                                                image (to also include the L2 and L4 vertebrae) which
+                                                                                effectively trebled the number of pixels used. Sixty-four
+                                                                                registrations were carried out using mutual information and
+                                                                                the larger ROI. This resulted in a more accurate registration
+                            TABLE VI                                            (similar to gradient correlation) to the plain fluoroscopy
+          THE RMS ERROR VALUES IN RIGID-BODY PARAMETES
+          FOR REGISTRATION TO FLUOROSCOPY IMAGE OF SPINE
+                                                                                image. But a large number of failures (73%) still occurred
+          PHANTOM WITH SOFT TISSUE AND STENT OVERLAYED                          when registering to the combined soft tissue and stent image.
+                                                                                   Another possible reason for the poor performance of mutual
+                                                                                information is that it does not assume a linear relationship
+                                                                                between the intensities in the two images. The DRR has been
+                                                                                produced so that this relationship should be close to linear.
+                                                                                Measures that assume a linear relationship make implicit use
+                                                                                of this extra information, which may account for their greater
+                                                                                accuracy.
+                                                                                   Gradient correlation has been shown to be sensitive to thin
+                                                                                line structures. To test this further, an experiment was carried
+                                                                                out, whereby the weighting of the stent was doubled
+                                                                                when the stent image was formed. This gave the stent the
+                                                                                range of intensity which could be expected in an undeployed
+                                                                                stent, or a measurement catheter. Registrations were then
+                                                                                carried out using gradient correlation, pattern intensity, and
+                                                                                gradient difference. Pattern intensity and gradient difference
+                                                                                were largely unaffected by this increase in stent intensity,
+they did register (greater than 2.34 in          and 21 mm in                   while gradient correlation failed 39% of the time and the
+   ). Gradient correlation failed 3% of the time. Entropy was                   accuracy was poor in the        direction (20 mm rms error).
+largely unaffected, with just a small general decrease in final                    This paper has concentrated on the use of intensity-based
+accuracy. This result is expected, as the histogram used to                     algorithms. A comparison with feature-based methods has not
+compute entropy will be largely unaffected by a small number                    been carried out and so conclusions on their relative merits
+of pixels with a large difference in intensity. Pattern intensity               cannot be drawn. The performance of feature-based algorithms
+and gradient difference performed best, with very little change                 on the images used in this paper would greatly depend on
+in overall registration error.                                                  how these algorithms segment 2-D features. If their 2-D
+   On registering to the image which contained both soft tissue                 segmentation method is invariant to the presence of soft-tissue
+and a stent (Table VI), cross correlation, entropy, and mutual                  structures and interventional instruments, then registration
+information all failed a large number of times and when                         accuracy should not be effected. However, if the accuracy
+registrations were deemed valid, they were not accurate. The                    of 2-D feature selection is reduced by the presence of soft-
+standard deviations of the successful final registration positions              tissue structures or interventional instruments, then registration
+using entropy and cross correlation were also calculated. It                    accuracy may be effected. This investigation has only used
+is interesting that these standard deviation values are fairly                  one pair of CT and fluoroscopy images of a rigid phantom.
+small (all below 1 or mm except for the               translation),             Different sets of images, in particular different views, may
+therefore, these measures are precise despite being inaccurate.                 yield different results.
+This shows the value of basing the comparison on an accurate
+independent “gold-standard” rather than using the precision of                                             VII. CONCLUSIONS
+results. Gradient correlation failed to register 5% of the time,                   This paper has compared the accuracy and robustness of
+though successful registrations were accurate. Pattern intensity                six 2-D–3-D registration algorithms which used different
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+PENNEY et al.: SIMILARITY MEASURES FOR USE IN 2-D–3–D MEDICAL IMAGE REGISTRATION                                                                           595
+
+
+
+intensity-based similarity measures. Final registration positions                 [4] G. Chiorboli and G. P. Vecchi, “Comments on ‘Design of fiducials for
+were compared to an accurate “gold-standard” registration                             accurate registration using machine vision’,” IEEE Trans. Pattern Anal.
+                                                                                      Mach. Intell., vol. 15, pp. 1330–1332, 1993.
+found using fiducial markers. Clinical images were simulated                      [5] S. Ganapathy, “Decomposition of transformation matrices for robot
+by overlaying structures segmented from clinical fluoroscopy                          vision,” Pattern Recogn. Lett. 2, 1984, pp. 401–412.
+                                                                                  [6] L. M. G. Brown and T. E. Boult, “Registration of planar film radiographs
+images onto a fluoroscopy image of a spine phantom. We                                with computed tomography,” in Proc. MMBIA, 1996, pp. 42–51.
+have shown that the introduction of soft-tissue structures and                    [7] A. Guéziec, P. Kazanzides, B. Williamson, R. H. Taylor, and D. Lord,
+interventional instruments into the phantom image can have a                          “Anatomy-based registration of CT-scan and X-ray fluoroscopy data for
+                                                                                      intra-operative guidance of a surgical robot,” in Proc. SPIE Med. Imag.,
+large effect on the performance of some similarity measures                           1998, pp. 81–94.
+previously applied to 2-D–3-D image registration. Correlation                     [8] P. Haaker, E. Klotz, R. Koppe, and R. Linde, “Real-time distortion
+measures can be effected by thin line structures, such as an                          correction of digital X-ray II/TV-systems: An application example for
+                                                                                      digital flashing tomosynthesis (DFTS),” Int. J. Card. Imag., vol. 6, pp.
+interventional stent, which introduces pixels that have a large                       39–45, 1990.
+difference in intensity. Entropy-type measures are insensitive                    [9] D. J. Hawkes, C. B. Mol, and A. C. F. Colchester, “The accurate 3D
+to thin line structures, but fail when soft-tissue structures                         reconstruction of the geometric configuration of vascular trees from
+                                                                                      X-ray recordings,” in Physics and Engineering of Medical Imaging,
+create slowly varying changes in background intensity.                                R. Guzzardi, Ed., NATO ASI. Dordrecht, The Netherlands: Martinus
+   For a measure to work well with medical images, it must be                         Nijhoff, 1987, pp. 250–258.
+able to register accurately when soft-tissue structures and thin                 [10] D. L. G. Hill, D. J. Hawkes, Z. Hussain, S. E. M. Green, C. F. Ruff,
+                                                                                      and G. P. Robinson, “Accurate combination of CT and MR data of
+line structures are present as differences between the images.                        the head: Validation and applications in surgical and therapy planning,”
+Two types of measure described in this paper can achieve this:                        Computerized Med. Imag., Graphics, vol. 17, no. 4/5, pp. 357–363, 1993.
+                                                                                 [11] D. L. G. Hill, C. R. Maurer, Jr., C. Studholme, J. M. Fitzpatrick, and
+pattern intensity and gradient difference. They both account for                      D. J. Hawkes, “Correcting scaling errors in tomographic images using
+thin line structures by having a function of the form                                 a nine degree of freedom registration algorithm.” J. Comput. Assist.
+though they differ in how they reduce the effect of soft-tissue                       Tomogr., vol. 22, pp. 317–323, 1998.
+                                                                                 [12] S. Lavallée, R. Szeliski, and L. Brunie, “Matching 3-D smooth surfaces
+structures. Pattern intensity uses a region within which there                        with their 2-D projections using 3-D distance maps,” in Proc. SPIE
+is little variation in soft-tissue intensity and gradient difference                  Geometric Methods in Computer Vision, vol. 1570, pp. 322–336, 1991.
+relies on there being many more strong gradients due to bony                     [13] L. Lemieux, R. Jagoe, D. R. Fish, N. D. Kitchen, and D. G. T. Thomas,
+                                                                                      “A patient-to-computed-tomography image registration method based
+features than due to soft-tissue structures and air.                                  on digitally reconstructed radiographs,” Med. Phys., vol. 21, no. 11, pp.
+                                                                                      1749–1760, 1994.
+                                                                                 [14] J. A. Little, D. L. G. Hill, and D. J. Hawkes, “Deformations incorpo-
+                         ACKNOWLEDGMENT                                               rating rigid structures,” Comput. Vision, Image Understanding, vol. 66,
+                                                                                      pp. 223–232, 1997.
+   The authors would like to thank Philips Medical Systems,                      [15] F. Maes, A. Collignon, D. Vandermeulen, G. Marchal, and P. Seutens,
+                                                                                      “Multimodality image registration by maximization of mutual, informa-
+EasyVision Advanced Development, for providing software.                              tion,” IEEE Trans. Med. Imag., vol. 16, pp. 187–198, Apr. 1997.
+They would particularly like to thank A. van Eeuwijk for                         [16] C. R. Maurer, Jr., G. B. Aboutanos, B. M. Dawant, R. J. Maciunas, and J.
+his help with distortion correction and F. Gerritsen for his                          M. Fitzpatrick, “Registration of 3-D images using weighted geometrical
+                                                                                      features,” IEEE Trans. Med. Imag., vol. 15, pp. 836–849, 1996.
+encouragements and constructive criticisms. They would also                      [17] W. H. Press, S. A. Teukolsky, W. T. Vetterling, and B. P. Flannery,
+like to thank Prof. A. Adam and Dr. M. Cowling for their                              Numerical Recipes in C, 2nd ed.. Cambridge, U.K.: Cambridge Univ.
+clinical input and, finally, the radiographers at Guy’s Hospital.                     Press, 1992.
+                                                                                 [18] A. Rougée, C. Picard, C. Ponchut, and Y. Trousset, “Geometric cali-
+                                                                                      bration of X-ray imaging chains for three-dimensional reconstruction,”
+                                                                                      Computerized Med. Imag, Graphics, vol. 17, no. 4/5, pp. 295–300, 1993.
+                              REFERENCES                                         [19] C. Studholme, D. L. G. Hill, and D. J. Hawkes, “Automated 3D
+                                                                                      registration of MR and CT images of the head,” Med. Image Anal.,
+ [1] F. Betting and J. Feldmar, “3D-2D projective registration of anatomical          vol. 1, no. 2, pp. 163–175, 1996.
+     surfaces with their projections,” in Proc. Information Processing in        [20]        , “Automated 3D registration of MR and PET brain images by
+     Medical Imaging, 1995, pp. 275–286.                                              multi-resolution optimization of voxel similarity measures,” Med. Phys.,
+ [2] C. B. Bose and I. Amir, “Design of fiducials for accurate registration           vol. 24, pp. 25–35, 1997.
+     using machine vision,” IEEE Trans. Pattern Anal. Machine Intell, vol.       [21] P. Viola and W. M. Wells, “Alignment by maximization of mutual
+     12, pp. 1196–1200, 1990.                                                         information,” in Proc. 5th Int. Conf. on Computer Vision (ICCV’95),
+ [3] T. M. Buzug, J. Weese, C. Fassnacht, and C. Lorenz, “Image registration:         1995, pp. 16–23.
+     Convex weighting functions for histogram-based similarity measures,”        [22] J. Weese, T. M. Buzug, C. Lorenz, and C. Fassnacht, “An approach to
+     in Proc. CVRMed/MRCAS, J. Troccaz, E. Grimson, and R. Mösges, Eds.              2D/3D registration of a vertebra in 2D X-ray fluoroscopies with 3D CT
+     Berlin, Germany: Springer-Verlag, 1997, pp. 203–212.                             images,” in Proc. CVRMed/MRCAS, 1997, pp. 119–128.
+
+
+
+
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:24:28 UTC from IEEE Xplore. Restrictions apply.
+

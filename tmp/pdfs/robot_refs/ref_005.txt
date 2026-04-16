@@ -1,0 +1,562 @@
+第 40 卷第 1 期                                                                                                                            Vol.40, No.1
+2018 年 1 月                                               机器人               ROBOT                                                         Jan., 2018
+
+DOI：10.13973/j.cnki.robot.170221
+
+
+
+
+                              颅颌面外科手术机器人空间配准及实验
+       段星光 1,2 ，高                    亮 1,2 ，李建玺 1,2 ，王永贵 1,2 ，李浩源 1,2 ，郭艳君 1,2
+                （1. 北京理工大学智能机器人研究所，北京                          100081； 2. 智能机器人与系统高精尖创新中心，北京                                 100081）
+
+
+        摘 要：针对颅颌面区域结构复杂、手术风险大、精度要求高的特点，研发了一套颅颌面外科手术机器人系
+     统．为实现机器人系统高效、精确的空间配准，提出并建立了一套基于光学定位的颅颌面外科手术机器人空间配
+     准方法，实现了机器人各子系统之间的坐标系转换．通过基于四元数的最近点迭代配准算法实现了点集之间的矩
+     阵转换．在综合医学影像、 机器人与各子系统空间配准的基础上，分别开展了配准精度和定位精度的验证实验，
+     并完成了三叉神经射频热凝术的模型和尸体穿刺定位实验．配准精度验证实验的配准误差平均值均小于 0.75 mm，
+     定位精度验证实验的误差平均值为 0.56 mm，模型实验的穿刺成功率为 100%，尸体实验的穿刺成功率为 95%．综
+     合实验结果表明该空间配准方法的配准精度较高，具有一定的可行性，可以满足颅颌面外科手术机器人系统的需
+     要．
+        关键词：手术机器人；颅颌面外科；空间配准；光学定位
+        中图分类号：TP242.3      文献标识码：A      文章编号：1002-0446(2018)-01-0064-08
+
+
+         Spatial Registration of a Cranio-maxillofacial Surgery Robot and Its Experiments
+    DUAN Xingguang1,2 ，GAO Liang1,2 ，LI Jianxi1,2 ，WANG Yonggui1,2 ，LI Haoyuan1,2 ，GUO Yanjun1,2
+                               (1. Intelligent Robotics Institute, Beijing Institute of Technology, Beijing 100081, China;
+                          2. Beijing Advanced Innovation Center for Intelligent Robots and Systems, Beijing 100081, China)
+
+
+        Abstract: Cranio-maxillofacial region is of a complex structure, its surgery is of high-risk, and therefore it demands a
+     high accuracy. For this reason, a set of cranio-maxillofacial surgery robot system is developed. Firstly, a spatial registration
+     method of the cranio-maxillofacial surgery robot based on optical localization is proposed and established, to complete the
+     spatial registration of the robot system efficiently and accurately. And the coordinate system transformation between differ-
+     ent subsystems of the robot is realized by the spatial registration method. Then, the matrix conversion between point sets is
+     realized by the quaternion based iterative closest points registration algorithm. The verification experiments of registration
+     accuracy and positioning accuracy are carried out respectively, as well as the model and cadaver puncture positioning exper-
+     iments of trigeminal radiofrequency thermocoagulation, based on the spatial registration of the medical image, the robot and
+     its each subsystem. The average registration errors of registration accuracy verification experiment are less than 0.75 mm.
+     The average error of the positioning accuracy verification experiment is 0.56 mm. The successful rate of puncture is 100% in
+     model experiments, and it is 95% in cadaver experiments. The comprehensive experimental results show that the spatial reg-
+     istration method is of a high registration accuracy and a certain feasibility, which meets the needs of the cranio-maxillofacial
+     surgery robot system.
+        Keywords: surgery robot; cranio-maxillofacial surgery; spatial registration; optical localization
+
+
+1    引言（Introduction）                                                        对象之间的配准，方便医生进行手术的规划、模拟
+                                                                             和实施，使手术更加高效、安全和可靠 [1]．
+  随着科学和医疗技术的飞速发展，计算机辅助                                                         根据配准的依据，配准方法可分为侵入式配
+外科技术逐渐成为颅颌面外科手术中诊断、手术规                                                       准、非侵入式配准，还可以分为基于解剖结构的特
+划和治疗的重要工具．计算机辅助外科技术包括：                                                       征点、特征曲线和特征曲面的配准．侵入式配准常
+医疗影像学技术、 空间配准技术和机器人技术等．                                                      采用医用钛钉等金属件作为标记物，并在患者身
+其中，空间配准是计算机辅助外科手术系统的基                                                        上至少选择 3 个标记点 [2]．侵入式配准方法具有较
+础，精确的空间配准方法，可更好地实现不同手术                                                       高的配准精度，Jr Maurer 指出当采用合适的标记
+
+    基金项目：国家自然科学基金（U1613221）      ；北京市科技计划（Z161100001516011）．
+    通信作者：李建玺，lijianxi@bit.edu.cn 收稿／录用／修回：2017-03-28/2017-07-03/2017-08-29
+第 40 卷第 1 期            段星光，等：颅颌面外科手术机器人空间配准及实验                                                       65
+
+点时，配准精度能达到 0.5 mm ～ 1.5 mm [3]．Chen                            ‫ݹ‬ᆖ⍻䟿ᆀ㌫㔏
+等在口腔种植手术系统中采用金属标记物固定在
+                                                                                      3 㔤䟽ᔪ
+牙龈处作为“图像－患者”配准的标记，配准误差                                                               മ‫ۿ‬ᆀ㌫㔏
+                                              ᵪಘӪ
+为 0.27 mm ± 0.11 mm [4]．在配准算法上，侵入式配           ᵜփᆀ
+准方法多采用 Besl 和 McKay 提出的 ICP （iterative         ㌫㔏
+
+closest point）算法 [5]．
+     另外，机器人技术也越来越多地应用于颅颌面
+                                                     ᛓ㘵ᆀ㌫㔏
+外科手术中． 颅颌面部穿刺区域结构复杂，包含
+颅骨、血管组织、颅神经等，给医生实施手术带来
+了难度． 机器人辅助外科手术以其创伤小、 精度                               图 1 颅颌面外科手术机器人系统
+                                             Fig.1   The cranio-maxillofacial surgery robot system
+高、安全性高的特点而受到极大关注，可在一定程
+度上缩短颅颌面外科手术的时间、 减轻医生的工                                       ‫ޣ‬㢲5
+作量、提高手术的效果、改善患者的预后 [6]．1985
+年，Kwoh 等使用 Unimation PUMA 200 机器人对脑
+部可疑的病变组织进行活检手术，首次将机器人应                               ‫ޣ‬㢲3                   ᵛㄟ
+用于外科手术中 [7]．2006 年，Reto 等将 1 台 6 自
+由度的机械臂用于三叉神经痛的射频热凝手术中，                           ‫ޣ‬㢲1
+                                                                   ‫ޣ‬㢲4
+在模型、 尸体及临床试验中，平均定位精度可达
+1.31 mm ± 0.67 mm [8]． 2014 年，Olds 等推出了针                          ‫ޣ‬㢲2
+对头颈部外科手术的显微机器人系统，该系统精度
+较高，但结构较复杂 [9]．                                          图 2 机器人本体机构简图
+                                             Fig.2 The schematic diagram of the robot mechanism
+     针对颅颌面区域结构复杂，手术风险大、精度
+要求高的特点，本文研发了一套颅颌面外科手术穿                          本文对颅颌面外科手术机器人系统的光学测量
+刺机器人系统．该机器人系统使用灵活，可辅助医                     子系统进行重点研究，光学测量子系统采用加拿大
+生完成颅颌面肿瘤穿刺活检、颅颌面恶性肿瘤放射                     NDI 公司的 Polaris 系列的光学测量定位仪器，包
+性粒子植入和三叉神经射频热凝手术等穿刺手术．                     括 1 台光学定位仪、 2 只被动定位支架、 1 只被动
+为获得各子系统之间的空间转换关系，统一各子系                     定位探针以及 1 套导航软件．光学定位仪采用的是
+统的坐标系，提出并建立了基于光学定位的颅颌面                     双目视觉原理，通过向视野范围内的反射球发射、
+外科手术机器人空间配准方法，并通过实验验证了                     接收红外信号，来获取反射球的空间位置信息．每
+该空间配准方法的可行性．                               只被动定位支架和探针上都固定有 4 只反射球，利
+                                           用这 4 只反射球反射红外信号来实现光学坐标系下
+2   系统总述（Overview of the system）           的跟踪定位，其中被动定位支架有 2 只，1 只与机
+   颅颌面外科手术机器人系统分为患者子系统、                    器人固定，1 只与患者固定．导航软件主要负责对
+机器人本体子系统、光学测量子系统和 3 维重建图                   光学定位仪采集到的数据进行处理分析，从而计算
+像子系统 4 部分，如图 1 所示．患者子系统为手术                 出相应被动定位探针和支架的位置信息．利用光学
+治疗的对象，通过头颅固定架对患者的头部进行固                     测量子系统为手术机器人系统的空间配准提供了桥
+定和调整来配合手术的执行；机器人本体子系统为                     梁，为实现机器人精确的定位、跟踪控制提供了保
+5 自由度框架式结构，可控制机器人末端达到手术                    障 [10]．
+空间内的任一点，实现穿刺针的穿刺、粒子植入等                          颅颌面外科手术机器人系统的 4 个子系统本身
+动作，其机构简图如图 2 所示；光学测量子系统主                   没有直接关系．根据手术机器人的操作流程，为了
+要实现各子系统之间的空间配准和术中实时跟踪；                     控制机器人的末端执行器从 3 维重建图像中规划
+3 维重建图像子系统是通过 CT 工作站扫描、 重建                 的起始点运动到目标点，需首先解决各子系统之
+来获得颅颌面目标区域的 3 维图像，应用于手术全                   间的空间配准问题，即建立患者坐标系、机器人坐
+程，为术前手术规划、术中图像导航、术后手术效                     标系、 光学测量坐标系以及 3 维重建图像坐标系
+果验证提供了保证．                                  之间的转换关系．然后通过相应的空间配准方法来
+66                                                  机 器      人                                                      2018 年 1 月
+
+引导、控制机器人的末端执行器到达手术规划的点                                       ∆t 内转过了 ϕ 角度，则该转动轴的方向 e 和角度 ϕ
+位．其中，患者坐标系与 3 维重建图像坐标系、光                                     可以表示为
+学测量坐标系与机器人基坐标系之间的空间配准都                                                                  e = ω /|ω |                        (1)
+采用了基于四元数的 ICP 配准算法．                                                                     ϕ = |ω | ∆t                        (2)
+2.1 基于四元数的 ICP 配准算法
+    基于空间配准的转换矩阵一般采用欧拉角的方                                     则四元数的表示法为
+                                                                                                            ϕ 
+式表示，欧拉角表示法简单，几何意义明显，可方                                                                                    cos
+便地求解出这些姿态参数描述的变换方程，但采用                                                                                      2
+                                                                          q = [q0 , q1 , q2 , q3 ]T =                    (3)
+                                                                                                             ϕ
+欧拉角的姿态描述时，容易出现奇点问题，且需多                                                                                 e sin
+                                                                                                              2
+次三角运算，而采用四元数的表示方法可避免上述
+问题 [11]．并且，本文中的光学测量子系统采用的是                                   其中约束条件：
+NDI 光学测量定位仪器，获取的被动定位探针和支                                                        q20 + q21 + q22 + q23 = 1                  (4)
+架的数据都为基于四元数表示的位姿 [12]．因此，本
+文采用基于四元数的 ICP 算法求解点集之间的转换                                    用复数的形式表示为
+矩阵．
+                                                                               q = q0 + q1 i + q2 j + q3 k                 (5)
+    按照刚体转动的欧拉定理：刚体绕固定点的任
+意 2 个位姿，都可以通过绕固定点的某一轴来转过                                     q 称为旋转向量，i、j、k 为四元数的 3 个虚数单位．
+1 个角度来得到．假设刚体以角速度 ω 在时间间隔                                    对应的旋转矩阵为
+                                                                                            
+                          q21 − q22 − q23 + q20  2 (q1 q2 − q0 q3 )    2 (q1 q3 + q0 q2 )
+                                                                                            
+                       R=
+                          2  (q1 q2 + q 0 q3 ) −q2
+                                                  1 +  q2
+                                                        2 − q2
+                                                             3 +   q2
+                                                                    0  2 (q 2 q3 − q0 q1 )   
+                                                                                                                          (6)
+                           2 (q1 q3 − q0 q2 )    2 (q2 q3 + q0 q1 )   −q21 − q22 + q23 + q20
+  用 φ、 θ 、 ψ 分别表示绕 x 轴、y 轴、z 轴的旋转角度，其中 cθ 表示 cos θ ，sθ 表示 sinθ ，则用欧拉角
+表示旋转矩阵为
+                                                                                       
+                                                      cθ cψ            cθ sψ      −sθ
+                                                                                       
+              R = R z (ψ ) R y (θ ) R x (φ ) =                                         
+                                               sφ sθ cψ − cφ sψ sφ sθ sψ + cφ cψ sφ cθ  (7)
+                                                cφ sθ cψ + sφ sψ cφ sθ sψ − sφ cψ cφ cθ
+
+     将欧拉角转换为四元数，按照欧拉角 z-y-x 转动的次序，则有：
+                                                                                      
+                 q0    cos (φ /2) cos (θ /2) cos (ψ /2) + sin (φ /2) sin (θ /2) sin(ψ /2)
+                                                                                      
+                q  sin (φ /2) cos (θ /2) cos (ψ /2) − cos (φ /2) sin (θ /2) sin(ψ /2)
+                 1                                                                    
+           qR =   =                                                                                                    (8)
+                q2  cos (φ /2) sin (θ /2) cos (ψ /2) + sin (φ /2) cos (θ /2) sin(ψ /2)
+                                                                                      
+                 q3    cos (φ /2) cos (θ /2) sin (ψ /2) − sin (φ /2) sin (θ /2) cos(ψ /2)
+
+     四元数转换为欧拉角为                                              记点来实现 3 维重建图像空间和光学测量空间之间
+                    2(q2 q3 + q0 q1 )                        的转换关系，在配准过程中，使用点到点的搜索算
+        φ = arctan 2                                (9)
+                   q0 − q21 − q22 + q23                      法．在本课题中，初始采集点采用一一对应的方式
+        θ = arcsin(2(q0 q2 − q1 q3 ))              (10)      获取，即解决了最近点搜索的问题，并将经典算法
+                    2(q2 q1 + q0 q3 )                        配准的目标函数转换为式 (12)：
+        ψ = arctan 2                               (11)
+                   q0 + q21 − q22 − q23
+                                                                                     1 ∑
+                                                                                       i=n−1
+  由以上分析可知，利用四元数可以得到旋转向                                            f (R (q ), T ) =         ∥x i − (R (q )u i + T )∥2      (12)
+                                                                                     n i=0
+量对应的旋转矩阵．经典的 ICP 算法，关键是最近
+点的选择，在颅颌面穿刺手术机器人系统空间配准                                       式中， f (R (q ), T ) 为目标函数，x i 和 u i 分别表示对
+的过程中，采用点配准的方式，即在头颅上固定标                                       应点集的坐标，R (q ) 表示四元数旋转向量 q 对应的
+第 40 卷第 1 期                                  段星光，等：颅颌面外科手术机器人空间配准及实验                                                                67
+
+旋转矩阵，T   T 表示平移向量．这里的目标就是找到
+最优的 R (q ) 和 T ，使目标函数 f (R (q ), T ) 的值最
+小．
+   两个点集的重心分别为
+                                                                                           3 㔤䟽ᔪമ‫ۿ‬඀ḷ㌫{V}
+        1  ∑
+           n−1
+                        1       ∑
+                                n−1
+                                                                                                         V
+ µx =         xi, µ u =       u i , i = 0, 1, · · · , n − 1 (13)
+                                                                                          PT                    VT
+                                                                                            V                     R
+        n i=0           n i=0
+                                                                                            P                   R
+则可以获得它们的协方差矩阵 C ：
+                                                                                          OT                    OT
+        ∑
+        n−1                                  ∑
+                                             n−1                                            P
+                                                                                                         O
+                                                                                                                  R
+  C=           (u i − x i ) (u i − x i ) =
+                                      T
+                                                   uixi − µ u µ x   (14)   ᛓ㘵඀ḷ㌫{P}                                   ᵪಘӪ඀ḷ㌫{R}
+         i=0                                 i=0
+
+
+    令 tr (C ) 表示 C 的迹．定义对称矩阵 E ：
+                                                                      
+        tr (C )       c12 − c21           c20 − c02        c01 − c10                         ‫ݹ‬ᆖ⍻䟿඀ḷ㌫{O}
+                                                   
+     c − c 2c − tr (C                   c02 + c20 
+                                                                                            图 3 坐标系转换关系
+      12    21 00      C ) c01 + c10               
+E =                                                                      Fig.3 The transformation relationships among the coordinate
+     c20 − c02 c01 + c10 2c11 − tr (C ) c12 + c21 
+                                                                                                  systems
+      c01 − c10 c02 + c20   c12 + c21 2c22 − tr (C )
+                                                 C
+                                                                                (2) 求解 P T V ，即 3 维重建图像坐标系 {V } 和
+                                                 (15)
+                                                                           患者坐标系 {P} 之间的转换矩阵．将患者的头部用
+      用雅可比方法计算矩阵 E 的特征值和特征向
+                                                                           头颅固定架固定好后，用被动定位探针触碰患者头
+量，矩阵 E 的最大特征值所对应的特征向量，就是
+                                                                           骨上的标记点，则获得标记点在光学测量坐标系下
+使目标函数达到最小的四元数 q．
+                                                                           的坐标．通过步骤 (1) 中获得的 O T P ，可将标记点
+      将四元数 q 代入式 (6) 中，可获得旋转矩阵
+                                                                           在光学测量下的坐标转换到患者坐标系．利用 2.1
+R (q )．根据旋转矩阵 R (q )、重心 µ x 与 µ u ，可计算
+                                                                           节中基于四元数的 ICP 配准算法，通过 3 维重建图
+出最优平移向量 T 为
+                                                                           像与患者头骨中对应的标记点，可计算出 3 维重建
+                        T = µ x − R (q )µ u                         (16)   图像坐标系 {V } 和患者坐标系 {P} 之间的转换矩阵
+                                                                           P
+                                                                             T V．
+    最终，获得配准向量 X = [T
+                   T , R(qq)]．                                                  (3) 求解 R T O ，即光学测量坐标系 {O} 和机器
+2.2 机器人系统的空间配准                                                             人坐标系 {R} 之间的转换矩阵．该转换矩阵可通过
+     颅颌面外科手术机器人系统空间配准的最终目                                                  光学定位仪跟踪固定在机器人末端的被动定位支架
+的是通过协调 4 个子系统之间的转换关系，来引导                                                   获得．
+和控制机器人的末端执行器按照规划的路径从起始                                                          (4) 求解 R T V ，即机器人坐标系 {R} 和 3 维重建
+点运动到目标点 [13]．该过程可通过 2 步实现：第                                                图像坐标系 {V } 之间的转换矩阵．该转换矩阵最终
+1 步是获得 3 维重建图像中的目标点在机器人坐标                                                  可以通过式 (17) 获得：
+系中的位置；第 2 步是控制机器人的末端执行器到                                                                     R
+                                                                                                 T V = RT OOT PPT V               (17)
+达该点．因此，需要对 4 个子系统坐标系之间进行
+空间配准，即建立患者坐标系 {P}、机器人坐标系                                                      另外，通过机器人本体上的 3 个标记点来确定
+{R}、光学测量坐标系 {O} 和 3 维重建图像坐标系                                               光学测量坐标系与机器人基坐标系的转换关系，标
+{V } 之间的转换关系，来实现目标点在坐标系之间                                                  记点记为 M1、 M2、 M3 ，如图 4 所示．根据空间坐
+的转换 [14] ，如图 3 所示．                                                         标系建立原则，为 3 个标记点建立机器人局部坐标
+     通过坐标系转换来获得靶点在机器人坐标系中                                                  系 {U}，得到机器人局部坐标系与机器人基坐标系
+位置的具体步骤如下：                                                                 间的转换关系 Rb T U ．利用被动定位探针获取这 3 个
+     (1) 求解 O T P ，即患者坐标系 {P} 和光学测量                                        标记点在光学测量坐标系下的坐标，可获得光学测
+坐标系 {O} 之间的转换矩阵．该矩阵可通过光学定                                                  量坐标系与机器人局部坐标系间的转换关系 U T O ，
+位仪跟踪固定在患者头颅上的被动定位支架获得．                                                     进而得到光学测量坐标系与机器人基坐标系的转换
+68                                                 机 器   人                                                  2018 年 1 月
+
+关系：                                                        (4) 执行配准实验，利用被动定位探针获取眉
+                   Rb        Rb
+                        TO = TU TOU
+                                                  (18)   心、鼻前棘、左右眶、左右眶下、左右外耳道 8 个
+                                                         配准标记点的空间坐标，其实验平台见图 5．
+
+                        M1
+                                                                               ‫ݹ‬ᆖᇊսԚ
+
+                        M2            M3
+
+
+                                                                                                  㻛ࣘᇊս᧒䪸
+
+
+                 图 4 机器人本体标记点
+                                                                          ཤ亵⁑ර
+         Fig.4    The markers on the robot body
+                                                                       ཤ亵പᇊᷦ
+3     实验（Experiment）
+                                                                            图 5 配准精度验证实验
+3.1   配准精度验证实验
+                                                         Fig.5   The verification experiment of the registration accuracy
+  3 维重建医学图像与患者头颅之间的配准可完
+成手术规划路径到机器人穿刺路径的转换，其配                                          (5) 在 3 维医学图像中，按照步骤 (4) 中选择 8
+准精度对整个手术系统的精度影响较大，因此，需                                   个配准点的次序，依次通过医学图像中冠状位、矢
+通过实验对配准算法的实际使用效果进行验证 [15]．                               状位、轴状位方向的图像获取配准点在医学图像坐
+颅颌面外科穿刺手术的目标区域一般在颅底及面侧                                   标系中的坐标，并进行手术配准，获得 3 维重建图
+深区，而医学图像的配准标记点只能位于颅骨的外                                   像坐标系与光学测量坐标系之间的转换关系，记为
+表面，所以在配准精度验证实验中，选择在颅骨外                                   T S．
+表面的 8 个标记点进行 3 维重建医学图像与头颅模                                     (6) 完 成 3 维 重 建 医 学 图 像 与 患 者 头 颅 之 间
+型之间的配准，配准标记点分别位于：眉心、鼻前                                   的配准后，对配准精度进行验证． 同上述步骤一
+棘、左右眶、左右眶下、左右外耳道．选择颅骨内                                   样，依次用被动定位探针获取头颅模型上验证点
+侧的 10 个验证点对配准的精度进行检验，验证点                                 的空间坐标，记录为 A (Ax , Ay , Az )，并在 3 维医学
+分别位于：左右颞下、左右卵圆孔、左右颈动脉外                                   图像上获取对应验证点在 3 维重建图像坐标系中
+口、左右颈静脉孔、左右茎突．                                           的坐 标，记 录 为 B (Bx , By , Bz )． 利 用 步 骤 (5) 中 获
+  实验用到的设备主要有：NDI 光学定位仪，被                                 得的坐标系转换关系 T S ，将验证点的坐标从 3 维
+动定位探针，头颅模型，头颅固定架，医用钛钉若                                   重建图像坐标系转换到光学测量坐标系，记录为
+干，美国 NewTom VG 锥形束 CT（CBCT）
+                          ，搭载有                           C (Cx ,Cy ,Cz ) = T S B(Bx , By , Bz )．
+机器人控制软件、配准软件和导航软件的工作站．                                         (7) 分析和比较上述对应点 A 和 C 之间的欧
+  该实验基于光学定位，先通过头颅模型的表面                                   √ 里 得 距 离， 记 录 为 |AC|， 可 以 表 示 为 |AC| =
+                                                         几
+标记点与医学图像中对应的点进行配准，再利用头                                     (Ax −Cx )2 + (Ay −Cy )2 + (Az −Cz )2 ，即为验证点的
+颅模型手术区域内的其他标记点进行验证，具体实                                   配准误差．
+验步骤如下：                                                       (8) 重复 6 组配准步骤，记录并分析误差．
+  (1) 将医用钛钉固定在头颅模型标记点的对应                                     该空间配准误差实验利用 8 个标记点进行配
+位置，分别是眉心、 鼻前棘、 左右眶、 左右眶下、                                准，然后用其他 10 个在手术区域的标记点进行检
+左右外耳道、左右侧颞下、左右卵圆孔、左右颈动                                   验，实验检验数据结果如表 1 所示，其中，Mean 表
+脉外口、左右颈静脉孔、左右茎突．                                         示误差平均值，SD 表示误差的标准差．由实验数
+  (2) 通过 CBCT 获取头颅模型的 CT 序列图像，                           据可知，每一组实验中各个靶点的配准误差平均值
+并将图像数据导入软件，重建 3 维医学图像．                                   以及同一个靶点在多组实验中的配准误差平均值均
+  (3) 用头颅固定架将头颅模型固定在实验平台，                                小于 0.75 mm，且标准差都较小．由此可知，基于
+放置好定位仪器，保证头颅模型位于定位仪器的工                                   四元数的 ICP 配准算法可高精度地、稳定地应用于
+作区域内．                                                    3 维医学图像与患者头颅之间的配准．
+第 40 卷第 1 期                 段星光，等：颅颌面外科手术机器人空间配准及实验                                                                         69
+
+                                         表 1 配准精度实验结果
+                            Tab.1 The results of the registration accuracy experiment
+
+                                                          配准误差 /mm
+              靶点
+                    第1组           第2组           第3组          第4组                     第5组                第6组     Mean±SD
+          右颞下        0.70          0.67          0.63          0.66                      0.65            0.45   0.63±0.08
+         右卵圆孔        0.66          0.78          0.84          0.73                      0.75            0.52   0.71±0.10
+       右颈动脉外口        0.42          0.62          0.50          0.55                      0.63            0.72   0.57±0.10
+        右颈静脉孔        0.54          0.76          0.82          0.68                      0.69            0.62   0.69±0.09
+          右茎突        0.35          0.93          0.41          0.72                      0.77            0.55   0.62±0.20
+          左颞下        0.51          0.86          0.73          0.35                      0.59            0.77   0.64±0.17
+         左卵圆孔        0.68          0.78          0.69          0.71                      0.87            0.68   0.74±0.07
+       左颈动脉外口        0.72          0.79          0.71          0.62                      0.65            0.38   0.65±0.13
+        左颈静脉孔        0.54          0.66          0.95          0.45                      0.92            0.81   0.72±0.19
+          左茎突        0.72          0.57          0.63          0.54                      0.59            0.92   0.66±0.13
+         Mean±SD   0.58±0.13    0.74±0.11     0.69±0.15     0.60±0.12            0.71±0.11          0.64±0.16       –
+
+
+3.2 定位精度验证实验                                               换为机器人基坐标系中对应点的坐标．再将其传递
+   定位精度验证实验是对所提出的空间配准方法                                    至机器人控制系统，通过机器人运动学解算，控制
+在颅颌面外科手术机器人系统中使用效果的验证，                                     机器人的末端到达指定位置．
+即在临床手术中将 3 维医学图像上手术规划的目                                          (5) 在 机 器 人 穿 刺 针 达 到 指 定 位 置 后， 调 整
+标点通过配准方法转换到光学测量系统下，然后再                                     XY Z 三轴平台的末端杆，让穿刺针接触末端杆上
+将其传递至机器人控制系统，从而控制机器人的末                                     的点 W ，并记录此时 XY Z 三轴平台的坐标，记为
+端穿刺到该目标点．该空间配准方法对机器人末端                                     B (Bx , By , Bz )．
+的定位精度有直接的影响．为避免 3 维医学图像重                                         (6) 分 析 和 比 较 上 述 对 应 点 A 和 B 之 间 的
+建、配准算法等误差对定位精度的影响，在该实验                                     欧几 里 得 距 离，记 录 为 |AB|，可 以 表 示 为|AB| =
+                                                           √
+中，直接利用被动定位探针获取机器人可到达的空                                        (Ax − Bx )2 + (Ay − By )2 + (Az − Bz )2 ， 即 为 机 器 人
+间中任意一点，然后控制机器人到达该目标点，进                                     定位误差．
+而计算出目标位置和机器人末端实际到达位置之间                                           (7) 在机器人运动区域内重复步骤 (2) ～ (6) 共
+的距离，即为该机器人的定位误差．                                           计 20 组，且选择的目标点尽量覆盖整个机器人的
+   机器人定位精度验证实验使用到的设备除配准                                    工作空间，计算定位误差的平均值和标准差．
+精度验证实验中用到的设备外，主要还包括：机器                                           机器人定位误差结果如图 6 所示，机器人定位
+人本体、穿刺执行末端、被动定位支架、XY Z 三轴                                  误差的平均值为 0.56 mm，标准差为 0.28 mm．由此
+定位平台等．实验步骤如下所示：                                            可知，所提出的空间配准方法能够保证机器人控制
+   (1) 首先利用被动定位探针触碰机器人上的标                                  系统的定位精度，使机器人末端可以准确到达目标
+记点位置，完成光学测量坐标系和机器人坐标系之                                     位置．
+间的配准，创建两者之间的空间坐标转换关系．
+                                                                               1.2
+   (2) 将 XY Z 三轴平台固定在操作台上，放置于
+                                                                                1
+机器人可以到达的位置，并记录 XY Z 三轴平台的
+                                                                      䈟ᐞ /mm
+
+
+
+
+                                                                               0.8
+坐标数值 A (Ax , Ay , Az )，作为机器人定位操作的目标
+点．                                                                             0.6
+
+   (3) 指定 XY Z 三轴平台末端杆上的点 W 作为机                                                0.4
+
+器人穿刺针尖的到达位置，用被动定位探针采集该                                                         0.2
+点的坐标，然后调节 XY Z 三轴平台末端杆的位置，                                                      0
+                                                                                     1     3    5   7    9 11 13 15 17 19
+保证不影响机器人的定位运动．                                                                                          ᇎ傼⅑ᮠ /⅑
+   (4) 将步骤 (3) 中用被动定位探针采集到的点坐                                              图 6 定位精度实验结果
+标传递至工作站平台，通过配准关系将该点坐标转                                        Fig.6 The results of the positioning accuracy experiment
+70                                                           机 器   人                                         2018 年 1 月
+
+3.3     三叉神经射频热凝术模型实验                                              学软件完成 3 维医学图像上头颅模型和光学测量子
+  为验证整个颅颌面外科手术机器人系统在空间                                             系统之间的空间关系配准．
+配准方法下的可行性，进行了三叉神经射频热凝术                                                (6) 按照手术规划，将穿刺针尖在皮肤外的进
+模型实验．三叉神经射频热凝术是治疗三叉神经痛                                             针点和穿刺靶点的坐标关系通过坐标系转换传递至
+的有效手段，是颅颌面外科中常见的手术之一．该                                             机器人基坐标系，并控制机器人的穿刺针运动到进
+手术利用射频穿刺针穿刺到三叉神经节，对病变部                                             针点附近．
+位进行射频消融．三叉神经节位于卵圆孔内侧，在                                                (7) 执行穿刺动作，当机器人穿刺到靶点位置
+每次穿刺过程中，穿刺针都须穿过直径约 5 mm 的                                          时，系统提示穿刺结束．
+卵圆孔到达三叉神经节，因此，医生常将射频穿刺                                                (8) 从机器人的末端执行器上拆卸下穿刺针，
+针穿过卵圆孔作为手术成功的标志 [16-17]． 医生凭                                       保持穿刺针仍然在穿刺完成后的位置，并控制机器
+经验穿刺的可靠性低、手术创伤大，为提高穿刺精                                             人的末端退回穿刺初始位置．
+度、改善手术治疗的效果，利用该手术机器人系统                                                (9) 扫描带有穿刺针的头颅模型，将数据导入
+辅助医生实施手术．                                                          医学软件重建 3 维模型，并与术前医学图像进行融
+                                                                   合，计算穿刺后目标点与穿刺针针尖的距离，并记
+                                ‫ݹ‬ᆖᇊսԚ                              录结果．
+                                                                      该实验共执行了 10 组三叉神经射频热凝术，
+        ᵪಘӪ                    㻛ࣘᇊս᭟ᷦ                              实验的穿刺误差结果如图 8 所示，模型实验穿刺误
+                                                                   差的平均值为 1.62 mm，标准差为 0.26 mm，且每组
+                                                                   实验射频穿刺针都能够从卵圆孔穿过．实验结果表
+                                            ѫᐕ֌ㄉ
+                                                                   明，该机器人系统在三叉神经射频热凝术模型实验
+                                                                   中的一次性穿刺成功率为 100%，具有一定的可行
+                                                                   性．
+                                                                                 2.5
+               图 7 三叉神经射频热凝术模型实验
+     Fig.7   The model experiment of trigeminal radiofrequency                    2
+                                                                        䈟ᐞ /mm
+
+
+
+
+                        thermocoagulation                                        1.5
+
+    该模型实验所用到的设备除了配准精度验证实                                                          1
+验和定位精度验证实验中用到的颅颌面手术机器人                                                           0.5
+软硬件系统外，还包括：射频穿刺针、 超轻黏土、
+                                                                                  0
+鱼丸等，实验平台如图 7 所示． 相关实验步骤如                                                               1 2 3 4 5 6 7 8 9 10
+                                                                                             ᇎ傼⅑ᮠ /⅑
+下：
+    (1) 用超轻黏土将鱼丸固定在头颅模型的三叉                                                     图 8 模型实验结果
+                                                                       Fig.8 The results of the model experiment
+神经节区域，选取鱼丸上某一点作为穿刺靶点，在
+颅骨上固定钛钉作为配准标记点．                                                    3.4 三叉神经射频热凝术尸体实验
+    (2) 在 CBCT 下扫描头颅模型，获取 CT 序列图                                       为进一步验证所设计机器人及配准方法对于真
+像，并将数据导入软件，重建 3 维医学图像．                                             实人体组织穿刺的可行性，进行了三叉神经射频热
+    (3) 从 3 维医学图像中分割出靶点及卵圆孔的                                       凝术的尸体实验．实验方法和步骤与 3.3 节中模型
+位置，并完成热凝穿刺手术的路径规划．                                                 实验的基本相同，在此不再赘述．实验使用经福尔
+    (4) 通过光学定位仪和被动定位探针，完成机                                         马林浸泡的人体尸头，如图 9 所示．
+器人本体子系统和光学测量子系统之间的配准，实                                                 在该实验中，共完成了 20 组三叉神经射频热
+现 2 个坐标空间之间的转化，并将射频穿刺针安装                                           凝术．结合术后 CT 图像与术前规划的结果显示，
+于机器人末端．                                                            穿刺误差平均值为 3.17 mm，标准差为 0.94 mm，且
+    (5) 利用头颅固定架将头颅模型固定于手术平                                         在 20 组穿刺实验中，有 19 组穿过卵圆孔，穿刺成
+台，分别获取头颅模型上钛钉标记点在光学测量坐                                             功率为 95%，穿刺精度较高．穿刺后的 CT 扫描图
+标系和 3 维重建图像坐标系下的对应坐标，利用医                                           如图 10 所示．
+第 40 卷第 1 期                            段星光，等：颅颌面外科手术机器人空间配准及实验                                                                   71
+
+                                                                步优化．
+                                                                                 参考文献（References）
+                                                                [1]  Chen X J, Lin Y P, Wang C T, et al. A surgical navigation sys-
+                                                                     tem for oral and maxillofacial surgery and its application in the
+                                                                     treatment of old zygomatic fractures[J]. International Journal of
+                                                                     Medical Robotics and Computer Assisted Surgery, 2011, 7(1):
+                                                                     42-50.
+           ቨཤ
+                                                                [2] Collyer J. Stereotactic navigation in oral and maxillofacial
+                                                                     surgery[J]. British Journal of Oral & Maxillofacial Surgery,
+                                                                     2010, 48(2): 79-83.
+                                                                [3] Jr Maurer C, Fitzpatrick J M, Wang M Y, et al. Registration
+            图 9 三叉神经射频热凝术尸体实验                                        of head volume images using implantable fiducial markers[J].
+    Fig.9 The cadaver experiment of trigeminal radiofrequency        IEEE Transactions on Medical Imaging, 1997, 16(4): 447-462.
+                       thermocoagulation                        [4] Chen X J, Lin Y P, Wu Y Q, et al. Real-time motion tracking
+                                                                     in image-guided oral implantology[J]. International Journal of
+                                                                     Medical Robotics and Computer Assisted Surgery, 2008, 4(4):
+          クࡪ䪸䪸ቆ                                                      339-347.
+                                                                [5] Besl P J, McKay N D. A method for registration of 3-D
+                                                                     shapes[J]. IEEE Transactions on Pattern Analysis and Machine
+                                                                     Intelligence, 1992, 14(2): 239-256.
+                                                                [6] 段星光，郭传瑸．机器人技术在外科辅助手术中的研究与
+                                                                     应用[J]．中华口腔医学杂志，2012，47(8)：453-457.
+                                                                     Duan X G, Guo C B. The research and application of the robot-
+                                                                     assisted surgery[J]. Chinese Journal of Stomatology, 2012,
+                                                                     47(8): 453-457.
+                                                                [7] Kwoh Y, Reed I, Chen J, et al. New computerized tomographic-
+                   图 10 术后 CT 扫描结果                                   aided robotic stereotaxis system[J]. Robot Age, 1985, 7(6): 17-
+          Fig.10   The result of a postoperative CT scan             22.
+                                                                [8] Reto B, Ilse L, Arno M, et al. Frameless stereotactic cannula-
+                                                                     tion of the foramen ovale for ablative treatment of trigeminal
+4     结论（Conclusion）                                                 neuralgia[J]. Neurosurgery, 2006, 59(4 Suppl.2): 394-402.
+  本文针对颅颌面手术的特点，研发了一套新型                                          [9] Olds K C, Chalasani P, Pacheco-Lopez P, et al. Preliminary e-
+                                                                     valuation of a new microsurgical robotic system for head and
+颅颌面外科手术机器人系统，建立了一套基于光学
+                                                                     neck surgery[C]//IEEE/RSJ International Conference on Intelli-
+定位的颅颌面外科手术机器人空间配准方法，并针                                               gent Robots and Systems. Piscataway, USA: IEEE, 2014: 1276-
+对上述方法在系统中的使用效果开展了相关实验．                                               1281.
+首先，完成了 3 维重建医学模型与患者之间的配准                                        [10] Peterhans M, vom Berg A, Dagon B, et al. A navigation sys-
+                                                                     tem for open liver surgery: Design, workflow and first clinical
+精度验证实验，结果表明基于四元数的最近点迭代                                               applications[J]. International Journal of Medical Robotics and
+配准算法为该机器人系统提供了较高的配准精度                                                Computer Assisted Surgery, 2011, 7(1): 7-16.
+和稳定性．其次，对机器人定位精度进行了验证实                                          [11] 杨秋翔，安雁艳，杨剑，等．基于单位四元数的 ICP 改进
+                                                                     算法 [J]．微电子学与计算机，2016，33(3)：110-114.
+验，结果表明该空间配准方法能够保证机器人控制
+                                                                     Yang Q X, An Y Y, Yang J, et al. Improved algorithm of iterative
+系统的定位精度，使机器人末端能够准确到达目标                                               closest point based on the unit quaternion[J]. Microelectronics
+位置．最后，针对头颅模型和人体尸头分别开展了                                               & Computer, 2016, 33(3): 110-114.
+                                                                [12] 海思穹，林艳萍，王成焘，等．手术导航系统三维配准算
+三叉神经射频热凝术的穿刺定位实验，实验的穿刺
+                                                                     法研究与仿真 [J]．计算机仿真，2011，28(7)：262-264,284.
+成功率都较高，表明该空间配准方法能够满足颅颌                                               Hai S Q, Lin Y P, Wang C T, et al. Study and simulation of
+面外科手术机器人系统的需求．                                                       three-dimensional registration algorithm in surgery navigation
+  另外，相比于模型实验，尸体实验的穿刺误差                                               system[J]. Computer Simulation, 2011, 28(7): 262-264,284.
+                                                                [13] 田和强，吴冬梅，王继虎，等． 基于电磁定位的手术导
+较大，这主要是由于尸体组织的硬度较大导致穿刺
+                                                                     航探针可视化与实时跟踪技术 [J]．机器人，2011，33(1)：
+针变形较大引起的．除空间配准误差、软组织硬度                                               59-65.
+外，影响机器人系统穿刺精度的因素还包括：机器                                               Tian H Q, Wu D M, Wang J H, et al. Visualization and real-
+                                                                     time tracking technologies of the probe used in surgical nav-
+人机械本体误差，机器人运动控制误差，和分割、                                               igation based on electromagnetic positioning[J]. Robot, 2011,
+重构引起的图像误差等，将在后续研究中对其进一                                               33(1): 59-65.                               （下转第 80 页）
+80                                                                机 器    人                                                     2018 年 1 月
+
+[10] Yim S, Gultepe E, Gracias D H, et al. Biopsy using a magnetic            hemisphere capsule robot and its control strategy for posture
+     capsule endoscope carrying, releasing, and retrieving untethered         adjustment and steering driving: China, CN104983385A[P].
+     microgrippers[J]. IEEE Transactions on Biomedical Engineer-              2015-10-21.
+     ing, 2014, 61(2): 513-521.                                          [17] 张永顺，周华涛，张林霞，等．一种新型双半球形胶囊机
+[11] 张永顺，孙颖，杜春雨，等．胶囊机器人弯曲环境通过性                                                器人 [J]．机械工程学报，2017，53(15)：110-118.
+     与磁矢量控制 [J]．机械工程学报，2014，50(5)：26-32.                                      Zhang Y S, Zhou H T, Zhang L X, et al. A new kind of dual
+     Zhang Y S, Sun Y, Du C Y, et al. Trafficability characteristic           hemisphere capsule robot[J]. Journal of Mechanical Engineer-
+     and magnetic vector control of a capsule robot in bending en-            ing, 2017, 53(15): 110-118.
+     vironment[J]. Journal of Mechanical Engineering, 2014, 50(5):       [18] Zhang Y S, Yu Z C, Yang H Y, et al. Orthogonal transformation
+     26-32.                                                                   operation theorem of a spatial universal uniform rotating mag-
+[12] Park H, Park S, Yoon E, et al. Paddling based microrobot                 netic field and its application in capsule endoscopy[J]. Science
+     for capsule endoscopes[C]//IEEE International Conference on              China: Technological Sciences, 2017, 60(6): 1-11.
+     Robotics and Automation. Piscataway, USA: IEEE, 2007:               [19] 赵荧．基于视觉的胶囊内窥镜导航研究 [D]．哈尔滨：哈
+     3377-3382.                                                               尔滨工业大学，2013.
+[13] Tortora G, Valdastri P, Susilo E, et al. Propeller-based wire-           Zhao Y. Vision based navigation for capsule endoscopies[D].
+     less device for active capsular endoscopy in the gastric district        Harbin: Harbin Institute of Technology, 2013.
+     [J]. Minimally Invasive Therapy & Allied Technologies, 2009,        [20] Asari V K, Kumar S, Kassim I M. A fully autonomous micro-
+     18(5): 280-290.                                                          robotic endoscopy system[J]. Journal of Intelligent & Robotic
+[14] Woods S P, Constandinou T G. Wireless capsule endoscope for              Systems, 2000, 28(4): 325-341.
+     targeted drug delivery: Mechanics and design considerations[J].     [21] 耿明志．无人机自动着陆过程中的视觉导航技术研究 [D]．
+     IEEE Transactions on Biomedical Engineering, 2013, 60(4):                南京：南京航空航天大学，2007.
+     945-953.                                                                 Geng Z M. The application of visual navigation in auto-landing
+[15] Temel F Z, Erman A G, Yesilyurt S. Characterization and mod-             of unmanned aerial vehicle[D]. Nanjing: Nanjing University of
+     eling of biomimetic untethered robots swimming in viscous flu-           Aeronautics and Astronautics, 2007.
+     ids inside circular channels[J]. IEEE/ASME Transactions on
+                                                                         作者简介：
+     Mechatronics, 2013, 19(5): 1562-1573.
+[16] 张 永 顺， 苏 忠 侃， 杨 振 强， 等． 一 种 主 被 动 双 半 球 形                                       ，男，博士，教授，博士生导师．研究领
+                                                                           张永顺（1965 –）
+     胶囊机器人及其姿态调整与转弯驱动控制方法：中国，                                                  域：机器人机电一体化技术等．
+     CN104983385A[P]. 2015-10-21.                                          杨慧远（1985 –），男，博士生．研究领域：球形胶囊机
+     Zhang Y S, Su Z K, Yang Z Q, et al. An active/passive dual                器人动力学及稳定性．
+
+
+
+
+（上接第 71 页）
+
+
+[14] Kong X Z, Duan X G, Wang Y G. An integrated system for              [17] 邵君飞，王海秋，姚建社，等．CAS-R-2 型机器人导航下
+     planning, navigation and robotic assistance for mandible recon-          射频治疗三叉神经痛的基础与临床研究 [J]．临床神经外科
+     struction surgery[J]. Intelligent Service Robotics, 2016, 9(2):          杂志，2006，3(2)：70-72.
+     113-121.                                                                 Shao J F, Wang H Q, Yao J S, et al. Research of robot CAS-
+[15] 陈艳梅，杨志永，姜杉，等． 机器人辅助手术导航系统                                                R-2 assisted system in percutaneous controlled radiofrequency
+     的注册技术 [J]． 计算机辅助设计与图形学学报，2015，                                           rhizomy for trigeminal neuralgia[J]. Journal of Clinical Neuro-
+     27(5)：953-960.                                                           surgery, 2006, 3(2): 70-72.
+     Chen Y M, Yang Z Y, Jiang S, et al. Registration technique
+     of robot-aided image guided surgery[J]. Journal of Computer-        作者简介：
+     Aided Design & Computer Graphics, 2015, 27(5): 953-960.                         ，男，教授，博士生导师．研究领域：医
+                                                                           段星光（1966 –）
+[16] Emril D R, Ho K Y. Treatment of trigeminal neuralgia: Role of             疗机器人，仿生机构与控制．
+     radiofrequency ablation[J]. Journal of Pain Research, 2010, 3:
+                                                                                     ，男，博士生．研究领域：医疗机器人．
+                                                                           高 亮（1987 –）
+     249-254.
+

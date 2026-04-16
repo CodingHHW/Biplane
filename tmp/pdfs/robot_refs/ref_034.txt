@@ -1,0 +1,447 @@
+International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024
+https://doi.org/10.1007/s11548-023-02888-0
+
+    ORIGINAL ARTICLE
+
+
+
+Visualization in 2D/3D registration matters for assuring
+technology-assisted image-guided surgery
+Sue Min Cho1 · Robert B. Grupp1 · Catalina Gomez1 · Iris Gupta1 · Mehran Armand1,2 · Greg Osgood2 ·
+Russell H. Taylor1,2 · Mathias Unberath1,2
+
+Received: 7 February 2023 / Accepted: 27 March 2023 / Published online: 20 April 2023
+© CARS 2023
+
+
+Abstract
+Purpose Image-guided navigation and surgical robotics are the next frontiers of minimally invasive surgery. Assuring safety
+in high-stakes clinical environments is critical for their deployment. 2D/3D registration is an essential, enabling algorithm for
+most of these systems, as it provides spatial alignment of preoperative data with intraoperative images. While these algorithms
+have been studied widely, there is a need for verification methods to enable human stakeholders to assess and either approve
+or reject registration results to ensure safe operation.
+Methods To address the verification problem from the perspective of human perception, we develop novel visualization
+paradigms and use a sampling method based on approximate posterior distribution to simulate registration offsets. We then
+conduct a user study with 22 participants to investigate how different visualization paradigms (Neutral, Attention-Guiding,
+Correspondence-Suggesting) affect human performance in evaluating the simulated 2D/3D registration results using 12 pelvic
+fluoroscopy images.
+Results All three visualization paradigms allow users to perform better than random guessing to differentiate between offsets
+of varying magnitude. The novel paradigms show better performance than the neutral paradigm when using an absolute
+threshold to differentiate acceptable and unacceptable registrations (highest accuracy: Correspondence-Suggesting (65.1%),
+highest F1 score: Attention-Guiding (65.7%)), as well as when using a paradigm-specific threshold for the same discrimination
+(highest accuracy: Attention-Guiding (70.4%), highest F1 score: Corresponding-Suggesting (65.0%)).
+Conclusion This study demonstrates that visualization paradigms do affect the human-based assessment of 2D/3D registration
+errors. However, further exploration is needed to understand this effect better and develop more effective methods to assure
+accuracy. This research serves as a crucial step toward enhanced surgical autonomy and safety assurance in technology-assisted
+image-guided surgery.
+
+Keywords Image-guided surgery · Assured autonomy · 2D/3D registration · Perception · Visualization
+
+
+Introduction                                                                 errors during surgery due to human shortcomings, either
+                                                                             because of missing information, poor decision-making, lack
+Minimally invasive surgeries (MISs) have become a reli-                      of dexterity, fatigue, or lack of attention, are not uncommon.
+able alternative to traditional open surgeries, as they promise              To mitigate the impact on patient safety and on undesirable
+less pain, better postoperative outcomes, and faster recov-                  surgical outcomes, substantial advancements in approaches
+ery. Image-guided navigation and surgical robotics systems                   that increase precision and minimize costs have catapulted
+are becoming more widespread in their utilization and have                   image-based navigation solutions into the center of atten-
+been invaluable intraoperative adjuncts during these surg-                   tion for MIS research. In addition, the integration of surgical
+eries [1]. Although generally considered safe and effective,                 systems and the availability of new generations of robotic
+                                                                             systems like the da Vinci have made the adoption of MIS
+B Sue Min Cho                                                                approaches in complex operations possible. Some advanta-
+     scho72@jhu.edu                                                          geous features of such a robotic system include a high-fidelity
+1    Johns Hopkins University, Baltimore, MD, USA                            video display, a stereo endoscope, sensors to track the posi-
+2    Johns Hopkins School of Medicine, Baltimore, MD, USA
+
+
+                                                                                                                                 123
+1018                                                  International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024
+
+
+tion of each surgical instrument, and a ready-made stream of       this approach with an objective function to construct an
+data for registration and tracking.                                approximate posterior distribution over registration results
+    Current surgical robots are fully teleoperated, and the        that are approximately equivalent in terms of computational
+introduction of “supervised” autonomy, where subtasks are          image similarity, i. e., poses that are perceptually similar
+delegated to the robot and performed autonomously under            to the true pose and might have been accepted by image-
+close supervision by a human surgeon, is much-desired              based 2D/3D registration [7]. With this offset simulation, we
+[2]. Such supervised autonomy has the potential to reduce          investigate the effectiveness of the visualization paradigms
+the learning curve, increase overall accuracy, and actualize       in conveying alignment precision to human users.
+remote telesurgery.
+    However, the dream of semi-autonomous or autonomous
+MIS can only be realized if the operating surgeon is assured       Related work
+that the instantaneous, intraoperative sensory information
+received is reliable and accurate. Challenges remain in            The focus of this study is not on which technique of 2D/3D
+the field of spatial registration of the preoperative data         registration but on assuring and verifying the process. The
+to the intraoperative scene [3]. Errors may result, among          verification of registration, in general, has been explored in
+other things, from poor exposure of the anatomy, a mis-            two ways, uncertainty, and perception.
+match between pre- and intra-operative anatomy due to                  Uncertainty in data can seriously affect its analysis and
+surgical manipulation, or because of the presence of noisy         subsequent decision-making. For example, in image-guided
+measurements. Image registration plays an essential role           surgery, errors may be introduced during data acquisition
+in augmenting intraoperative images and is widely used             (through an imaging modality or tracking system), during
+for computer-assisted interventions. 2D/3D registration is a       transformation (by registration or segmentation), or dur-
+technique that helps find the most optimal geometric trans-        ing rendering [8]. However, uncertainty might be ignored
+formation between a 3D model of the scene into the same            because of the inherent difficulty in expressing, computing,
+coordinate frame of one or more intraoperative images [4,          or visualizing it. Henceforth, new methods of visualizing reg-
+5]. In spine and orthopedic minimally invasive operations,         istration uncertainty are needed. There have been studies that
+such as total hip arthroplasty or osteotomies of the pelvis        aim to visualize registration error by estimation of uncer-
+or femur, 2D/3D registration has been applied to help orient       tainty [9]. Simpson et al. proposed a method of visualizing
+the current position of instruments relative to the planned        registration uncertainty by determining the variation intro-
+trajectory, nearby vulnerable structures, and the ultimate         duced along a linear path [10]. Their visualization method
+target [6]. In image-guided endoscopy, 2D/3D registration          resulted in a statistically significant reduction in attempts
+provides augmented reality, which enables the display of           required to localize a target and in targets that the pool of
+anatomical structures that are hidden from the direct view by      subjects failed to localize. Risholm et al. presented data in the
+currently exposed tissues or in interventional radiology. Such     case of non-rigid registration [11]. The authors assessed the
+visualizations can be beneficial in procedures that involve        uncertainty of the estimated posterior distribution by visu-
+laparoscopy of the abdomen, arthroscopy of musculoskele-           alizing the interquartile range (IQRs) computed from the
+tal joints, colonoscopy of the colon, or bronchoscopy of the       marginal posteriors in the form of scalar maps and ellip-
+lung registration.                                                 soids. The uncertainty information was also emphasized
+    In this study, we aim to explore the assurance of 2D/3D        using marginal volumes, marginal visitation count volumes,
+registration between postoperative CT scans and intraopera-        and marginal confidence bounds.
+tive X-rays so that any inaccurate results can be corrected by         Numerous visualization methods have been studied to
+rerunning the algorithm with altered initialization or hyper-      improve spatial perception, including the extraction of
+parameters before the semi-autonomous execution in an MIS          relevance-based data only according to pixels and voxels
+intervention. We address the assuredness of this confirmation      [12]. Volume rendering results were enhanced by improv-
+step from a human-in-the-loop perspective, where human             ing depth perception with an energy function, and conjugate
+stakeholders have the opportunity to evaluate the result of        gradient method [13] and introducing volumetric halos [14].
+a 2D/3D registration algorithm and approve or reject the           A new method called chromatic shadowing was based on a
+result based on perceptual cues provided by a visualiza-           shadow transfer function to handle the over-darkening prob-
+tion paradigm. We present two novel visualization paradigms        lem to better allow the perception of depth and surface [15].
+for displaying 2D/3D registration results. To sample plausi-       There also have been color-based methods to improve depth
+ble registration results for user assessment, we make use of       perception [12, 16]. However, to date, there have not been any
+a probabilistic formulation of the registration process. We,       studies on the effectiveness of 2D/3D registration visualiza-
+therefore, assume a traditional single-view, single-object,        tion methods on the perception of alignment. Perhaps the
+intensity-based 2D/3D registration approach. We combine            most similar problem and study design of this study is [3],
+
+
+123
+International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024                                                    1019
+
+
+where the authors explore the 3D registration alignment per-               were set as 100 pixels and 250 pixels, respectively, for our
+ception problem in AR/MR environment.                                      visualization generation. The circles guide the user’s atten-
+                                                                           tion and serve as an indirect cue of the misalignment.
+
+Methods                                                                    Paradigm 3: Correspondence-suggesting
+
+Study design                                                               This paradigm is generated by searching through the local
+                                                                           regions of the DRR to find the best local match in the original
+In total, 22 participants (14 males, 8 females) from the                   X-ray and visualizing the correspondence vectors as arrows.
+Johns Hopkins University were recruited through conve-                     The window size and the extended search size are parame-
+nience sampling for the user study. Participants’ ages ranged              ters that were set as 20 pixels to generate our visualizations.
+from 18 to 39 (M = 25.86, S D = 4.80). Our target par-                     The arrows provide a direct cue of possible misalignment by
+ticipant sample was from the general population because                    revealing the magnitude and direction of the offset.
+the target users who will be assuring the safety of these
+computer-assisted intervention systems will likely be com-                 Simulation and sampling registration offsets
+pany representatives who provide technology support.
+    A user interface platform based on Next.js was devel-                  To generate image offsets of varying strengths that are plausi-
+oped for the data collection. We followed a within-subjects                ble considering the 2D/3D registration problem, we rely on a
+design in which participants were exposed to all visualization             technique initially proposed for uncertainty quantification in
+paradigms. We randomized the order of the paradigms, the                   2D/3D registration [7]. Concisely, this technique produces
+X-ray images, and the registration offsets to prevent learning             poses that, given an image similarity function, could have
+effect. The user study began with the instructions for the task            possibly been accepted as a solution to the 2D/3D registra-
+and informed agreement for participation. For each visualiza-              tion problem, making them more relevant to this study that
+tion paradigm, an explanation of the paradigm and example                  images with arbitrary offsets.
+cases of the different degrees of offsets were given. Then, for               Specifically, we leverage the single-view, pelvis-only,
+12 cases, an X-ray image and its registration overlay were                 portion of the intraoperative 2D/3D registration strategy
+shown, and the user was asked to assess the alignment with                 from [6]. Observed image data include a 3D CT volume of
+a slider and provide their confidence level of assessment.                 the pelvis (V ) and a 2D fluoroscopy image of the pelvis (I ).
+After all three paradigm sections, the user was asked to fill              The registration problem of finding the pelvis volume pose,
+out a poststudy survey for their demographics and preference               θ ∈ R6 , with respect to the projective imaging geometry is
+ranking of the paradigms. This user study was approved by                  defined by:
+the local IRB.
+                                                                             min S (P (θ ; V ) , I ) + R (θ ) ,                          (1)
+Visualization paradigms                                                    θ∈S E(3)
+
+
+For all three visualization paradigms (Fig. 1), accessible col-            where P indicates a projection operator creating DRRs,
+ors were used.                                                             S indicates a similarity measure between DRRs and flu-
+                                                                           oroscopy, and R is a regularization term. The P operator
+Paradigm 1: Neutral                                                        encapsulates the intrinsic parameters of the imaging device
+                                                                           which are considered known and kept fixed during the regis-
+This is the baseline paradigm that is most commonly used                   tration process.
+in 2D/3D registration methods of rigid anatomy. The edge                        Let θ ∗ be the solution to (1). We assume that registration
+map is developed from the digitally reconstructed radiograph               strategies are more likely to report pose estimates nearer to
+(DRR) of the simulated registration offset.                                θ ∗ , rather than further away, with the distribution of estimates
+                                                                           depending on the shape of objective function. Candidate reg-
+Paradigm 2: Attention-guiding                                              istration estimates are modeled as offsets, θ , from the true
+                                                                           solution, so that θ = θ ∗ + θ . Proceeding in a Bayesian
+This paradigm is generated by computing the mutual infor-                  fashion, the image similarity component of (1) is used to
+mation (MI) of local regions between the original X-ray and                construct the likelihood distribution, p(I |θ ) and the regu-
+the DRR. The MI values are then min-max normalized, and                    larization term is used to model the prior, p(θ ), distribution.
+those greater than 0.0 and less than 0.3 are circled as the                Simulated registration solutions may be sampled from the
+areas of uncertainty that a human should look closely at. The              posterior distribution, which is proportional to their product:
+search window size and the circle size are parameters that                 p(θ |I ) ∝ p(I |θ ) p(θ ).
+
+
+                                                                                                                                 123
+1020                                                     International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024
+
+Fig. 1 Example images of the
+visualization paradigms with
+same offset of mTRE = 6.43 mm
+
+
+
+
+   A Boltzmann distribution is used to define the likelihood          enables an efficient sampling process of candidate registra-
+distribution with the image similarity component of (1) used          tion results.
+as the energy function:                                                   Twelve pelvis fluoroscopy images from 5 unique speci-
+                                                                      mens and 3 approximate viewing directions (i. e., anterior–
+                                     
+                 1                                                posterior, oblique, partial) were selected from a dataset 1 con-
+p(I |θ ) ∝ exp − S P θ ∗ + θ ; V , I .                      (2)     taining reference ground truth pelvis poses and anatomical
+                 2
+                                                                      landmarks [6]. For each image, 1,000 simulated registration
+Standard sampling strategies, e. g., Metropolis Hastings, are         offsets were sampled using the approximate posterior dis-
+not computationally practical when using this exact like-             tribution. To draw enough samples with the smaller offset
+lihood. Thus, we begin by approximating the similarity                values, the standard deviation values of the prior distribution
+component using a quadratic model: Q (θ ) = θ T H θ +              were all set to either 1 mm/1◦ . The mean Target Registra-
+S (P (θ ∗ ; V ) , I ), where H is a 6×6 positive-definite matrix.     tion Error (mTRE) was computed using the ground truth 3D
+Q is obtained by evaluating S on a 6D regularly spaced grid           landmarks and the 3D transformed points from the offset,
+about θ ∗ and performing a least squares fit of H . Each rota-        and used to sample the offsets to be used in the study. For
+tion parameter ranged from −1◦ to 1◦ in 0.5◦ offsets and              each X-ray image, 4 offsets (1 from each offset group bin, 0:
+each translation parameter ranged from −1 mm to 1 mm in               0–2 mm, 1: 2-4 mm, 2: 4-6 mm, 3: 6-8 mm), were sampled.
+0.5 mm offsets, for a total of 15,625 grid points. Using Q as
+the likelihood energy term yields:                                    Experimental variables
+                                                                   We considered one independent variable, the visualization
+p(I |θ ) ∝ exp − 21 θ T H θ + S (P (θ ∗ ; V ) , I )
+                                                                   paradigms, with three levels. One dependent continuous
+                 ∝ exp − 21 θ T H θ .                               variable was collected with the question, “How would you
+                                                                      assess this registration result?” to measure the user’s per-
+   The prior distribution is modeled as a multivariate nor-           ceived assessment of the registration. Two other continuous
+mal distribution with diagonal covariance matrix, prior =            dependent variables were the perceived confidence measured
+diag(σ12 , . . . , σ62 ). The posterior distribution is thus:         with a 5-point Likert scale and the preference ranking of the
+                                                                      paradigms.
+                                              
+                 1               1      −1
+p(θ |I ) ∝ exp − θ T H θ exp − θ T prior θ                      Hypotheses
+                 2               2
+                                                              (3)
+                                                                    Our general assumption is that visualization paradigms have
+                1          −1
+         ∝ exp − θ T H + prior θ                           (4)     an effect on the alignment assessment of human users. We
+                2
+                                                                      formulated the following hypotheses:
+                      −1
+Since both H and prior   are positive definite matrices, their       1 https://doi.org/10.7281/T1/IFSXNV. This dataset was annotated by
+sum is also positive definite, making (4) equivalent to a mul-
+                                                                      a single operator experienced with the interpretation of fluoroscopy in
+tivariate normal distribution with zero-mean and covariance           the context of 2D/3D registration for orthopedic applications using a
+               −1 −1
+matrix (H +prior  ) . Therefore, this approximate posterior          custom image analysis pipeline.
+
+
+123
+International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024                                                  1021
+
+
+H1. For each visualization paradigm, users can perceive                    to 1, we construct a receiver operator characteristic (ROC)
+    and detect registration errors with better than random                 for each of the paradigms (Fig. 2). It can be seen that all
+    guessing performance.                                                  three paradigms allow the users to perform better than ran-
+H2. Users can differentiate registration errors more accu-                 dom guessing. The overall performance of the visualization
+    rately when using visualization paradigms that encode                  paradigms for the task of registration assessment, can be seen
+    more cues of spatial misalignment.                                     with the area under the curve (AUC), where the Attention-
+                                                                           Guiding paradigm ranks highest with 0.71, followed by 0.66
+                                                                           for the Correspondence-Suggesting and 0.64 for the Neutral
+Results                                                                    paradigm.
+                                                                              To further interpret the assessment performance of the
+We used Python and RStudio for the data analysis. The sta-                 paradigms, we perform analyses considering both an abso-
+tistical tests included one fixed effect and participants as a             lute threshold of 0.50 for assigning adequacy as well as
+random effect. For all the statistical tests reported, p < .05             an adaptive threshold with each of the paradigm’s opti-
+is considered as a significant effect.                                     mal assignment threshold. The paradigm-specific thresholds
+                                                                           were calculated by finding the indices of the maximum dif-
+Can users perceive different offset groups?                                ference between the true positive rate (TPR) and the false
+                                                                           positive rate (FPR), and these points are drawn on the ROC
+We first validated whether participants perceived differences              curve (Fig. 2). The optimal thresholds for the three paradigms
+across all the offset levels. A one-way repeated-measures                  were calculated to be 0.80, 0.72, 0.62 for paradigms 1 through
+analysis of variance (ANOVA) was conducted to examine                      3, respectively. Then, the prediction labels are computed
+the effect of the offset group on participants’ alignment                  by binarizing the user’s assessment value to accepting and
+assessments. We observed a significant main effect of the                  rejecting the registration results based on the given thresh-
+offset group on the alignment assessments (F(3, 63) =                      olds.
+34.86, p < .001, η2p = .19). Post hoc pairwise compar-                        Table 1 shows the assessment performance of each
+isons using Tukey’s HSD test revealed that the assessments                 of the paradigms by the two threshold methods. For the
+were significantly higher (all p-values p < .001) in the group             absolute threshold method, Correspondence-Suggesting has
+with offsets between 0 and 2 mm (M = 0.66, S D = 0.28)                     the highest accuracy of 65.1% and Attention-Guiding has
+than in the group with offsets between 2 and 4 mm (M =                     the highest F1 score of 65.7%. For the adaptive thresh-
+0.50, S D = 0.25), 4 and 6 mm (M = 0.41, S D = 0.27),                      old method, Attention-Guiding has the highest accuracy of
+and 6 and 8 mm (M = 0.31, S D = 0.24). Likewise, the                       70.4% and Corresponding-Suggesting has the highest F1
+assessments when the offsets were between 2 and 4 mm were                  score of 65.0%.
+significantly higher than those when the offsets were between                 A one-way repeated-measures ANOVA was conducted
+4 and 6 mm ( p = .003) and 6 and 8 mm ( p < .001). More-                   to examine the effect of the visualization paradigm on
+over, the assessments were significantly higher ( p = .001) in             assessment performance measured as the fraction of correct
+the group with offsets between 4 and 6 mm than in the group                assessment outcomes (true positives and true negatives) with
+with offsets between 6 and 8 mm. Figure 2 (left) presents                  respect to the number of registrations evaluated in the two
+these differences.                                                         more precise offsets using both the absolute and adaptive
+   In [3], it was shown that conventional mixed reality visual-            thresholds. The tests did not reveal a significant difference in
+ization paradigms do not effectively allow users to accurately             the assessment accuracy across the visualization paradigms
+assess 3D alignment errors within 4 mm, and in image-guided                for the absolute threshold (F(2, 42) = 1.06, p = .356)
+surgical navigation, mTRE under 2 mm is considered an                      nor the adaptive thresholds (F(2, 42) = 0.62, p = .541).
+acceptable registration. For these reasons and with the val-               Using the absolute threshold, participants’ average accu-
+idation that users can differentiate between the four offset               racy for the Neutral visualization was 56.5% (S D = 21.3),
+groups, we focus on differentiating between offsets smaller                61.4% (S D = 16.7) for the Attention-Guiding, and 65.0%
+than 4 mm for the following analyses.                                      (S D = 18.6) for the Correspondence-Suggesting paradigms.
+                                                                           As expected, the average accuracy values were overall
+Do visualization paradigms affect assessment                               larger when using the adaptive thresholds (Neutral: M =
+performance?                                                               65.3, S D = 16.7, Attention-Guiding: M = 70.2, S D =
+                                                                           15.0, and Correspondence-Suggesting: M = 67.3, S D =
+With the group with offsets between 0 and 2 mm and the                     16.8).
+group with offsets between 2 mm and 4 mm binarized as ade-
+quate and inadequate registration quality, respectively, and
+the assessment values provided by the users ranging from 0
+
+
+                                                                                                                                123
+1022                                                           International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024
+
+
+
+
+Fig. 2 Left: Perceived assessment values of the registration under different offsets. Right: ROC plot of the three paradigms. The points refer to the
+optimal paradigm-specific thresholds
+
+Table 1 Assessment
+                                      Threshold         Paradigm (t: threshold)       TPR (%)          TNR (%)         ACC (%)          F1score (%)
+performance metrics of
+paradigms by threshold method         Absolute          1 (t = 0.50)                  71.9             40.3            56.4             62.6
+                                                        2 (t = 0.50)                  71.9             50.8            61.6             65.7
+                                                        3 (t = 0.50)                  64.1             66.2            65.1             64.6
+                                      Adaptive          1 (t = 0.80)                  45.3             85.5            65.1             56.9
+                                                        2 (t = 0.72)                  53.1             88.5            70.4             64.8
+                                                        3 (t = 0.62)                  60.9             73.9            67.4             65.0
+                                      Bold font indicates the highest accuracy and F1 scores for each method
+
+
+What are the users’ self-reported ratings?                                   Friedman’s test showed a statistical significant difference
+                                                                             in the mean ranks among the three visualization paradigms
+Perceived assessment confidence                                              (χ 2 (2) = 6.42, p = .040). The post hoc Wilcoxon tests
+                                                                             with a Bonferroni correction showed that the mean ranks
+A one-way repeated-measures ANOVA was conducted to                           of the Attention-Guiding (M = 2.26, S D = 0.56) and
+examine the effect of the visualization paradigm on partici-                 Correspondence-Suggesting paradigms (M = 1.53, S D =
+pants’ subjective confidence on their assessments (from 1 =                  0.84) were significantly different ( p = .047). There were
+not confident to 5 = very confident). The test revealed a signif-            no significant differences between the Neutral visualization
+icant main effect of the visualization paradigm on subjective                (M = 2.21, S D = 0.86) and other paradigms.
+confidence ratings (F(2, 42) = 4.26, p = .021, η2p =
+.02). Post hoc pairwise comparisons using Tukey’s HSD
+test showed that on average, confidence ratings are signifi-
+cantly larger in the Correspondence-Suggesting visualization                 Discussion and conclusion
+(M = 3.59, S D = 0.91) than in the Attention-Guiding visu-
+alization (M = 3.26, S D = 0.93), p = .013. No significant                   In this study, we present two new visualization paradigms for
+differences were found with respect to Neutral visualizations                displaying 2D/3D registration results and conduct a compari-
+(M = 3.44, S D = 0.91).                                                      son study with an existing visualization method for assessing
+                                                                             registration errors. With the user interface displaying simu-
+                                                                             lated registration results, users evaluate the registration error
+Perceived preference                                                         by assessing how well the registration aligned the 2D with
+                                                                             the 3D data.
+Participants ranked their preference of the three visualization                 Our findings show that visualization paradigms do mat-
+paradigms (from 1 = most preferred to 3 = least preferred),                  ter in the human-based assessment of 2D/3D registration.
+and we used a Friedman’s test to compare these ratings.                      With all three visualization paradigms, not only are users
+
+
+123
+International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024                                                            1023
+
+
+able to differentiate mTREs ranging in the groups of 0–                    misalignment errors to human inspectors for accurate verifi-
+2 mm, 2–4 mm, 4–6 mm, and 6–8 mm, but can distinguish                      cation of 2D/3D registration.
+offsets smaller than 4 mm. It is also shown that the two                       This study serves as a preliminary exploration of this
+novel paradigms, Attention-Guiding and Correspondence-                     emerging research field in human-in-the-loop safety assur-
+Suggesting visualization, allow users to perform better in the             ance for technology-assisted image-guided surgery. Our
+registration assessment task, with higher accuracy and F1                  findings reveal that the quality assurance of 2D/3D registra-
+scores than the Neutral paradigm in both absolute and adap-                tion is indeed impacted by visualization paradigms. However,
+tive thresholding methods. In addition, our tests revealed that            a more comprehensive understanding of this impact is nec-
+participants have significantly higher perceived confidence                essary to identify opportunities for enhancement. Gaining a
+ratings and preference using the Correspondence-Suggesting                 deeper understanding of these effects is essential for devel-
+paradigm than the Attention-Guiding paradigm. Interest-                    oping more effective methods to ensure accuracy and safety
+ingly, the optimal threshold was lower for the Correspondence-             in surgical procedures. Ultimately, these insights will be crit-
+Suggesting paradigm (0.62) than the Attention-Guiding                      ical for advancing assured surgical autonomy and expanding
+paradigm (0.72), suggesting that the Correspondence-                       its applicability across diverse surgical scenarios.
+Suggesting paradigm allows users to evaluate the registra-
+tion errors more conservatively, while making their decision               Declarations
+more confidently.
+   While the results hold on average, the overall accuracy                 Conflict of interest All authors have no conflict of interest to declare.
+needs to be improved, and there is still considerable vari-
+                                                                           Ethical approval The study was approved by the Homewood Institu-
+ance in the alignment perception for individual decisions.                 tional Review Board (HIRB00013292) and conducted according to
+It can be observed in Fig. 2 (Left) that although partici-                 ethical standards.
+pants’ ability to distinguish between different types of errors
+                                                                           Informed consent Informed consents were obtained from all partici-
+on average, there exists both strong accepts and rejects of
+                                                                           pants.
+registrations, regardless of the error category. Furthermore,
+despite the improvement of accuracy and F1 scores of the
+novel paradigms compared to the standard Neutral paradigm
+                                                                           References
+Table 1, the performance is not sufficient for the reliable
+detection of spatial misalignment. The factors that may cause               1. Kochanski RB, Lombardi JM, Laratta JL, Lehman RA, O’Toole
+this variance, as well as how to reduce this variance and                      JE (2019) Image-guided navigation and robotics in spine surgery.
+increase accuracy, should be further investigated.                             Neurosurgery 84(6):1179–1189
+                                                                            2. Fiorini P, Goldberg KY, Liu Y, Taylor RH (2022) Concepts and
+   Human factors can be explored to gain a better understand-
+                                                                               trends in autonomy for robot-assisted surgery. Proceed IEEE
+ing of how users process the information provided to them to                   110(7):993–1011
+perceive and assess alignment. For instance, the analysis of                3. Gu W, Martin-Gomez A, Cho SM, Osgood G, Bracke B, Josewski
+their gaze pattern, including fixation and entropy, can be cor-                C, Knopf J, Unberath M (2022) The impact of visualization
+                                                                               paradigms on the detectability of spatial misalignment in mixed
+related to the (in)accuracy of their registration assessment.
+                                                                               reality surgical guidance. IJCARS 17(5):921–927
+Other human factors may include the time it takes for the                   4. Markelj P, Tomaževič D, Likar B, Pernuš F (2012) A review of
+user to evaluate the result, the time spent on the training ses-               3d/2d registration methods for image-guided interventions. Med
+sion before the assessments, the number of transitions from                    Image Anal 16(3):642–661
+                                                                            5. Unberath M, Gao C, Hu Y, Judish M, Taylor RH, Armand M, Grupp
+overlay to X-ray image, and the users’ risk adversity level.
+                                                                               R (2021) The impact of machine learning on 2d/3d registration for
+   We use mTRE as the metric to quantify and differentiate                     image-guided interventions: a systematic review and perspective.
+the registration offsets, but the offsets can be deconstructed                 Front Robotics AI 8:716007
+into the translational and rotational error components. More-               6. Grupp RB, Unberath M, Gao C, Hegeman RA, Murphy RJ, Alexan-
+                                                                               der CP, Otake Y, McArthur BA, Armand M, Taylor RH (2020)
+over, the mean target reprojection error, in addition to the
+                                                                               Automatic annotation of hip anatomy in fluoroscopy for robust
+mTRE, may also play a role in assessing how perceptible                        and efficient 2d/3d registration. IJCARS 15(5):759–769
+even large 3D registration offsets actually are when visu-                  7. Grupp RB (2020) Computer-assisted fluoroscopic navigation for
+alized in 2D projections. It is also worth considering that                    orthopaedic surgery. PhD thesis, Johns Hopkins University
+                                                                            8. Weiskopf D (2022) Uncertainty visualization: concepts, methods,
+while our registration error is minimal (i.e., below 1-2 mm
+                                                                               and applications in biological data visualization. Front Bioinform.
+mTRE), the ground truth of the dataset used in this study is                   https://doi.org/10.3389/fbinf.2022.793819
+not perfect. Further analyses of these error components and                 9. Gillmann C, Saur D, Wischgoll T, Scheuermann G (2021)
+the human factors mentioned above, can provide insight into                    Uncertainty-aware visualization in medical imaging-a survey.
+                                                                               Comp Graph Forum 40:665–689
+how registration results mislead users and how they mislead
+                                                                           10. Simpson AL, Ma B, Chen E, Ellis RE, Stewart AJ (2006) Using
+image similarity metrics. With these insights, more effec-                     registration uncertainty visualization in a user study of a simple
+tive methods can be developed and tested to communicate                        surgical task. In: MICCAI, pp. 397–404 Springer
+
+
+                                                                                                                                        123
+1024                                                         International Journal of Computer Assisted Radiology and Surgery (2023) 18:1017–1024
+
+
+11. Risholm P, Pieper S, Samset E, Wells WM (2010) Summarizing            16. Chuang J, Weiskopf D, Moller T (2009) Hue-preserving color
+    and visualizing uncertainty in non-rigid registration. In: MICCAI,        blending. IEEE Trans Visualiz Comp Graph 15(6):1275–1282
+    pp. 554–561. Springer
+12. Wang J, Kreiser M, Wang L, Navab N, Fallavollita P (2014)
+    Augmented depth perception visualization in 2d/3d image fusion.
+                                                                          Publisher’s Note Springer Nature remains neutral with regard to juris-
+    Comp Med Imag Graph 38(8):744–752
+                                                                          dictional claims in published maps and institutional affiliations.
+13. Zheng L, Wu Y, Ma K-L (2012) Perceptually-based depth-ordering
+    enhancement for direct volume rendering. IEEE Trans Visualiz
+                                                                          Springer Nature or its licensor (e.g. a society or other partner) holds
+    Comp Graph 19(3):446–459
+                                                                          exclusive rights to this article under a publishing agreement with the
+14. Bruckner S, Gröller E (2007) Enhancing depth-perception with
+                                                                          author(s) or other rightsholder(s); author self-archiving of the accepted
+    flexible volumetric halos. IEEE Trans Visualiz Comp Grap
+                                                                          manuscript version of this article is solely governed by the terms of such
+    13(6):1344–1351
+                                                                          publishing agreement and applicable law.
+15. Šoltészová V, Patel D, Viola I (2011) Chromatic shadows
+    for improved perception. In: Proceedings of the ACM SIG-
+    GRAPH/Eurographics Symposium on Non-Photorealistic Anima-
+    tion and Rendering, pp. 105–116
+
+
+
+
+123
+

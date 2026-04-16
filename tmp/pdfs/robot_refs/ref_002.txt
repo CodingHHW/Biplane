@@ -1,0 +1,339 @@
+2025 年      12 月                                     首 都 医 科 大 学 学 报                                                                Dec. 2025
+第 46 卷      第6期                                  Journal of Capital Medical University                                          Vol. 46   No. 6
+
+
+doi: 10. 3969 / j. issn. 1006-7795. 2025. 06. 018                                                                          ·临床研究·
+
+骨科手术机器人辅助技术在创伤骨科的临床应用特征分析
+
+李敏娟1,2           张         腾1   贾      曌3        韩    巍1       王军强1           公茂琪1∗            蒋协远1,2
+(1. 首都医科大学附属北京积水潭医院创伤骨科,北京 100035;2. 北京市创伤骨科研究所,北京 100035;3. 骨科手术机器人北京
+市工程研究中心,北京 100035)
+
+【 摘要】      目的      基于真实世界数据描述手术机器人辅助技术在创伤骨科中的临床应用特征。 方法                                                          依托骨科机器人手术数据
+平台,纳入 2021 年 1 月至 2023 年 7 月在首都医科大学附属北京积水潭医院创伤骨科接受手术的住院患者,收集患者的基本信
+息、流行病学数据、临床诊断及手术治疗等资料,比较机器人辅助手术与非机器人辅助手术组间患者的性别、年龄、手术部位、手
+术方式、手术时间和出血量。 结果                        骨科手术机器人组和非骨科手术机器人组研究对象间性别、年龄间差异均有统计学意义( P
+<0. 001) 。 机器人辅助手术已应用于 14 个部位的骨折手术中。 接受机器人辅助手术的创伤骨科患者,以男性为主( 60. 61%) ,50
+岁及以上患者占 39. 96%,其中 88. 07%的患者接受闭合复位内固定术[ 手术部位前三位:股骨( 35. 48%) 、骨盆( 26. 67%) 和锁骨
+(20. 86%) ] 。 结论           骨科手术机器人辅助技术已广泛应用在创伤骨科多部位骨折手术中,但不同部位间该技术的具体应用仍存
+在明显差异。
+【 关键词】       骨科手术;机器人辅助;创伤骨科;临床特征;真实世界数据;疗效对比
+【 中图分类号】           R683     【 文献标识码】         A
+
+Analysis of clinical characteristics of robot-assisted surgery in traumatic orthopedics
+Li Minjuan 1,2 , Zhang Teng 1 , Jia Zhao 3 ,Han Wei 1 , Wang Junqiang 1 , Gong Maoqi 1∗ , Jiang Xieyuan 1,2
+( 1. Department of Orthopedic Trauma, Beijing Jishuitan Hospital, Capital Medical University, Beijing 100035, China;2. Beijing Research
+ Institute of Traumatology and Orthopaedics, Beijing 100035, China;3. Beijing Engineering Research Center of Orthopedic Robot,Beijing
+ 100035, China)
+
+【 Abstract】 Objective To describe the clinical application characteristics of robot-assisted technology in traumatic orthopedics based
+on real world data. Methods Based on the orthopedic surgical robot database, this paper retrospectively included the basic information,
+epidemiological data, clinical diagnosis and surgical treatment data of inpatients undergoing surgery in the orthopedic Department of
+orthopedic trauma in Beijing Jishuitan Hospital Affiliated to Capital Medical University from January 2021 to July 2023. Gender, age,
+surgical site, surgical type, surgical time and blood loss were compared between robot-assisted surgery and non-robot-assisted surgery
+groups. Results There were significant differences in gender, age between the robot-assisted surgery group and the non-robot-assisted
+surgery group ( P<0. 001) . Robot-assisted surgery technology has been used in 14 sites of fracture surgery. The majority of participants
+receiving robot-assisted surgery were male ( 60. 61%) , and patients aged 50 years and above accounted for 39. 96%, among which
+88. 07% of patients received closed reduction internal fixation [ the top three surgical sites: femur ( 35. 48%) , pelvis ( 26. 67%) and
+clavicle (20. 86%) ] . Conclusions Robot- assisted surgery has been widely used in traumatic orthopaedic multi-site fracture surgery,
+but the specific application of this technology is still different among different sites.
+【 Key words】 orthopedic surgery; robot-assisted; trauma orthopedics; clinical features; real-world data; efficacy comparison
+
+
+      骨折是常见骨科疾病之一。 全球范围内,2019                                             的提高,人们对健康的要求也达到新高度。 临床上治
+年骨折患病数 4. 55 亿例,其造成的失能寿命损失年                                               疗疾病的新技术手段不断被提出,骨科治疗理念也随
+负担为 2 580 万          [1]
+                           。 手术是骨科疾病的主要治疗方                                着技术进步而不断革新。 目前,微创手术精准化是骨
+法。 随着我国社会、经济的快速发展及人民生活水平                                                  科治疗的重点发展方向。 手术机器人辅助技术可帮
+
+基金项目:国家重点研发计划项目( 2022YFC2407500) ,北京市卫生健康委员会第五批北京市属医学科研院所公益发展改革试点项目( 京医研
+2023-8) 。 This study was supported by National Key Research and Development Program of China ( 2022YFC2407500) , Public Welfare Development and
+Reform Pilot Project for the Fifth Batch of Municipal Medical Research Institutes of Beijing Municipal Health Commission (2023-8) .
+∗Corresponding author,E-mail:13264239959@ 163. com
+网络出版时间:2025-12-04 10 ∶58 网络出版地址:https: / / link. cnki. net / urlid / 11. 3662. R. 20251203. 1852. 002
+第6期               李敏娟等:骨科手术机器人辅助技术在创伤骨科的临床应用特征分析                                                        1103
+
+
+助医生进行精准控制、微创操作,是推动骨科治疗微                                  象分为“ 骨科手术机器人组” ( 即本次手术过程中有
+创化、精准化及医疗服务均等化的重要手段。 与其他                                 接受手术机器人辅助技术相关操作的住院患者) 和
+骨科亚专业相比,创伤骨科具有病种涵盖范围广、病                                  “非骨科手术机器人组” ( 即本次手术过程中未接受
+情复杂多变、患者个体化因素强等特征,对骨科机器                                  手术机器人辅助技术相关操作的住院患者) 。 本项
+人辅助手术技术的要求相对更高          [2]
+                              。 近年来,机器                   目已获得北京积水潭医院医学伦理委员会批准,伦理
+人辅助技术在创伤骨科的临床应用逐渐增多                           [3]
+                                                    ,提   审批号:积伦[ K2024] 第[ 237] 号 - 00。 本研究所有
+示该技术可显著提高手术精度,但仍存在功能单一、                                  研究对象均已签署书面知情同意书。
+临床适应证窄、有效性评价不足等问题              [2]
+                                     。 因此,本              1. 2    资料收集与整理
+研究基于真实世界数据系统总结手术机器人辅助技                                          基于骨科手术机器人数据库,共检索北京积水潭
+术在创伤骨科中的临床应用特征,为进一步开展临床                                  医院创伤骨科住院患者 10 252 例;根据患者住院就
+研究、优化临床适应证、攻关技术难点及提高临床疗                                  诊费用清单,共纳入机器人辅助手术 1 525 例、非机
+效提供循证依据。                                                 器人辅助手术 8 727 例;由两位创伤骨科医生同时根
+                                                         据各研究对象病案首页和手术记录中的手术名称及
+1      对象与方法
+                                                         手术操作进行数据清洗,再由两位工作人员进行质量
+1. 1   研究对象                                              控制及编码,最终纳入手术名称清晰、明确的数据资
+       本研 究 依 托 国 家 重 点 研 发 计 划 项 目                      料 3 832 例,并根据是否有机器人辅助手术分为骨科
+(No. 2022YFC2407500) 搭建的骨科机器人手术数据平                       手术机 器 人 组 ( 528 例 ) 和 非 骨 科 手 术 机 器 人 组
+台,纳入 2021 年 1 月至 2023 年 7 月于首都医科大学                       (3 304 例) ( 图 1) 。
+附属北京积水潭医院( 以下简称北京积水潭医院) 创                                1. 3    统计学方法
+伤骨科接受机器人辅助手术与非机器人辅助手术的                                          采用 R Studio ( Version 2023. 09. 0 + 463) 进行统
+住院患者,收集、整理研究对象基本信息、流行病学数                                 计学分析。 符合正态分布的连续性变量,采用均数±
+据、临床诊断及手术治疗资料等进行数据清洗与分                                   标准差( x±s) 进行描述;不符合正态分布的连续性变
+析。 本项目根据研究对象的就诊费用清单,将研究对                                 量,采用中位数进行描述;离散型变量采用构成比进
+
+
+
+
+                                              图 1 技术路线图
+                                     Fig. 1    Flowchart of this study
+1104                                                          首都医科大学学报                                           第 46 卷
+
+
+行描述。 骨科手术机器人组和非骨科手术机器人组                                                 机器人组的 主 要 手 术 部 位 与 骨 科 手 术 机 器 人 组 的
+间的分类变量采用卡方检验或 Fisher 精确检验进行                                             不同,手术部位前 3 位均为股骨( 男性:17. 81 %;女
+组间比较。 骨科手术机器人组和非骨科手术机器人                                                 性: 27. 81%) 、 尺 桡 骨 ( 男 性: 25. 42%; 女 性:
+两组间 的 连 续 型 变 量 ( 手 术 时 间、 出 血 量 等) 采 用                                 27. 35%) 和 肱 骨 ( 男 性: 13. 91%; 女 性: 15. 80%) ,
+Wilcoxon 秩和检验进行比较。 以 P < 0. 05 为差异具                                     但具体排序在男 性 和 女 性 间 存 在 差 异 ( P < 0. 001)
+有统计学意义。                                                                 ( 图 2C-D) 。 机器人 手 术 组 中, 男 性 主 要 手 术 部 位
+                                                                        排序为股骨>锁骨>骨盆,女性主要手术部位排序为
+2      结果
+                                                                        股骨>骨盆>锁骨;而非机器人手术组中男性主要手
+2. 1       一般资料                                                         术部位排序为尺桡骨>股骨>肱骨,女性主要手术部
+       本 研 究 共 纳 入 3 832 例 研 究 对 象, 女 性                                 位排序为股骨>尺桡骨>肱骨。
+(50. 18%) 较多于男性 ( 49. 82%) , 且年龄多分布于                                    2. 3   年龄
+30 ~ 40 岁(18. 08%) 和 60 ~ 70 岁(17. 90%) 之间。 其                                  本研究全部研究对象的主要年龄分布在 30 ~ 70
+中,528 例( 13. 78%) 研究对象接受手术机器人辅助                                         岁之间( 68. 08%) ,其中 31 ~ 40 岁、41 ~ 50 岁、51 ~ 60
+手术,3 304 例 ( 86. 22%) 研究对象接受传统骨科手                                       岁和 61 ~ 70 岁 年 龄 组 构 成 比 依 次 为 18. 08%、
+术。 骨科手术机器人组和非骨科手术机器人组研究                                                 14. 74%、17. 35% 和 17. 90%。 在 骨 科 手 术 机 器 人
+对象间 性 别、 年 龄 间 差 异 均 具 有 统 计 学 意 义 ( P <                                组,50 岁及以上研究对象的构成比为 39. 96%,高龄
+0. 001) ( 表 1) 。                                                        研究对 象 仅 占 2. 84% ( 81 ~ 90 岁:2. 84%; > 90 岁:
+                     表 1 研究对象基本特征                                       0%) 。 在非骨科手术机器人组,50 岁及以上研究对
+       Tab. 1    Basic characteristics of the study subjects            象的 构 成 比 为 54. 87%, 高 龄 研 究 对 象 占 9. 69%
+                                                                n( %)
+                                                                        ( 81 ~ 90 岁:7. 84%; > 90 岁: 1. 85%) ( 表 1 ) 。 锁
+    Epidemiological     Robot assisted   Non-robot assisted
+        factors            group               group
+                                                                P       骨、股骨和骨盆分别是 10 ~ 40 岁、41 ~ 70 岁、71 ~ 90
+ Gender                                                       <0. 001   岁骨科手术机器人组研究对象的主要手术部位;而
+    Male                320(60. 61)       1 589(48. 09)                 在全部研究对象及非骨科手术机器人组中,70 岁以
+    Female              208(39. 39)       1 715(51. 91)
+ Age / a                                                      <0. 001
+                                                                        下各年龄组研究对象的主要手术部位均是尺桡骨;
+    10 ~ 20              43(8. 14)          154(4. 66)                  70 岁及以上各年龄组研究对象的主要手术部位均
+    21 ~ 30              66(12. 50)         287(8. 69)                  是股骨( 图 3) 。
+    31 ~ 40             114(21. 59)        579(17. 52)
+                                                                        2. 4   手术方式
+    41 ~ 50              94(17. 80)        471(14. 26)
+    51 ~ 60             100(18. 94)        565(17. 10)                         纳入 3 832 例创伤骨科研究对象均接受了内固
+    61 ~ 70              75(14. 20)        611(18. 49)                  定术,其中 67. 62% 的 研 究 对 象 接 受 切 开 复 位 内 固
+    71 ~ 80              21(3. 98)          317(9. 59)
+                                                                        定 术, 手 术 部 位 排 序 前 三 位 的 是: 尺 桡 骨
+    81 ~ 90              15(2. 84)          259(7. 84)
+    >90                   0(0. 00)          61(1. 85)                   ( 33. 68%) 、 肱 骨 ( 16. 17%) 、 踝 关 节 ( 15. 39%) ;
+ Ethnicity                                                    0. 618    32. 38%的研究 对 象 接 受 闭 合 复 位 内 固 定 术, 手 术
+    Han                 519(98. 30)       3 233(97. 85)
+                                                                        部 位 排 序 前 三 位 的 是: 股 骨 ( 62. 58%) 、 骨 盆
+    Others                9(1. 70)          71(2. 15)
+                                                                        ( 10. 16%) 、胫 腓 骨 ( 8. 47%) 。 非 骨 科 手 术 机 器 人
+2. 2       性别                                                           组中 76. 54%的患 者 接 受 切 开 复 位 内 固 定 术,手 术
+       接受机器 人 辅 助 手 术 的 创 伤 骨 科 患 者 以 男 性                               部位数量排序前三位的是:尺桡骨( 34. 48%) 、肱骨
+为主( 60. 61%) ,而 未 接 受 机 器 人 辅 助 手 术 的 创 伤                               ( 16. 49%) 、踝 关 节 ( 15. 74%) ,占 全 部 切 开 复 位 内
+骨科患者以女性为主( 51. 91%) ( 表 1) 。 在骨科手                                       固定术研究 对 象 的 97. 57%;而 骨 科 手 术 机 器 人 组
+术机器人组中,男性和女性研究对象手术部位的前                                                  中 88. 07%的患者 接 受 闭 合 复 位 内 固 定 术,其 中 手
+3 位均为股骨( 男性:28. 44%;女性:38. 94%) 、锁骨                                     术部 位 排 序 前 三 位 的 是: 股 骨 ( 35. 48%) 、 骨 盆
+( 男 性: 23. 75%; 女 性: 12. 98%) 和 骨 盆 ( 男 性:                              ( 26. 67%) 、锁 骨 ( 20. 86%) ,占 全 部 闭 合 复 位 内 固
+23. 13%;女 性: 32. 21%) ( 图 2A-B) 。 非 骨 科 手 术                             定术的患者的 37. 50%( 表 2) 。
+第6期                                  李敏娟等:骨科手术机器人辅助技术在创伤骨科的临床应用特征分析                                                                                   1105
+
+
+
+
+                                      图 2 创伤骨科机器人和非机器人辅助手术的性别分布特征
+       Fig. 2      Gender distribution characteristics of robot assisted and non-robot assisted surgeries in trauma orthopedics
+A:Robot-assisted surgeries in male patients; B: Robot-assisted surgeries in female patients; C: Non-robot-assisted surgeries in male patients; D: Non-robot-
+assisted surgeries in female patients.
+
+
+
+
+                                      图 3 创伤骨科机器人和非机器人辅助手术的年龄分布特征
+          Fig. 3    Age distribution characteristics of robot assisted and non-robot assisted surgeries in trauma orthopedics
+                           A:All participants; B: Robot assisted group; C:Non-robot assisted group. ( a-q: Main surgical site. )
+1106                                                            首都医科大学学报                                                                         第 46 卷
+
+
+                                            表 2 创伤骨科机器人和非机器人辅助手术的基本特征
+                     Tab. 2   Baseline characteristics of robot assisted and non-robot assisted trauma orthopedic surgeries                        n( %)
+                                      Robot assisted                     Non-robot assisted                                       Total
+
+        Surgical           Closed           Open                   Closed           Open                            Closed           Open
+                          reduction       reduction              reduction       reduction               P         reduction       reduction
+          site                                          Total                                  Total                                              Total
+                         and internal    and internal           and internal    and internal                      and internal    and internal
+                           fixation        fixation               fixation        fixation                          fixation        fixation
+         Femur           165(95. 93)      7(4. 07)      172     611(80. 39) 149(19. 61)        760     <0. 001   776(83. 26) 156(16. 74)          932
+    Ulna and radius       1(50. 00)       1(50. 00)      2       1(0. 11)      872(99. 89)     873      0. 05      2(0. 23)      873(99. 77)      875
+        Humerus          18(90. 00)       2(10. 00)      20     75(15. 24)     417(84. 76)     492     <0. 001    93(18. 16)     419(81. 84)      512
+       Ankle joint            —          1(100. 00)      1          —          398(100. 00)    398                    —          399(100. 00)     399
+    Tibia and fibula     23(82. 14)       5(17. 86)      28     82(26. 11)     232(73. 89)     314     <0. 001   105(30. 70) 237(69. 30)          342
+        Clavicle         97(94. 17)       6(5. 83)      103         —          110(100. 00)    110     <0. 001    97(45. 54)     116(54. 46)      213
+         Pelvis          124(87. 94)     17(12. 06)     141      2(6. 25)       30(93. 75)      32     <0. 001   126(72. 83)      47(27. 17)      173
+    Bones of the foot    23(58. 97)      16(41. 03)      39      4(2. 96)      131(97. 04)     135     <0. 001    27(15. 52)     147(84. 48)      174
+         Patella              —               —          0          —          124(100. 00)    124                    —          124(100. 00)     124
+         Other           14(63. 64)       8(36. 36)      22         —          66(100. 00)      66     <0. 001    14(15. 91)      74(84. 09)       88
+          Total          465(88. 07)     63(11. 93)     528     775(23. 46) 2 529(76. 54) 3 304                  1 240(32. 38) 2 592(67. 62) 3 832
+
+
+2. 5      手术时间与出血量                                                                伤骨科手术机器人研究开展较早,但其技术成熟度和
+        本研究共纳入 16 个部位的内固定术手术数据,                                                   市场化相对关节、脊柱骨科手术机器人仍有较大差
+其中仅 11 个部位 ( 尺 桡 骨、 肱 骨、 股 骨、 骨 盆、 踝 关                                            距 [4] 。 为进一步优化手术机器人在创伤骨科的适用
+节、肩胛骨、肩锁关节、胫腓骨、锁骨、肘关节和足骨)                                                         范围并提高机器人辅助手术的临床效果,本研究基于
+同时有机器人辅助内固定术和非机器人辅助内固定                                                            真实世界数据,系统总结手术机器人辅助技术在创伤
+术手术数据。 在手术时间方面,股骨部位的机器人辅                                                          骨科的实际临床应用特征。
+助手术( 闭合:81. 66 min;切开:156. 43 min) 的手术                                                   基于全球疾病负担研究 ( Global Burden of Dis-
+时间明显长于非机器人辅助手术( 闭合:54. 09 min;                                                    ease, GBD) 的报告 [5] 显示,在主要骨折部位分布上,
+切开:80. 63 min) ,差异有统计学意义( P < 0. 05) ;胫                                           女性 55 岁以上( 尤其 65 岁以上) 人群以髋部骨折为
+腓骨部位的机器人辅助闭合复位内固定术的手术时                                                            主,而男性则多见于足部( 不含踝关节) 、手部( 腕部
+间明显长于该部位非机器人辅助手术,差异有统计学                                                           及远端) 以及股骨( 不含股骨颈) 骨折;基于我国 8 个
+意义( P<0. 001) 。 锁骨、足骨、骨盆部位的手术中,机                                                  省份 51 万 余 人 开 展 的 大 规 模 中 国 骨 折 临 床 研 究
+器人辅助组切开复位内固定术的手术时间均长于非                                                            ( China National Fracture Study, CNFS) 报告 [6] 中指出
+机器人辅助 组, 差 异 均 有 统 计 学 意 义 ( P < 0. 05, P <                                       胫腓骨、尺桡骨和足骨是 15 ~ 64 岁骨折患者的主要
+0. 001,P<0. 001) 。 而在出血量方面,股骨部位的机                                                 发生部位;然而,本文研究中股骨、尺桡骨和肱骨是所
+器人辅助组的术中出血量(65. 20 mL) 明显少于该部                                                     有研究对象的主要骨折发生部位( 占男性和女性所
+位的 非 机 器 人 手 术 组 的 传 统 闭 合 复 位 内 固 定 术                                            有骨折的 52. 85% 和 68. 12%) 。 研究对象来源及骨
+(92. 82 mL) ,差异有统计学意义( P<0. 05) 。 在肩胛                                             折部位分类的差异可能是两者差异的主要原因。 此
+骨部位,机器人辅助组的切开复位内固定术出血量更                                                           外,本文研究结果显示性别构成在机器人辅助组和非
+低,差异有统计学意义( P<0. 05) ( 图 4) 。                                                     机器人辅助组间差异显著,锁骨是骨科手术机器人组
+                                                                                  的主 要 手 术 部 位 ( 约 占 所 有 机 器 人 辅 助 手 术 的
+                                                                                  20%) ,且以 40 岁以下患者为主( 占所有机器人辅助
+3      讨论
+                                                                                  锁骨手术患者的 71. 84%) ,而锁骨骨折在非机器人
+        手术机器人辅助技术在骨科疾病治疗领域已得                                                      辅助手术中仅占 3. 33%。 同时,在各年龄组患者内,
+到广泛应用,极大促进了骨科手术精准化、个性化、微                                                          接受机器人辅助手术的患者占该年龄组所有患者的
+创化的发展。 创伤骨科主要以多种骨折治疗为主,其                                                          构成比随年龄增长而呈现明显下降趋势,进一步提示
+手术分型的多样性导致手术需求的复杂性。 虽然创                                                           机器人辅助技术和传统手术在创伤骨科领域呈有利互
+第6期                                 李敏娟等:骨科手术机器人辅助技术在创伤骨科的临床应用特征分析                                                                                       1107
+
+
+
+
+                             图 4 创伤骨科不同部位机器人和非机器人辅助手术的手术时间和出血量对比
+                 Fig. 4    Comparison of operation time and blood loss between robot assisted and non-robot assisted
+                                           surgeries at different sites in trauma orthopedics
+∗
+  P<0. 05, ∗∗∗ P<0. 001 . A:The boxplot of surgery time in closed reduction and internal fixation surgery; B: The boxplot of surgery time in open reduction
+and internal fixation surgery; C:The boxplot of blood loss in closed reduction and internal fixation surgery; D:The boxplot of blood loss in open reduction and
+internal fixation surgery.
+
+补作用 [7] 。 相对应地,本文研究共纳入 335 位高龄                                                    科涉及的骨折类型复杂多样,本文研究结果提示机器
+(80 岁及以上) 患者,占所有研究对象的 8. 72%,但仅                                                   人辅助技术已可适用于股骨、骨盆、锁骨、胫腓骨、足
+有 15 位接受机器人辅助手术,机器人辅助技术仍未                                                         骨等多个部位。 然而,骨科创伤机器人相关的真实世
+在高龄患者中较多开展。 这可能主要是由于高龄患                                                           界研究仍然较少,现有研究 [9-11] 以骨盆和股骨为主且
+者的心肺功能下降、肝肾功能衰减、伴有严重骨质疏                                                           多为文献综述和病例报告,尺桡骨、锁骨等部位的真
+松,同时常患有多种慢性病,如冠状动脉粥样硬化性                                                           实世界线索仍较为有限。 更为重要的是,随着骨科创
+心脏病、糖尿病、高血压等,以上基础疾病增大了麻醉                                                          伤机器人适用范围、覆盖范围的逐渐扩大,医生、患者
+风险以及术后并发症的发生概率,因此高龄患者更倾                                                           在实际临床过程中对手术机器人辅助技术及设备的
+向于选择传统手术治疗。 随着人口老龄化进程加快,                                                          需求也呈动态变化趋势,前期对骨科创伤机器人的安
+骨折发生率随年龄呈增长趋势,且我国任意骨折的出                                                           全性和可行性评价的临床研究已不适应于当前应用
+住院率随年份也呈增加趋势                            [8]
+                                              。 鉴于此,高龄患者接                         现况及未来发展,未来仍需开展更多大样本量前瞻性
+受机器人辅助手术可能成为未来趋势。 此外,创伤骨                                                          临床研究。
+1108                             首都医科大学学报                                                            第 46 卷
+
+
+       骨折后,如果局部的皮肤软组织完整,没有出现              功能恢复、手术并发症等指标。 ③本研究仅基于非图
+明显的破损或缺损,一般建议首选内固定手术方式。                   像资料进行临床应用特征的描述,缺少基于图像资料
+复位内固定是创伤骨科的主要手术方法,因此本文研                   的相关数据。 ④患者样本量差别过大( 机器人组 528
+究仅纳入创伤骨科接受内固定术的患者。 研究结果                   例 vs 非机器人组 3 304 例) ,可能增加统计模型的方
+提示传统非机器人辅助手术仍然是以切开复位内固                    差并引入潜在偏倚。 这也反映了该技术处于临床应
+定为主,机器人手术主要是以闭合复位内固定为主,                   用初期的现实情况,未来需要在更大规模的、样本量
+这可能与机器人辅助技术的现有特征相关。 多数骨                   更均衡的前瞻性队列研究中进一步验证本文的结论。
+科手术机器人只能服务于特定类型骨科手术,功能较                           手术机器人辅助技术已较为广泛地应用于多部
+单一,且无法完成较复杂手术操作,智能化仍有待提                   位手术中,但病种涵盖范围广、病情复杂多变、患者个
+高 [4] 。 已有研究 [12] 指出 TiRobot 辅助下骶 2 椎体的   体化因素强的创伤骨科手术对手术机器人提出更高
+骶髂关节螺钉植入治疗骨盆后环骨折,成功率高于徒                   的要求,个性化、精准化、智能化和远程化是其未来发
+             [13]
+手手法;也有报道            机器人辅助下经皮空心螺钉置         展的方向,多适应证、智能决策、人机交互等是其进一
+入联合跗骨窦切口复位治疗跟骨骨折在 2 年随访中                  步发展的重要切入方向。 此外,骨科手术数据是进一
+明显优于传统手术复位和固定。 相比传统的骨科手                   步开展相关领域内真实世界临床研究的重要基础,制
+术,机器人手术具有精度高、创伤小、可重复性好和安                  定口径统一、语义明确、结构规范的数据字典是创建
+全性高的临床应用优势。 基于本文研究结果,针对机                  数据驱动的骨科精准治疗新策略与方法的重要抓手,
+器人辅助技术已适用的手术部位可进一步开展多领                    同时是扩大手术机器人辅助技术在我国创伤骨科领
+域相关研究。                                    域临床应用范围的关键环节,有利于提高创伤骨科领
+                 [7]
+       此外,荆玉龙等         指出骨科机器人辅助股骨颈       域机器人手术的规范性与渗透率。
+动力交叉钉系统治疗新鲜股骨颈骨折近期疗效与传
+                                                  利益冲突       所有作者均声明不存在利益冲突。
+统徒手操作相似,但在手术时间、术中出血量以及主
+                                                  Declaration of conflicting interests       All authors de-
+导针置入次数方面具有优势;另一项纳入 112 例股骨
+                                          clare no competing interests.
+颈骨折的研究 [14] 指出机器人组术中出血、术中透视
+                                                  作者贡献声明          李敏娟:研究方案的设计与实施,论
+时间、住院时间、螺钉置入准确性等均较对照组有优
+                                          文撰写;张腾:统计及数据分析;贾曌:研究方案设计;韩
+势。 然而,在股骨的闭合 / 切开复位内固定术中,本文
+                                          巍:研究方案实施;王军强:研究方案的设计指导;公茂
+研究结果均提示机器人辅助手术的手术时间均明显
+                                          琪:研究方案的设计指导,论文修改;蒋协远:总体把关,
+长于非机器人辅助手术。 两项研究手术时间结果间
+                                          审定论文。
+的不一致性可能与纳入研究对象的手术部位不同相
+                                                  Author contributions       Li M J: Contributed to the
+关,本文研究中接受机器人辅助股骨骨折内固定术的
+                                          conception of the study and wrote the manuscript; Zhang T:
+患者的手术部位包括股骨颈、股骨粗隆间、股骨干和
+                                          Statistical analysis and data interpretation; Jia Z: Study de-
+股骨远端。 手术时间与患者的基本情况、骨折严重程
+                                          sign; Han W: Study implementation; Wang J Q: Study de-
+度、手术难度等多因素相关,现有骨科手术机器人研
+                                          sign guidance; Gong M Q: Study design guidance and revi-
+究 [15] 尚缺少大样本量的临床数据支撑,特别是创伤
+                                          sion of the manuscript; Jiang X Y:Overall supervision and
+骨科领域。
+                                          revised the manuscript.
+       本文研究基于真实世界数据系统总结机器人辅
+助技术在创伤骨科的实际临床应用特征,为进一步开                   参考文献
+展临床研究、优化临床适应证、攻关技术难点及提高
+                                           [ 1]    GBD 2019 Fracture Collaborators. Global, regional, and
+临床疗效提供循证依据。 然而研究也具有以下局限                            national burden of bone fractures in 204 countries and ter-
+性:①本研究纳入的机器人手术数据仍较为有限,有                            ritories, 1990-2019: a systematic analysis from the Glob-
+待进一步推动骨科手术机器人数据标准化和规范化,                            al Burden of Disease Study 2019[ J] . Lancet Healthy Lon-
+进而推动大样本多中心研究。 ②本研究为回顾性横                            gev, 2021, 2( 9) : e580-e592.
+断面研究,缺少患者的随访数据, 无法讨论诸如长期                   [ 2]    朱振中, 郑国焱, 张长青. 机器人辅助技术在创伤骨
+第6期                             李敏娟等:骨科手术机器人辅助技术在创伤骨科的临床应用特征分析                                                                                      1109
+
+        科的发展与临床应用 [ J ] . 中 国 修 复 重 建 外 科 杂 志,                         [ 11]    Schuijt H J, Hundersmarck D, Smeeing D P J, et al. Ro-
+        2022, 36( 8) : 915-922.                                                 bot-assisted fracture fixation in orthopaedic trauma surger-
+ [ 3]   涂志朋, 金翔赟, 曹昕琪, 等. 手术机器人在创伤骨科                                            y: a systematic review[ J] . OTA Int, 2021, 4( 4) : e153.
+        的应用 进 展 [ J ] . 实 用 骨 科 杂 志, 2023, 29 ( 8 ) : 713              [ 12]    Han W, Zhang T, Su Y G, et al. Percutaneous robot-as-
+        -716.                                                                   sisted versus freehand S2 iliosacral screw fixation in unsta-
+ [ 4]   李金泉, 王九龙, 罗杨宇. 骨科手术机器人的研究进                                              ble posterior pelvic ring fracture [ J ] . Orthop Surg, 2022,
+        展及发展展望[ J ] . 医疗卫生装备, 2023, 44 ( 6 ) : 101                              14( 2) : 221-228.
+        -110.                                                          [ 13]    YuanX W, Tan K, Hu J, et al. Does robot-assisted per-
+ [ 5]   Wang X K, Huang J W, Hu J P, et al. Global burden,                      cutaneous hollow screw placement combined with tarsal si-
+        trends and forecast analysis of extremity fractures based on            nus incision reduction in the treatment of calcaneal frac-
+        GBD 2021[ J] . Int J Surg, 2025, 111( 7) : 4884-4897.                   ture perform better at a minimum two year follow-up com-
+ [ 6]   Chen W, Lv H Z, Liu S, et al. National incidence of                     pared with traditional surgical reduction and fixation? [ J ] .
+        traumatic fractures in China: a retrospective survey of 512             Int Orthop, 2023, 47( 6) : 1575-1581.
+        187 individuals [ J ] . Lancet Glob Health, 2017, 5 ( 8 ) :    [ 14]    Wang X F, Zhang Y X, Lou L B, et al. Robotic-assisted
+        e807-e817.                                                              systems for the safe and reliable treatment of femoral neck
+ [ 7]   荆玉龙, 张树栋, 韩紫音, 等. 骨科机器人辅助股骨颈                                            fractures: retrospective cohort study [ J ] . J Orthop Surg
+        动力交叉钉系统治疗新鲜股骨颈骨折的近期疗效 [ J ] .                                           Res, 2023, 18( 1) : 633.
+        中国修复重建外科杂志, 2022, 36( 8) : 946-950.                            [ 15]    Xu D, Lou W G, Li M, et al. Current status of robot-as-
+ [ 8]   申泽薇, 魏玉虾, 余灿清, 等. 中国 10 个地区成年人                                          sisted surgery in the clinical application of trauma orthope-
+        骨折住院率的描述性分析 [ J ] . 中 华 流 行 病 学 杂 志,                                    dics in China: a systematic review [ J ] . Health Sci Rep,
+        2021, 42( 5) : 771-779.                                                 2022, 5( 6) : e930.
+ [ 9]   Dai Y P, Wang K Y, Shen G H, et al. TiRobot-assisted                     ( 收稿日期:2025 01 17                     修回日期:2025 09 05)
+        versus freehand femoral neck system placement in the
+                                                                                                                                    编辑         金海政
+        treatment of femoral neck fractures: a systematic review
+                                                                                            开放获取           本文使用遵循知识共享署名———非商
+        and meta-analysis[ J] . J Robot Surg, 2025, 19( 1) : 43.                            业性使用 4. 0 国际许可协议( CC BY-NC4. 0) ,详细
+[ 10]   Baek J H, Lee S C, Ryu S, et al. Coronal correction for        信息请访问 https: / / creativecommons. org / licenses / by-nc / 4. 0 / 。
+        post-traumatic malalignment using robot-assisted total knee    OPEN ACCESS           This article is licensed for use under Creative Commons
+        arthroplasty: a case series [ J ] . Orthop Res Rev, 2022,      Attribution-NonCommercial 4. 0 International license (CC BY-NC 4. 0). For
+        14: 445-451.                                                   more information,visit https: / / creativecommons. org / licenses / by-nc / 4.
+

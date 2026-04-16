@@ -1,0 +1,667 @@
+IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020                                                                         437
+
+
+
+
+                      Fiducial-Free 2D/3D Registration for
+                          Robot-Assisted Femoroplasty
+                   Cong Gao, Amirhossein Farvardin, Member, IEEE, Robert B. Grupp ,
+           Mahsan Bakhtiarinejad , Graduate Student Member, IEEE, Liuhong Ma, Mareike Thies,
+Mathias Unberath , Member, IEEE, Russell H. Taylor , Life Fellow, IEEE, and Mehran Armand, Member, IEEE
+
+
+
+   Abstract—Femoroplasty is a proposed alternative therapeutic                                              I. I NTRODUCTION
+method for preventing osteoporotic hip fractures in the elderly.
+                                                                                        STEOPOROSIS, characterized by decreased bone mass
+Previously developed navigation system for femoroplasty required
+the attachment of an external X-ray fiducial to the femur. We
+propose a fiducial-free 2D/3D registration pipeline using fluo-
+                                                                                 O      and microarchitectural deterioration of bone tissue, is a
+                                                                                 global health problem. There is a wealth of research on the
+roscopic images for robot-assisted femoroplasty. Intraoperative                  extent to which bone loss may impair strength and increase
+fluoroscopic images are taken from multiple views to perform reg-                the risk of fracture. The rate of mortality one year after osteo-
+istration of the femur and drilling/injection device. The proposed               porotic hip fracture has been reported to be between 20% and
+method was tested through comprehensive simulation and cadav-
+eric studies. Performance was evaluated on the registration error                45% [1], [2], and the rate of a second fracture occurrence is
+of the femur and the drilling/injection device. In simulations, the              6-10 times higher in patients who have already suffered an
+proposed approach achieved a mean accuracy of 1.26 ± 0.74 mm                     osteoporotic hip fracture [3]. Current approaches on reducing
+for the relative planned injection entry point; 0.63 ± 0.21◦ and                 the risk of hip fracture consider long-term preventive measures
+0.17 ± 0.19◦ for the femur injection path direction and device                   such as estrogens and selective estrogen receptor modulators,
+guide direction, respectively. In the cadaver studies, a mean error
+of 2.64 ± 1.10 mm was achieved between the planned entry point
+                                                                                 calcitonin, and bisphosphonates. These approaches, however,
+and the device guide tip. The biomechanical analysis showed that                 do not provide much-needed immediate prevention especially
+even with a 4 mm translational deviation from the optimal injec-                 for the elderly.
+tion path, the yield load prior to fracture increased by 40.7%.                     Femoroplasty is proposed as an alternative therapeutic treat-
+This result suggests that the fiducial-less 2D/3D registration is                ment for patients with osteoporosis [4]. It aims to prevent
+sufficiently accurate to guide robot assisted femoroplasty.
+                                                                                 potential osteoporotic hip fractures through augmenting the
+  Index Terms—2D/3D registration, femur registration, X-ray                      osteoporotic femoral neck and trochanter area by injecting
+navigation, robot-assisted femoroplasty.                                         bone cements such as Polymethylmethacrylate (PMMA) [5].
+                                                                                 Recent studies suggest that femoroplasty is a short-term pre-
+                                                                                 ventive approach and has the potential to reduce the risk of
+                                                                                 fracture in an osteoporotic hip [5], [6], [7], [8]. Patient-specific
+                                                                                 femoroplasty requires a precise intraoperative navigation of
+                                                                                 the injection device according to a planned trajectory. Thus,
+   Manuscript received June 17, 2020; revised July 17, 2020; accepted            an accurate estimation of the 3D pose of the femur anatomy
+July 22, 2020. Date of publication July 28, 2020; date of current version        and the injection device is necessary for the success of the
+August 19, 2020. This article was recommended for publication by Associate       procedure.
+Editor A. Menciassi and Editor P. Dario upon evaluation of the reviewers’
+comments. This work was supported by NIH under Grant R01EB023939                    Previous studies have presented a navigation system uti-
+and Grant R21EB020113, and in part by Johns Hopkins University Applied           lizing an image-based 2D/3D registration framework with
+Physics Laboratory internal funds. (Corresponding author: Cong Gao.)             intraoperative X-ray images and fiducial-based C-arm track-
+   Cong Gao, Robert B. Grupp, Mathias Unberath, and Russell H. Taylor
+are with the Department of Computer Science, Johns Hopkins University,           ing [7]. This navigation system utilizes an optically-tracked
+Baltimore, MD 21218 USA (e-mail: cgao11@jhu.edu; grupp@jhu.edu;                  fluoroscope fiducial and a custom designed fluoroscopy track-
+unberath@jhu.edu; rht@jhu.edu).                                                  ing fiducial (FTRAC) [9] in order to register the anatomy
+   Amirhossein Farvardin and Mahsan Bakhtiarinejad are with the
+Department of Mechanical Engineering, Johns Hopkins University, Baltimore,       with respect to a hand-held injection device. However, attach-
+MD 21218 USA (e-mail: afarvar1@jhu.edu; mbnejad@jhu.edu).                        ing external pins to the bone may not be an ideal option
+   Liuhong Ma is with the Department of Cranio-Maxillo-Facial Surgery            for patients with severe osteoporosis. Furthermore, optical
+Center, Plastic Surgery Hospital, Chinese Academy of Medical Sciences
+and Peking Union Medical College, Beijing 100144, China (e-mail:                 tracking system requires a clear line-of-sight. In addition,
+maliuh@icloud.com).                                                              simultaneous viewing of the X-ray fiducial and the anatomy
+   Mareike Thies is with the Pattern Recognition Lab, Friedrich-                 of interest may become challenging given the limited field of
+Alexander-Universität Erlangen-Nürnberg, 91058 Erlangen, Germany (e-mail:
+mthies1@jhu.edu).                                                                view of the fluoroscopy. Hand-held manipulation of the injec-
+   Mehran Armand is with the Departments of Mechanical Engineering and           tion device requires interaction with the surgeon, which makes
+Orthopaedic Surgery, Johns Hopkins University, Baltimore, MD 21218 USA,          the procedure complicated.
+and also with the Johns Hopkins University Applied Physics Laboratory,
+Laurel, MD 20723 USA (e-mail: marmand2@jhu.edu).                                    In contrast, we attached a custom-designed device guide
+   Digital Object Identifier 10.1109/TMRB.2020.3012460                           to the end effector of a 6 DOF positioning robot, UR-10
+                      2576-3202 
+                                c 2020 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+                                    See https://www.ieee.org/publications/rights/index.html for more information.
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+438                                                                 IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020
+
+
+
+                                                                                     Conventional single-view intensity-based 2D/3D registra-
+                                                                                  tion algorithms register an acquired 2D image and a 3D
+                                                                                  image (e.g., CT scan) by initializing and optimizing the 6D
+                                                                                  pose parameters using a cost function such as image intensity
+                                                                                  similarity metric. Multi-view 2D/3D registration algorithms
+                                                                                  jointly optimize a similarity metric relating to multiple 2D
+                                                                                  acquisitions with varying projection geometries. The registra-
+                                                                                  tion performance largely depends on the initialization and the
+                                                                                  multi-view geometry.
+                                                                                     Intraoperative fluoroscopy-guided surgical navigation
+                                                                                  systems using 2D/3D registrations commonly require manual
+Fig. 1.      Top left: An example augmentation scheme of the optimized            initialization, which is a tedious task and easily interrupts
+injection pattern (green), practical injection volume (blue) and line of injec-   surgical workflows [16]. A robust automatic initialization
+tion (red) [8]. Bottom left: Components of robot-assisted femoroplasty system.
+Right: Illustration of the intensity-based 2D/3D registration for the femur and
+                                                                                  method can dramatically improve the success rate of 2D/3D
+D/I device in the C-arm coordinate frame. The red cross arrows are the coordi-    registration by reducing the likelihood of the optimization
+nate frames of each component; the blue arrows illustrate the transformations;    converging to local minima. Anatomical landmarks are
+the pink dotted line shows the planned trajectory for femoroplasty.
+                                                                                  biologically meaningful locations in anatomy, which have
+                                                                                  been used to initialize image registration [17]. Convolutional
+                                                                                  neural networks (CNNs) have shown superior performance on
+                                                                                  the task of fluoroscopy landmark detection when large-scale
+(Universal Robot, Odense, Denmark) for a more precise robot-                      training data is available [18]. Payer et al. evaluated different
+assisted femoroplasty. The device does both the drilling and                      CNN architectures to detect multiple landmark locations
+injection in a single unit and the operator only changes                          in hand X-rays by regressing a single heat map for each
+the tool. The procedure for robot-assisted femoroplasty                           landmark [19]. Bier et al. proposed an approach to detect
+involves (Fig. 1): 1) a patient-specific planning based on                        multiple anatomical landmarks in X-ray images from arbitrary
+biomechanical analysis of pre-operative CT; 2) an intraopera-                     view directions [20]. Esteban et al. proposed an iterative
+tive registration of the drilling/injection (D/I) device and the                  landmark detection pipeline to initialize 2D/3D registra-
+anatomy; 3) positioning the device to the entry point of the                      tion [21]. Several researchers combined landmark detection
+planned trajectory and performing drilling followed by injec-                     and semantic segmentation tasks using multi-task networks
+tion of the PMMA; 4) an intraoperative assessment to evaluate                     and achieved favorable results. Kordon et al. segmented
+the 3D pattern of the injected cement and update the plan. This                   the bones of knee joint and located two anatomical land-
+paper focuses on the registration paradigm for the mentioned                      marks [22]. Laina et al. proposed a concurrent segmentation
+system.                                                                           and localization network to annotate tools in laparoscopy and
+   Fig. 1 presents the rigid transformations relating C-arm                       retinal microsurgery [23]. Gao et al. applied this idea and
+coordinates to the femur and D/I device coordinates. Fiducial-                    designed a U-net based structure for concurrently segmenting
+free 2D/3D registration of the proximal femur is challenging                      a continuum manipulator and two distinct landmarks in
+because femur has fewer distinct features in 2D projection                        fluoroscopy images [24]. Grupp et al. further investigated
+domain compared to the other anatomies, such as pelvis.                           this method and proposed a pipeline that segments 6 hip
+Guéziec et al. proposed an anatomy-based registration using                       anatomical structures and 14 landmarks in hip fluoroscopies,
+CT and fluoroscopic image data of a femur bone [10]. The                          which allows a fully automatic intraoperative registration
+method was promising but the registration was sensitive to                        during fluoroscopic navigation of the hip [25].
+the contour extraction accuracy and the initial estimated point                      We extend the latter initialization method to be used within
+correspondences. Although a number of different optimization                      a registration paradigm applicable to femoroplasty.
+frameworks have been studied for femur registration [11],                            Concurrent optimization of multi-view projections can over-
+[12], [13], these approaches require either control points or                     come single-view ambiguity due to the use of geometric-
+contours as initialization setup with additional annotations.                     varying information. However, the relative pose information of
+Miao et al. proposed a learning-based multi-agent registration                    the projection views must be accurately estimated. Gong et al.
+pipeline using dilated fully-connected network and achieved                       proposed to use intensity-based registration to estimate the
+favorable results on spine X-rays [14]. However, the femur                        position of bone fragments with four fluoroscopic views.
+has fewer features compared to spine, which is much more                          Though the registration error was small, the C-arm position
+challenging to extract features for accurate registration. In a                   was assumed to be tracked by an optical tracking technique
+related study we proposed using pelvis registration to initialize                 or using specialized fiducials in the image [26]. Otake et al.
+the femur registration [15]. In this paper, we use pelvis as a                    used a custom-designed hybrid fiducial for C-arm tracking and
+fiducial and find relative pose of the femur and the D/I device                   pose estimation [27]. Yao et al. used a corkscrew fiducial
+using 2D/3D registration on their relevant X-ray views. We                        object for C-arm extrinsic calibration by identifying object
+perform both simulation and cadaveric studies to investigate                      features within an X-ray image [28]. These methods were
+whether our registration paradigm is sufficiently accurate for                    precise but introduced an extra bone pin fixation to the patient.
+navigating the D/I devices.                                                       There are researchers using intraoperative fluoroscopy images
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FIDUCIAL-FREE 2D/3D REGISTRATION FOR ROBOT-ASSISTED FEMOROPLASTY                                                                              439
+
+
+
+
+Fig. 2. Illustration of registration pipeline. Left: 3D pelvis anatomical landmark locations and an example of CNN-based 2D landmark detection and bone
+segmentation. Stages 1-3 show three multi-view intensity-based registrations. The pink arrows correspond to the initialization procedures. The transformations
+are described in Section III-B.
+
+
+
+to navigate a surgical robot for cutting or drilling of the                      then perform the planned drilling followed by bone cement
+bone [10], [29], [30]. However, these methods rely on opti-                      injection.
+cal tracking or a specially designed fiducial for multi-view
+calibration, which have the same drawbacks of fiducial-based
+methods.                                                                         A. Preoperative Processing and Intraoperative Data
+   Grupp et al. proposed a multi-view fluoroscopy navigation                     Acquisition
+method for pose estimation of periacetabular osteotomy frag-                        Lower torso preoperative CT scan images are acquired. The
+ments without fiducials [31]. Because the pelvis is abundant in                  CT voxel spacing is 1.0 × 1.0 × 0.5 mm with dimensions
+features and can be accurately registered using intensity-based                  512 × 512 × 1056. Pelvis and the target femur volumes are
+algorithms, they treated the pelvis itself as a “fiducial” object.               resampled to 1 mm isotropic voxel spacing and then seg-
+Single-view registration of the pelvis was first performed for                   mented using the automatic method described in [32] and
+each view and the pelvis coordinate frame was then used as                       used in Grupp et al.’s work [31]. 3D pelvis anatomical land-
+the C-arm world frame for further registrations. They have                       marks consisting of anterior superior iliac spine (ASIS), center
+reported a clinically acceptable accuracy for the fragment pose                  of femoral head (FH), superior pubic symphysis (SPS), infe-
+and shape estimation. We extend this method by including                         rior pubic symphysis (IPS), medial obturator foramen (MOF),
+both pelvis and femur in single-view registrations, and then                     inferior obturator foramen (IOF), and the greater sci-
+using the pelvis coordinate frame to align the C-arm poses for                   atic notch (GSN) are shown in Fig. 2. These landmarks
+multi-view registrations of the femur and the D/I device. Our                    are manually annotated from the preoperative CT scan
+proposed method is fiducial-free, and the registration result                    images.
+can be applied to navigate the robot for positioning the D/I                        Intraoperatively, from three independent C-arm poses, 6 flu-
+device.                                                                          oroscopic images are obtained. For each pose, a fluoroscopic
+   The contributions of this paper are as follows: 1) develop-                   image is taken from the anatomy of the interest. The device
+ment of an automatic fiducial-free 2D/3D registration pipeline                   is then moved to the field of view and another fluoroscopic
+for intraoperative pose estimation of the femur and D/I device                   image is acquired. Fig. 3 shows an example set of simulated
+for robot-assisted femoroplasty; 2) demonstration of the fea-                    fluoroscopic images. The first fluoroscopic view (image 1 ) is
+sibility of the proposed pipeline via simulation and cadaveric                   approximately anterior/posterior (AP). We then keep the C-
+studies; 3) analysis of the effect of registration inaccuracy on                 arm pose (C-arm Pose1) the same and passively move the
+biomechanics.                                                                    robot and the I/D device to underneath the patient bed, cen-
+                                                                                 tering along the source-to-detector focal line. The initial I/D
+                             II. M ETHODS                                        device position is set to be around 50 cm away from the C-arm
+   Fig. 2 presents our proposed registration pipeline for                        capture range. The robot trajectory and pose configurations
+femoroplasty. The intraoperative registration consists of three                  are saved for future automatic repetitions of the movement.
+sequential stages: 1) pelvis registration, 2) femur registra-                    We take a second image (image 2 ). We then rotate the C-arm
+tion, and 3) D/I device registration. The C-arm detector plane                   along its orbit +10◦ (C-arm Pose2). The robot pose is kept
+is positioned close to the patient in order to capture 50 to                     the same and we take image 3 . Again, we keep the C-arm
+80 percent of the pelvis anatomy. The patient is assumed to                      pose the same and move the robot outside the capture range,
+be stationary during the procedure. After registration, the robot                and we take image 4 . Following the same routine, we rotate
+moves the D/I device to the entry on the proximal femur and                      the C-arm −15◦ (C-arm Pose3) with respect to the first view
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+440                                                               IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020
+
+
+
+
+                                                                                 Fig. 4.   Registration workflow.
+
+
+
+                                                                                 intraoperative image I. DRR is generated by calculating ray
+                                                                                 casting line integrals through a perspective projection of the
+                                                                                 3D volume onto a 2D image plane. Using a pre-operative
+                                                                                 CT scan (V), a DRR operator (P), similarity metric (S), and
+                                                                                 regularizer over plausible poses (R), the registration recov-
+Fig. 3. Top: Illustrations of the multi-view C-arms, anatomy, patient bed and
+                                                                                 ers the pelvis pose (θp ) by solving the following optimization
+robot setup. The top blue arrows show the C-arm rotations. The first view C-     problem:
+arm frame is shown in RGB cross arrows at the source position. Bottom: An                                                 
+example set of simulated fluoroscopic images. The first row in orange is used                     min S I, P V; θp + R θp .                  (1)
+for pelvis and femur registration. The second row in blue is used for device                       θp ∈SE(3)
+registration.
+                                                                                 Normalized gradient cross correlation (Grad-NCC) scores are
+                                                                                 computed throughout image patches, and the mean values
+and take image 5 . We then command the robot to move to                          used as the similarity measure for the intensity-based registra-
+the saved pose configuration, and we take image 6 .                              tion [34]. Ray casting for DRR and similarity metric computa-
+   Because of sub-millimeter accuracy, we assume the device                      tion are accelerated with GPU. The 2D image is downsampled
+pose is the same after the repetitive movements. To this end,                    4× in each dimension. The optimization is conducted using
+images 1 4 5 will be used for pelvis and femur registration;                     a state of the art optimization strategy, “Covariance Matrix
+images 2 3 6 will be used for device registration.                               Adaptation: Evolotuionary Search” (CMA-ES) [35]. The reg-
+                                                                                 istration produces single-view pose estimate of the pelvis, TCPV1 .
+                                                                                    In order to estimate the poses of the subsequent two views,
+B. Intraoperative Registration                                                   we perform an exhaustive search starting from the registered
+   The diagram in Fig. 4 shows the registration workflow. The                    pose of the pelvis in the first view. The search space differs
+registration steps are as follows:                                               from the first view by a rotation along the C-arm orbit of
+   1) Pelvis Registration: We use a pretrained CNN to ini-                       ± 45◦ in 0.5◦ increments. The pose corresponding to the best
+tialize pelvis registration as described in Section II-A. The                    similarity score is used to initialize single-view intensity-based
+CNN takes image 1 as input and performs segmentation and                         registrations for the other two pelvis views. To avoid local
+pelvis landmark detection. An initial pose estimate of the                       minima, both pelvis and femur are used for the exhaustive
+first view C-arm frame (C1 ) with respect to the pelvis (PV),                    search.
+(TCPV1 )ini , is obtained by solving the PnP problem [33] using the                 The local minima problem occurs when the pelvis occupies
+detected 2D landmarks and their corresponding 3D anatomical                      less than half of the image (e.g., image 4 ). To remedy this
+landmarks. Once the initial pose is estimated, a single-                         problem, we perform a single-view registration of the femur
+view intensity-based registration of the pelvis is performed.                    after the single-view pelvis registration. We use the pelvis
+Single-view intensity-based 2D/3D registration is achieved                       registration pose estimation to initialize the femur registra-
+by creating Digitally Reconstructed Radiographs (DRRs) and                       tion, (TCFV1 )ini = TCPV1 . The femoral head (FH) center point is
+calculating a similarity score between each DRR and the                          set as rotation center using TCFH   1
+                                                                                                                        = TCPV1 · TPV
+                                                                                                                                   FH , where T FH
+                                                                                                                                                PV
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FIDUCIAL-FREE 2D/3D REGISTRATION FOR ROBOT-ASSISTED FEMOROPLASTY                                                                           441
+
+
+
+is obtained from preprocessing 3D landmark annotation. The                           3) Device Registration: We use the same multi-view
+registration follows the definition of Eqn. (1), but we constrain                 intensity-based registration method to estimate the device
+the optimization search space to be rotation only (θf ∈ SO(3))                    pose. The 3D volume is constructed using the CAD model of
+with respect to the femoral head center point (FH). The pelvis                    the fabricated device as shown in Fig. 3. For the D/I device,
+is fixed in the background. We use the same downsampling                          the metal HU value is set to 5000. The initial pose of the
+and optimization strategy. The registration will produce a                        Injection Device (ID) with respect to the first view C-arm
+single-view femur pose estimation, TCFV1 . This registration is                   frame (C1 ), TCID1 , is a pre-defined configuration, which places
+sufficient for the exhaustive search process. During the search,                  the D/I device along the source-to-detector focal direction
+we use both the pelvis and femur single-view registration pose                    and 15 cm below the patient’s bed. We use the same C-arm
+estimates (TCPV1 , TCFV1 ) to generate DRRs for similarity score                  three-view geometries recovered from the pelvis to perform
+calculation. The exhaustive search produces pose estimations                      multi-view registration of the device. The optimization strat-
+of the pelvis with respect to the other two C-arm views,                          egy is CMA-ES. The registration produces pose estimate of
+(TCPV2 )ini , (TCPV3 )ini , which will serve as initializations for the           the device with respect to the first C-arm view, (TCID1 )regi .
+subsequent single-view intensity-based registrations.                                We finally perform a multi-view multi-object registration
+   The above single-view pelvis registration is used to pro-                      of the femur and the device, which formulates the same as
+duce pose estimates in three C-arm extrinsic views: TCPVi (i =                    Eqn. (4). The optimization strategy is BOBYQA. To this end,
+1, 2, 3). Thus, the relative poses of these three views can be                    we register both the femur and the device to the multi-view
+recovered using                                                                   geometry. The relative poses of these two objects can be
+                                −1                       −1                   obtained using TID  FV = (T ID )−1 · (T FV )
+                                         C                                                                     C1 regi   C1 regi .
+        TCC12 = TCPV1 · TCPV2        , TC13 = TCPV1 · TCPV3     .   (2)
+                                                                                  C. Clinical Evaluation
+We then use the three-view geometry recovered from the
+pelvis coordinate frame to run multiple-view pelvis registra-                        To evaluate the effect of registration error on clinical effi-
+tion. Registration with multiple 2D views is accomplished by                      ciency of the procedure, we create a Finite Element (FE)
+creating DRRs at each view and summing the similarity scores                      model of the segmented target femur and determine the desired
+for each view [27], [31]. The multi-view registration optimizes                   location and volume of the cement injection profile follow-
+the pelvis pose (θp ) with 3 intraoperative views (I1 , I2 , I3 ):                ing the preoperative planning paradigm fully described in [8].
+                                                                                  The planning paradigm consists of three steps: 1) Utilizing a
+                             
+                             3
+                                                                            FE model of the femur to find an optimized cement profile,
+                min            S Im , P V; θp + R θp .                    (3)     2) approximating the cement profile with a series of ellipsoids
+             θp ∈SE(3)
+                             m=1
+                                                                                  for a single-path injection and determining its corresponding
+The similarity metric, the downsampling rate and the                              drill path (i.e., drill entry point and direction), and 3) hydro-
+optimization algorithm remain the same as used for single                         dynamic simulation to predict the cement diffusion within the
+view pelvis registration as described above. The multi-view                       trabecular bone. We then overlay the volumetric geometry
+registration will produce a refinement of the pelvis pose                         of the cement on the femur model and perform FE analy-
+estimate (TCPV1 )regi .                                                           sis. Once the desired injection pattern is known, we translate
+   2) Femur Registration: We initialize multi-view femur reg-                     the injection profile by 4mm to resemble the potential worst
+istration with the first C-arm view femur registration result,                    case scenario for our registration algorithm. After this modi-
+TCFV1 . The femoral head center position is refined using TCFH  1
+                                                                  =               fication, we perform the hydrodynamic simulation again and
+(TC1 )regi · TPV and constrains the femur registration to be
+   PV         FH                                                                  overlay the new injection volume on the femur model, perform
+rotation only. The registration shares the same formulation                       FE analysis for the new model. We then compare the results
+as Eqn. (3), but we constrain the femur pose to be rotation                       of the FE analysis for the mentioned models. For comparison,
+only (θf ∈ SO(3)) as in single-view registration. We keep the                     we modify FE model of the femur by translating the cement
+downsampling and optimization algorithm the same. Multi-                          elements and estimate its corresponding yield fracture load of
+view femur registration will estimate the femur pose with                         the femur as described in [5]. An overview of the procedure
+respect to the first C-arm view, (TCFV1 )regi .                                   for biomechanical analysis is shown in Fig. 5.
+   After the multi-view pelvis and femur registration, we
+conduct a multi-view multiple object registration by jointly                                                III. E XPERIMENTS
+registering the pelvis and femur in order to perform a local                      A. Simulation Study
+search. The formulation is inspired by [31] as
+                                                                                   We verified the accuracy of the proposed method with
+                  3           
+                               N
+                                                                                  a series of simulation studies with randomized projection
+         min            S Im ,   P(V; θn ) + R(θ1 , . . . , θN ) (4)              geometries and anatomical poses. We simulated the projec-
+   θ1 ,...,θN ∈SE(3)
+                       m=1         n=1                                            tion geometry by approximating the intrinsic parameters of a
+where N = 2 corresponds to θp and θf . The optimization                           Siemens CIOS Fusion C-Arm, which has image dimensions
+strategy is the Bounded optimization by Quadratic                                 of 1536 × 1536, isotropic pixel spacing of 0.194 mm/pixel,
+Approximation (BOBYQA) [36]. BOBYQA is less robust                                a source-to-detector distance of 1020 mm, and a principal
+to local minima as compared to CMA-ES, however, it runs                           point at the center of the image. The three views used for
+significantly faster [31].                                                        this study included a perturbed AP view and two views at
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+442                                                                 IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020
+
+
+
+
+Fig. 5. Biomechanical analysis workflow: An FE model (top right) is created
+from segmented CT scans of the specimen. 3 Step Pre-operative planning
+(bottom left) was performed on the specimen and evaluated in both optimal
+drilling path (solid blue) and a path 4mm inferior of the optimal (dotted blue).
+
+
+random rotations about the C-arm orbit with a mean and STD
+of +10 ± 3◦ and −15 ± 3◦ . Random movements of the pelvis
+were sampled uniformly to simulate patient pose variations,
+including translation from 0 to 10 mm and rotation from −10                        Fig. 6. Upper: Overlay example of registration convergence stage. 2D overlay
+to 10 in degree. Rotations of femur were sampled from ran-                         of multiple input simulation X-rays (background) and DRR-derived edges in
+dom rotations with respect to the center of femoral head (FH).                     green. Lower: Coordinate frames and path direction vectors used to report
+                                                                                   the registration error are marked with RGB cross arrows. Coordinate frames
+The axis of rotation was sampled uniformly between −15 and                         include: PC - Pelvis volume center; FH - Femoral head center; ID - Injection
+15 degrees. Perturbed movements of the injection device with                       device guide center. Path direction vectors include pfem and pinj , which are
+respect to the C-arm were sampled including translation from                       described in Section IV-A.
+0 to 10 mm and rotation from −5 to 5 in degree. The full
+pipeline was initialized using the annotations as determined
+by the CNN. We used the registration workflow described in                         where (TC1 ID )gt is the groundtruth transformation. Fig. 6
+Section II-B to produce the pose estimation of the femur and                       shows the D/I axis. δTpel , δTfem and δTinj are along the D/I
+the D/I device.                                                                    axis.
+   To evaluate the performance of our registration algorithm,                         We also report the multi-view C-arm pose estimation accu-
+we report the registration accuracy based on our simulated                         racy by calculating the relative transformation of the second
+“groundtruth” poses of the objects and the registration results.                   and third C-arm frames with respect to the AP view C-arm
+The rotation errors across anatomical axes are computed by                         frame. The transformation error is reported using
+decomposing the rotation matrix of the delta frame into Euler                                                                  −1
+angles using the xyz convention. The total rotation error is                                           δTCC12 = TCC12     · TCC12       ,                   (7)
+the axial angle of the rotation matrix. Pelvis registration is                                                         gt          regi
+                                                                                                                               −1
+reported with respect to the rotation center frame (PC) at the                                            C       C           C
+                                                                                                       δTC13 = TC13       · TC13        .                   (8)
+center of pelvis volume to the first AP view C-arm frame (C1 ),                                                          gt           regi
+TCPC = TCPV1 · TPV
+                PC , where PC is annotated from the segmented
+   1
+pelvis volume. The transformation error is reported using                             The accuracy of the entry point with respect to the guide
+                                        −1                                     tip is critical to the success of drilling and cement injec-
+                 δTpel = TCPC1
+                                   ·  TC
+                                        PC
+                                         1
+                                                            (5)                    tion. We define the following metrics in order to quantify
+                                        gt           regi                          the displacement error and direction error of our registration
+where (TCPC
+          1
+            )gt is the groundtruth transformation when the C-                      algorithm.
+arm is set to AP view. Femur registration accuracy is reported                        We select the D/I entry point (EP) on the greater trochanter
+with respect to the rotation center frame (FH) at the center of                    surface based on the biomechanical analysis, and report the
+femoral head when C-arm is set to the AP view (C1 ) using                          error in the AP C-arm frame using
+TCFH = TCFV1 · TFV
+                 FH . The transformation error is:
+   1                                                                                                              EP     EP 
+                                         −1                                                      δxC
+                                                                                                       EP
+                                                                                                          =       xC1 gt − xC                               (9)
+                δTfem = TC1 FH gt · TC1 FH regi             (6)                                         1                    1 regi          2
+
+where (TC1 FH )gt is the groundtruth transformation when the                       where xC EP is calculated using xEP = T FV ·xEP . The tip position
+                                                                                                                    C1    C1 FV
+                                                                                             1
+C-arm is set to AP view. The device registration accuracy is                       of the injection device is annotated on the center of the guide
+reported using the injection device guide center frame (ID)                        tip (TIP) in the device model. We report the error of the guide
+with respect to AP view C-arm frame (C1 ) TCID1 . The transfor-                    tip in the AP view C-arm frame using
+mation error is:
+                                      −1                                                                     TIP    TIP 
+               δTinj = TC1 ID gt · TC1 ID regi                                                      δxC
+                                                                                                      TIP
+                                                                                                       1
+                                                                                                          =      xC1 gt − xC1 regi
+                                                                                                                                                          (10)
+                                                                                                                                             2
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FIDUCIAL-FREE 2D/3D REGISTRATION FOR ROBOT-ASSISTED FEMOROPLASTY                                                                           443
+
+
+                                                                    TABLE I
+                                                  S IMULATION R ESULTS OF R EGISTRATION E RRORS
+
+
+
+
+where xCTIP is calculated using xTIP = T ID · xTIP . The relative
+         1                       C1      C1    ID
+entry point and guide tip error is calculated as follows:
+                      EP    TIP          EP  
+ δxEP
+   TIP
+       =     xCTIP
+                1 gt
+                     −   xC1 gt
+                                −    xC 1 regi
+                                               −   xC1 regi
+                                                                       2
+                                                                      (11)
+
+The planned injection path is shown by a vector from an entry
+point (xC EP ) to a target point (the center of the femoral head
+           1
+         fem
+xFH      C1 = xC1 −xC1 . Similarly, the injection guide direction
+     ), p          FH   EP
+  C1
+                            inj
+is shown by the vector pID = xTIP   ID . We calculate the rotation
+error of the path planning vector and guide direction vector at
+the AP view of the C-arm as follows:
+                           ⎛                            ⎞                  Fig. 7. Left: Cadaver study setup with injection device, specimen and C-arm.
+                                   fem          fem
+                           ⎜     p C1 gt   · p  C1 pre      ⎟
+                                                                               Middle: Two example AP view intraoperative fluoroscopic images correspond-
+           δθC1 = arccos⎜                                   ⎟
+              fem                                                              ing to images 1 2 in Fig. 3. Right top: The injected BBs are zoomed. One
+                           ⎝  fem                       ⎠ (12)             example BB location is marked with orange circle. Right bottom: Picture of
+                                                  fem
+                                pC1        · pC1                               BBs glued on the surface of the injection device for groundtruth injection
+                                       gt              pre                     pose calculation. One example BB is marked with blue circle.
+                           ⎛                           ⎞
+                                   inj         inj
+                           ⎜     p C1 gt  ·  p C1 pre      ⎟
+            δθC1 = arccos⎜                                 ⎟.
+               inj
+                           ⎝  inj                      ⎠  (13)             poses, resulting in 36 fluoroscopic images. Error metrics were
+                                                 inj
+                                pC1       · pC1                                computed as described in the previous section.
+                                       gt              pre
+
+
+B. Cadaver Study                                                                                             IV. R ESULTS
+   A female specimen, including lower torso, pelvis, and                       A. Simulation Study
+femurs, was used for the study. A Siemens CIOS Fusion C-arm                       We performed a total of 1,000 simulations with varying pro-
+with 30 cm flat panel detector was used to collect intraoper-                  jection geometries and pelvis initializations. Fig. 6 shows an
+ative fluoroscopy. The setup for C-arm, specimen bed, and                      example of 2D and 3D overlays when registration converges,
+robot-held D/I device is shown in Fig. 7.                                      showing that the 3D pose prediction matches the groundtruth
+   To obtain the groundtruth poses for the femur and the D/I                   pose successfully. The mean femur registration error (δTfem )
+device, metallic BBs were implanted into the femoral head and                  was 0.81 ± 0.76 mm and 0.73 ± 0.23◦ , a median of 0.74 mm
+glued onto the surface of the device as shown in Fig. 7. The                   and 0.71◦ ; mean injection device registration error (δTinj ) of
+BBs were implanted closer to the trochanter and the femoral                    1.00 ± 0.77 mm and 0.23 ± 0.21◦ , a median of 0.80 mm
+head center region in order to accurately estimate the femoral                 and 0.20◦ reported in translation and rotation, respectively.
+head pose. An injection device (Halifax Biomedical Inc., St.                   The details of registration error about each axis is tabulated
+Johns, Canada) was used to insert seven BBs with 1 mm diam-                    in Table I. The mean error of multi-view C-arm pose esti-
+                                                                               mation (δTCC12 , δTC13 ) was 1.37 ± 0.82 mm, 0.23 ± 0.16◦ and
+                                                                                                   C
+eter to the femoral head. In addition, five BBs with 1.5 mm
+diameter were glued evenly and distributed around the plas-                    0.69 ± 0.45 mm, 0.16 ± 0.14◦ , respectively. Fig. 8 presents
+tic head of the D/I device. We then dismounted the injection                   the statistical histogram distribution of femur, pelvis, injection
+device and took a CT scan. The 3D locations of the BBs were                    device and the multi-view C-arm pose errors.
+manually labeled in the CT scans of the specimen and the                          The entry point error (δxEP ), injection device tip
+injection device. The 2D BB locations were manually anno-                                                                  EP ) are presented in
+                                                                               error (δxTIP ), and their relative error (δxTIP
+tated from the fluoroscopic views corresponding to the AP                      Table II. The proposed method achieved a mean entry point l2
+C-arm view (image 1 2 in Fig. 3). We performed 6 registra-                     distance error of 1.70 ± 0.94 mm and a median of 1.64 mm.
+tion workflows with varying C-arm geometries and specimen                      The mean femur path direction error was 0.63 ± 0.21◦ with a
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+444                                                                 IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020
+
+
+
+
+                                                                                                                                        C                     C
+Fig. 8. (a)-(e): Normalized 2D histograms of pelvis pose (δTpel ), femur pose (δTfem ), injection device pose (δTinj ), C-arm view2 (δTC 2 ), C-arm view3 (δTC 3 )
+                                                                                                                                         1                     1
+error for the simulation studies. (f)-(h): Normalized histogram of l2 distance error in mm of femur entry point (δxC EP ), injection device guide tip (δxTIP )
+                                                                                                                       1                                 C1
+                            TIP                                                                                       fem
+and their relative error (δxEP ). (i)-(j): Normalized histogram of direction error in degree of femur path vector (δθC ) and the injection guide direction
+                                                                                                                        1
+           inj
+vector (δθC ).
+             1
+
+
+
+                              TABLE II
+            S IMULATION S TUDY R ESULTS OF E RROR M ETRICS
+
+
+
+
+                             TABLE III
+             C ADAVER S TUDY R ESULTS OF E RROR M ETRICS
+
+
+                                                                                  Fig. 9. Left: Scatter plot of correlation matrix between femoral head cen-
+                                                                                  ter translation error and pelvis translation error reported in femoral head
+                                                                                  center. Right: Scatter plot of correlation matrix between femur entry point
+                                                                                  error and pelvis translation error reported in femoral head center. Correlation
+                                                                                  coefficients are marked on the right bottom of each plot.
+
+
+
+median of 0.62◦ . The mean guide path error was 0.17 ± 0.19◦                      a 4 mm error to the optimal location by moving the pattern
+with a median of 0.14◦ . Fig. 8 shows the histogram distribution                  inferior, FE estimate for the yield load was lowered to 1970N
+of these errors.                                                                  (i.e., 40.7% improvement of the yield load).
+
+B. Cadaver Study                                                                                               V. D ISCUSSION
+   The proposed registration algorithm was tested on our col-                        The results suggest the feasibility of applying our proposed
+lected intraoperative fluoroscopic images. We reported the                        fiducial-free 2D/3D registration method for robot-assisted
+errors on femur entry point, injection device guide tip, and                      femoroplasty. The use of the pelvis as a fiducial gives an accu-
+the path direction. Table III presents the numeric results of 6                   rate estimation of the multi-view C-arm poses. Pelvic bone
+independent trials. The mean relative entry point and guide tip                   has detailed features that are very helpful for multi-view reg-
+          EP ) was 2.64 ± 1.10 mm, and mean direction error
+error (δxTIP                                                                      istration. Also, an accurate initialization of the femoral head
+was 1.36 ± 0.78◦ and 0.31 ± 0.26◦ for the femur injection                         center (FH) helps constrain the femur registration search space
+path (δθ fem ) and the guide direction (δθ inj ), respectively.                   and avoids bad local minima. Fig. 9 shows the correlation
+                                                                                  matrix scatter plots between pelvis error and femur error. We
+C. Biomechanical Analysis                                                         report the pelvis translation error as measured from the femoral
+   The biomechanical analysis demonstrated that the optimal                       head center (FH) frame to better illustrate the relationship
+pattern of cement injection can increase the yield load for frac-                 with the femur translation error. The femur registration accu-
+ture by 43.2% (from 1400N to 2005N). When we introduced                           racy and the entry point accuracy are heavily related to the
+
+           Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+GAO et al.: FIDUCIAL-FREE 2D/3D REGISTRATION FOR ROBOT-ASSISTED FEMOROPLASTY                                                                                445
+
+
+
+pelvis registration accuracy with the coefficient factors of 0.90              the anatomy and tool (i.e., drilling guided) can also help to
+and 0.75, respectively. The result supports the conclusion that                reduce overall system errors.
+a more accurate pelvis registration leads to a better femur                       Our registration pipeline is developed based on the X-ray
+registration result.                                                           imaging because the C-arm X-ray machine is a common
+   The device registration is not designed for tracking the robot              device in all of the orthopedic operating rooms. Therefore,
+movement but is used to accurately position the device to the                  using intraoperative X-ray does not add additional imaging
+entry point. The robot’s motion will then be determined based                  hardware for the procedure. Although our method requires
+on the preoperative patient-specific plan and the kinematics                   radiation exposure on the patient, using X-rays in orthope-
+of the robot with sub-millimeter accuracy to move the robot                    dic applications is common. Taking six X-rays is usually not
+close to the entry point. A potential alternative approach can be              excessive as compared to other orthopedic applications.
+the use of D/I device features for multi-view registration. We
+have conducted simulations on using the same steps described
+                                                                                                           VI. C ONCLUSION
+in Section II-B pelvis registration but replacing the pelvis with
+the injection device as “fiducial” to estimate the C-arm poses.                   We propose a fiducial-free 2D/3D registration pipeline,
+The mean registration error of the two adjacent C-arm views,                   which uses multiple view fluoroscopic images to register
+δTCC12 and δTC13 , are 1.49 mm/0.69◦ and 1.55 mm/0.67◦ in
+               C                                                               the femur and the drilling/injection device for robot-assisted
+translation and rotation, respectively. No improvements were                   femoroplasty. The method was evaluated through 1,000 sim-
+observed to the use of pelvis as the fiducial for estimating the               ulations with varying geometries and initializations, and a
+relative C-arm views.                                                          cadaveric specimen study. The proposed method showed the
+   The registration accuracy reduced in cadaver studies. The                   feasibility of an image-based and fiducial-free registration
+potential reasons are: 1) spectrum and exposure of the real                    approach for robot drill and injector positioning in patient-
+fluoroscopic images are different from the DRR image; 2) the                   specific cement injection planning.
+simulated C-arm projection geometries are different from the
+cadaveric studies; 3) the BB injection, annotation and segmen-                                           ACKNOWLEDGMENT
+tation are likely to introduce errors. The registration accuracy
+                                                                                  The funders had no role in the study design, data collection,
+is also related to the relationship of magnification factor and
+                                                                               analysis of the data, writing of the manuscript, or the decision
+the integral appearance of the pelvis. Capturing a larger portion
+                                                                               to submit the manuscript for publication.
+of the pelvis includes more features, however the magnifica-
+tion factor is reduced. In this paper, we did not investigate
+the optimal relationship. Our future work will include study-                                                 R EFERENCES
+ing the relationship of projection geometry and registration                    [1] M. J. Goldacre, S. E. Roberts, and D. Yeates, “Mortality after admission
+accuracy.                                                                           to hospital with fractured neck of femur: Database study,” Brit. Med. J.,
+   Previous studies have shown that the patient-specific pre-                       vol. 325, no. 7369, pp. 868–869, 2002.
+operative planning for femoroplasty yields to a significantly                   [2] G. G. Teng, J. R. Curtis, and K. G. Saag, “Mortality and osteoporotic
+                                                                                    fractures: Is the link causal, and is it modifiable?” Clin. Exp. Rheumatol.,
+higher biomechanical benefit compared to those of the gen-                          vol. 26, no. 5051, pp. S125–S137, 2008.
+eralized injections [8]. For the FE simulations, boundary                       [3] A. Dinah, “Sequential hip fractures in elderly patients,” Injury, vol. 33,
+conditions were set to simulate sideway fall. Sideway fall con-                     no. 5, pp. 393–394, 2002.
+                                                                                [4] J. Land, L. Russell, and S. Khan, “Osteoporosis,” Clin. Orthopaed.
+stitutes 80 percent of the falls in the elderly [4]. The fiducial                   Related Res., vol. 372, pp. 139–150, Mar. 2000.
+free registration pipeline proposed in this study results in small              [5] E. Basafa and M. Armand, “Subject-specific planning of femoroplasty:
+orientation error for the femur (0.63 ± 0.21◦ ). The biomechan-                     A combined evolutionary optimization and particle diffusion model
+                                                                                    approach,” J. Biomech., vol. 47, no. 10, pp. 2237–2243, 2014.
+ical analysis confirmed the hypothesis that the errors due to                   [6] E. Basafa et al., “Subject-specific planning of femoroplasty: An exper-
+fiducial-less registration, do not significantly affect the biome-                  imental verification study,” J. Biomech., vol. 48, no. 1, pp. 59–64,
+chanical outcome of the femoroplasty. The FE analysis of the                        2015.
+                                                                                [7] Y. Otake et al., “An image-guided femoroplasty system: Development
+simulated sideway fall, with entry point errors comparable to                       and initial cadaver studies,” in Proc. Med. Imag. Vis. Image
+that of the registration error, showed only a 2.5% reduction in                     Guid. Procedures Model., vol. 7625. San Diego, CA, USA, 2010,
+the yield load when compared to the optimal injection pat-                          Art. no. 76250P.
+                                                                                [8] A. Farvardin, E. Basafa, M. Bakhtiarinejad, and M. Armand,
+tern. Note that the optimal cement augmentation increased                           “Significance of preoperative planning for prophylactic augmentation of
+the yield load by 43.2%. To evaluate the impact of a trans-                         osteoporotic hip: A computational modeling study,” J. Biomech., vol. 94,
+lation error on biomechanics, we performed FE simulations                           pp. 75–81, Sep. 2019.
+                                                                                [9] N. Kuo, J. Lee, A. Deguet, D. Song, E. C. Burdette, and J. Prince,
+to optimize the pattern of injection. Yield load estimation                         “Automatic segmentation of seeds and fluoroscope tracking (FTRAC)
+for a modified pattern (4mm inferior) results in only 2.5%                          fiducial in prostate brachytherapy X-ray images,” in Proc. Med. Imag.
+decrease of improvements (from 43.2% to 40.7%), suggesting                          Vis. Image Guid. Procedures Model., vol. 7625. San Diego, CA, USA,
+                                                                                    2010, Art. no. 76252T.
+that registration accuracy is sufficient.
+                                                                               [10] A. Guéziec, P. Kazanzides, B. Williamson, and R. H. Taylor, “Anatomy-
+   Apart from 2D/3D registration, a surgical system for                             based registration of CT-scan and intraoperative X-ray images for
+femoroplasty requires real-time control of a robotic arm and                        guiding a surgical robot,” IEEE Trans. Med. Imag., vol. 17, no. 5,
+injection device to deliver the cement. While the focus of this                     pp. 715–728, Oct. 1998.
+                                                                               [11] W. Yu and G. Zheng, “2D–3D regularized deformable b-spline registra-
+study is the introduction of the fiducial-free registration algo-                   tion: Application to the proximal femur,” in Proc. IEEE 12th Int. Symp.
+rithm, the proposed method with simultaneous registration of                        Biomed. Imag. (ISBI), New York, NY, USA, 2015, pp. 829–832.
+
+         Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+446                                                                 IEEE TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS, VOL. 2, NO. 3, AUGUST 2020
+
+
+
+[12] X. Zhang, Y. Zhu, C. Li, J. Zhao, and G. Li, “SIFT algorithm-based            [25] R. Grupp et al., “Automatic annotation of hip anatomy in fluoroscopy
+     3D pose estimation of femur,” Biomed. Mater. Eng., vol. 24, no. 6,                 for robust and efficient 2D/3D registration,” 2019. [Online]. Available:
+     pp. 2847–2855, 2014.                                                               arXiv:1911.07042
+[13] A. Zaman and S. Y. Ko, “Improving the accuracy of 2D–3D registration          [26] R. H. Gong, J. Stewart, and P. Abolmaesumi, “Multiple-object 2-D–
+     of femur bone for bone fracture reduction robot using particle swarm               3-D registration for noninvasive pose identification of fracture frag-
+     optimization,” in Proc. Genet. Evol. Comput. Conf. Companion, 2018,                ments,” IEEE Trans. Biomed. Eng., vol. 58, no. 6, pp. 1592–1601,
+     pp. 101–102.                                                                       Jun. 2011.
+[14] S. Miao et al., “Dilated fcn for multi-agent 2D/3D medical image reg-         [27] Y. Otake et al., “Intraoperative image-based multiview 2D/3D registra-
+     istration,” in Proc. 32nd AAAI Conf. Artif. Intell., 2018, pp. 4694–4701.          tion for image-guided orthopaedic surgery: Incorporation of fiducial-
+[15] C. Gao, R. B. Grupp, M. Unberath, R. H. Taylor, and M. Armand,                     based C-arm tracking and GPU-acceleration,” IEEE Trans. Med. Imag.,
+     “Fiducial-free 2D/3D registration of the proximal femur for robot-                 vol. 31, no. 4, pp. 948–962, Apr. 2011.
+     assisted femoroplasty,” in Proc. Med. Imag. Image Guid. Procedures            [28] J. Yao et al., “A progressive cut refinement scheme for revision total hip
+     Robot. Intervent. Model., vol. 11315. Houston, TX, USA, 2020,                      replacement surgery using C-arm fluoroscopy,” in Proc. Int. Conf. Med.
+     Art. no. 113151C.                                                                  Image Comput. Comput. Assist. Interv., 1999, pp. 1010–1019.
+[16] P. Markelj, D. Tomaževič, B. Likar, and F. Pernuš, “A review of 3D/2D        [29] J. Yao et al., “A C-arm fluoroscopy-guided progressive cut refinement
+     registration methods for image-guided interventions,” Med. Image Anal.,            strategy using a surgical robot,” Comput.-Aided Surg., vol. 5, no. 6,
+     vol. 16, no. 3, pp. 642–661, 2012.                                                 pp. 373–390, 2000.
+[17] H. J. Johnson and G. E. Christensen, “Consistent landmark and intensity-      [30] T. Yi, V. Ramchandran, J. H. Siewerdsen, and A. Uneri, “Robotic drill
+     based image registration,” IEEE Trans. Med. Imag., vol. 21, no. 5,                 guide positioning using known-component 3D–2D image registration,”
+     pp. 450–461, May 2002.                                                             J. Med. Imag., vol. 5, no. 2, 2018, Art. no. 021212.
+[18] M. Unberath et al., “Enabling machine learning in X-ray-based proce-          [31] R. B. Grupp et al., “Pose estimation of periacetabular osteotomy frag-
+     dures via realistic simulation of image formation,” Int. J. Comput. Assist.        ments with intraoperative X-ray navigation,” IEEE Trans. Biomed. Eng.,
+     Radiol. Surg., vol. 14, no. 9, pp. 1517–1528, 2019.                                vol. 67, no. 2, pp. 441–452, Feb. 2020.
+[19] C. Payer, D. Štern, H. Bischof, and M. Urschler, “Regressing heatmaps         [32] M. Krčah, G. Székely, and R. Blanc, “Fully automatic and fast segmen-
+     for multiple landmark localization using CNNs,” in Proc. Int. Conf. Med.           tation of the femur bone from 3D-CT images with no shape prior,” in
+     Image Comput. Comput. Assist. Intervent., 2016, pp. 230–238.                       Proc. IEEE Int. Symp. Biomed. Imag. Nano Macro, Chicago, IL, USA,
+[20] B. Bier et al., “X-ray-transform invariant anatomical landmark detection           2011, pp. 2087–2090.
+     for pelvic trauma surgery,” in Proc. Int. Conf. Med. Image Comput.            [33] R. Hartley and A. Zisserman, Multiple View Geometry in Computer
+     Comput. Assist. Intervent., 2018, pp. 55–63.                                       Vision. Cambridge, U.K.: Cambridge Univ. Press, 2003.
+[21] J. Esteban, M. Grimm, M. Unberath, G. Zahnd, and N. Navab, “Towards           [34] R. B. Grupp, M. Armand, and R. H. Taylor, “Patch-based image simi-
+     fully automatic X-ray to CT registration,” in Proc. Int. Conf. Med. Image          larity for intraoperative 2D/3D pelvis registration during periacetabular
+     Comput. Comput. Assist. Interv., 2019, pp. 631–639.                                osteotomy,” in Proc. Int. Workshop Clin. Image Based Procedures, 2018,
+[22] F. Kordon et al., “Multi-task localization and segmentation for X-ray              pp. 153–163.
+     guided planning in knee surgery,” in Proc. Int. Conf. Med. Image              [35] N. Hansen and A. Ostermeier, “Completely derandomized self-
+     Comput. Comput. Assist. Interv., 2019, pp. 622–630.                                adaptation in evolution strategies,” Evol. Comput., vol. 9, no. 2,
+[23] I. Laina et al., “Concurrent segmentation and localization for tracking of         pp. 159–195, 2001.
+     surgical instruments,” in Proc. Int. Conf. Med. Image Comput. Comput.         [36] M. J. Powell, “The BOBYQA algorithm for bound constrained
+     Assist. Interv., 2017, pp. 664–672.                                                optimization without derivatives,” Univ. Cambridge, Cambridge, U.K.,
+[24] C. Gao, M. Unberath, R. Taylor, and M. Armand, “Localizing dexter-                 Cambridge Rep. NA2009/06, pp. 26–46, 2009.
+     ous surgical tools in X-ray for image-based navigation,” 2019. [Online].
+     Available: arXiv:1901.06672
+
+
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on March 25,2026 at 06:39:48 UTC from IEEE Xplore. Restrictions apply.
+

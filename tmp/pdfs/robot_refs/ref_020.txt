@@ -1,0 +1,831 @@
+                                                               Medical Image Analysis 15 (2011) 840–850
+
+
+
+                                                             Contents lists available at ScienceDirect
+
+
+                                                           Medical Image Analysis
+                                              journal homepage: www.elsevier.com/locate/media
+
+
+
+
+2D–3D shape reconstruction of the distal femur from stereo X-ray imaging
+using statistical shape models
+N. Baka a,b,⇑, B.L. Kaptein c, M. de Bruijne b,d, T. van Walsum b, J.E. Giphart e, W.J. Niessen b,f, B.P.F. Lelieveldt a,g
+a
+  Division of Image Processing, Department of Radiology, Leiden University Medical Center, Leiden, The Netherlands
+b
+   Biomedical Imaging Group Rotterdam, Departments of Radiology & Medical Informatics, Erasmus MC, Rotterdam, The Netherlands
+c
+  Department of Orthopaedics, Leiden University Medical Center, Leiden, The Netherlands
+d
+   Department of Computer Science, University of Copenhagen, Denmark
+e
+  Biomechanics Research Department, Steadman Philippon Research Institute, Vail, CO, USA
+f
+  Imaging Science & Technology, Department of Applied Sciences, Delft University of Technology, The Netherlands
+g
+  Department of Mediamatics, Delft University of Technology, Delft, The Netherlands
+
+
+
+a r t i c l e        i n f o                          a b s t r a c t
+
+Article history:                                      Three-dimensional patient speciﬁc bone models are required in a range of medical applications, such as
+Received 26 October 2010                              pre-operative surgery planning and improved guidance during surgery, modeling and simulation, and
+Received in revised form 8 February 2011              in vivo bone motion tracking. Shape reconstruction from a small number of X-ray images is desired as
+Accepted 15 April 2011
+                                                      it lowers both the acquisition costs and the radiation dose compared to CT. We propose a method for pose
+Available online 4 May 2011
+                                                      estimation and shape reconstruction of 3D bone surfaces from two (or more) calibrated X-ray images
+                                                      using a statistical shape model (SSM). User interaction is limited to manual initialization of the mean
+Keywords:
+                                                      shape. The proposed method combines a 3D distance based objective function with automatic edge selec-
+SSM
+PDM
+                                                      tion on a Canny edge map. Landmark-edge correspondences are weighted based on the orientation dif-
+3D–2D non-rigid registration                          ference of the projected silhouette and the corresponding image edge. The method was evaluated by rigid
+Biplane ﬂuoroscopy                                    pose estimation of ground truth shapes as well as 3D shape estimation using a SSM of the whole femur,
+Edge selection                                        from stereo cadaver X-rays, in vivo biplane ﬂuoroscopy image-pairs, and an in vivo biplane ﬂuoroscopic
+                                                      sequence. Ground truth shapes for all experiments were available in the form of CT segmentations. Rigid
+                                                      registration of the ground truth shape to the biplane ﬂuoroscopy achieved sub-millimeter accuracy
+                                                      (0.68 mm) measured as root mean squared (RMS) point-to-surface (P2S) distance. The non-rigid recon-
+                                                      struction from the biplane ﬂuoroscopy using the SSM also showed promising results (1.68 mm RMS
+                                                      P2S). A feasibility study on one ﬂuoroscopic time series illustrates the potential of the method for motion
+                                                      and shape estimation from ﬂuoroscopic sequences with minimal user interaction.
+                                                                                                                         Ó 2011 Elsevier B.V. All rights reserved.
+
+
+
+1. Introduction                                                                            Pose estimation from biplane imaging in case of a priori known
+                                                                                       shape has been widely studied in the literature. We will not discuss
+    Three-dimensional pose estimation and shape reconstruction                         this case here, and refer to a recent review on existing techniques
+from a sparse set of 2D projection images is important for a range                     (Markelj et al., 2010). Such prior 3D shapes are often reconstructed
+of orthopedic applications. Computer navigation systems based on                       from CT scans. As these scans are associated with relatively high
+patient speciﬁc bone models may improve pre-operative planning                         costs and radiation doses, investigating methods for bone recon-
+(Krekel et al., 2006), and yield higher surgical accuracy (Hart et al.,                struction from a small number of low-dose, low-cost X-ray images
+2008; Siston et al., 2007). Moreover, such models are a prerequisite                   is relevant.
+for personalized ﬁnite element simulations, which may improve                              Shape reconstruction from sparse projection data requires prior
+implant designs, and may provide real-time feedback during im-                         information to guide the reconstruction process, which can be pro-
+plant placement (Harrysson et al., 2007; Krekel et al., 2006; Mazz-                    vided by integration of expert knowledge (Laporte et al., 2003), or
+oli et al., 2009). Also, personalized 3D bone models enhance the                       by Statistical Shape Models (SSM) (Benameur et al., 2003; Hurvitz
+accuracy of in vivo motion tracking, that is used for studying the                     and Joskowicz, 2008; Kurazume et al., 2009; Lamecker et al., 2006;
+relation between anatomy, motion and disease (Dennis et al.,                           Lavallée et al., 1993; Tang and Ellis, 2005; Yao and Taylor, 2003;
+2005; Torry et al., 2010).                                                             Zheng et al., 2008). The latter methods are either based on inten-
+                                                                                       sity or on edge features in the images.
+ ⇑ Corresponding author at: Division of Image Processing, Department of Radiol-            Intensity based methods optimize intensity similarity between
+ogy, Leiden University Medical Center, Albinusdreef 2, 2333 ZA Leiden, The             the X-ray images and digitally reconstructed radiographs (DRRs).
+Netherlands.                                                                           Yao and Taylor (2003) built a statistical model from tetrahedral
+
+1361-8415/$ - see front matter Ó 2011 Elsevier B.V. All rights reserved.
+doi:10.1016/j.media.2011.04.001
+                                                N. Baka et al. / Medical Image Analysis 15 (2011) 840–850                                        841
+
+
+meshes, and assigned an analytic density function to every tetrahe-            eur et al., 2003; Lamecker et al., 2006). We propose a new edge
+dron used for DRR generation. Tang and Ellis (2005) proposed a hy-             selection based method because of the relatively well visible edges
+brid global-local shape model, and ‘‘grew’’ the surface inward to              of the femoral bone in the X-ray images, and the lower computa-
+simulate thickness of the cortical bone of femora. Hurvitz and Jos-            tional complexity of the edge-based methods compared to DRR
+kowicz (2008) proposed 3D ﬁtting by non-rigid registration of X-               based methods.
+ray and DRR, using a statistical deformation model as prior, a tem-                The goal of this work is reconstruction of the 3D patient speciﬁc
+plate CT-like intensity image for DRR generation, and a template               femur from two (or more) calibrated X-ray images taken from dif-
+bone surface as shape representation.                                          ferent orientations. The contributions of the paper are threefold:
+    Edge based methods minimize the distance between object
+edges in the image and model silhouette. Fleute and Lavallée                     The proposed method combines the beneﬁts of a 3D similarity
+(1999) presented an extension of the rigid registration method of                 metric (Fleute and Lavallée, 1999; Zheng et al., 2008) with an
+Lavallée et al. (1993) to deformable models minimizing the 3D                     automatic edge selection scheme (Benameur et al., 2003;
+back-projected edge to surface distances for both shape and pose-                 Lamecker et al., 2006).
+parameters. Zheng et al. (2008) suggested to determine point corre-              An orientation based correspondence weighting (an extension
+spondences for the ﬁtting after rigid alignment, and do least squares             of Jain et al. (1996)) provides robustness w.r.t. missing, incor-
+shape estimation using the SSM. Other approaches did not explicitly               rect and noise edges in ﬂuoroscopic images.
+build point correspondences, thus prevent errors that might occur                Additionally, in contrast to current methods that only model the
+due to inaccurate or wrong point correspondences. Kurazume                        part of the bone in the Field of View (FOV), e.g. proximal or dis-
+et al. (2009) proposed a method that minimizes the sum of 2D dis-                 tal part of the femur, we use a statistical model of the complete
+tances of the image contour and the projected outer silhouette after              femur for ﬁtting to knee X-ray images, exploiting all informa-
+rigid alignment of the mean shape by the method of Iwashita et al.                tion present in the FOV.
+(2005). Another correspondence free approach, by Benameur et al.
+(2003), simultaneously optimizes a prior term and a 2D error metric               This results in a novel automated method requiring a single
+after an initial rigid registration based on a number of anatomical            manual initialization. In case of reconstruction of a temporal se-
+landmarks. The data ﬁt term is based on an edge potential ﬁeld,                quence, initialization may come from the previous frame, such that
+computed as the Gaussian blurred edge map of the X-ray images.                 user interaction is further minimized. Our method builds on the
+The average of the edge potential ﬁeld sampled at the projected con-           work of Benameur et al. (2003) in that we optimize shape and pose
+tour pixels was subsequently maximized. The approach was vali-                 of an SSM based on the Canny edge map of the X-ray images. Our
+dated on 3D vertebrae reconstruction. Lamecker et al. (2006)                   approach differs, however, in that we optimize the 3D error of the
+proposed a similar energy computation with the projected outer sil-            SSM (as opposed to a 2D error of the projected contour pixels) and
+houette only, solving in this way the inner contour correspondence             include orientation weighting in our framework. Though normal
+problems hampering reconstruction of the pelvic bone. To achieve a             orientation has been introduced before in 3D–2D non-rigid regis-
+better correspondence Feldmar et al. (1995) and Dworzak et al.                 tration, the way it is incorporated in our work differs from previous
+(2010) include the normal orientation in the error metric.                     methods. Feldmar et al. (1995) extend the spatial dimensions of
+    The algorithms discussed above can be categorized as either 2D             edge points with the dimensions of the normal vector, such that
+similarity based (Benameur et al., 2003; Dworzak et al., 2010;                 distance and orientation were handled equally, whereas in our ap-
+Kurazume et al., 2009; Lamecker et al., 2006; Tang and Ellis,                  proach normal orientation is a weighing factor suppressing unli-
+2005; Yao and Taylor, 2003) or 3D similarity based (Fleute and Lav-            kely correspondences. The work of Dworzak et al. (2010) is more
+allée, 1999; Hurvitz and Joskowicz, 2008; Zheng et al., 2008). A 2D            similar to ours, however, the proposed error metric is different in
+similarity metric enables automatic edge selection (Benameur                   that our objective function has an intrinsic robustness to outliers.
+et al., 2003; Lamecker et al., 2006) and correspondence free match-            We thoroughly validate the method on the distal femur using
+ing (Benameur et al., 2003; Dworzak et al., 2010; Kurazume et al.,             cadavers, in vivo biplane ﬂuoroscopic images, and an in vivo bi-
+2009; Lamecker et al., 2006; Yao and Taylor, 2003; Tang and Ellis,             plane ﬂuoroscopic sequence with known ground truth. We also
+2005), but is prone to perspective projection distortion amplifying            investigate the effect of different algorithm parameters on the
+the effect of object surfaces closer to the X-ray source and further           reconstruction accuracy.
+away from the projection plane. Three-dimensional similarity
+based techniques are therefore especially favored in a non-orthog-             2. Method
+onal imaging setup.
+    Another categorization can be made on whether a method re-                 2.1. Method overview
+quires the delineation of the complete (or partial) silhouette of
+the object on the X-ray images prior to matching (Dworzak et al.,                 Our method is based on the optimization of an objective func-
+2010; Fleute and Lavallée, 1999; Iwashita et al., 2005; Kaptein                tion E that contains both a data ﬁtting term Eﬁt and a shape prior
+et al., 2003; Kurazume et al., 2009; Lavallée et al., 1993; Zheng              term Eprior:
+et al., 2008; Zheng and Schumann, 2009), or not (Benameur
+                                                                               E ¼ Efit þ kEprior ;                                              ð1Þ
+et al., 2003; Hurvitz and Joskowicz, 2008; Lamecker et al., 2006;
+Tang and Ellis, 2005; Yao and Taylor, 2003). Manual contour draw-              where k is a weighting factor. The prior knowledge of plausible
+ing on a clinical X-ray may be inaccurate and cumbersome, and                  shapes is described by a point distribution model as explained in
+automation is not trivial due to the overlapping structures. Most              Section 2.2, and the ﬁtting term, explained in Section 2.3, describes
+approaches either do not discuss the edge delineation problem                  how well the shape ﬁts the edges in the X-ray images. Fig. 2 shows a
+from clinical X-rays (Dworzak et al., 2010; Fleute and Lavallée,               graphical overview of the method.
+1999; Kurazume et al., 2009; Lavallée et al., 1993), or use manual
+or semi-automatic contours (Kaptein et al., 2003; Zheng et al.,                2.2. Statistical shape model and shape prior
+2008; Zheng and Schumann, 2009). Methods that do not need
+delineation are either intensity based (Hurvitz and Joskowicz,                     The point distribution model (Cootes et al., 1992) is built from N
+2008; Tang and Ellis, 2005; Yao and Taylor, 2003), or implement                training shapes segmented from CT data. A correspondence algo-
+automatic edge selection based on a 2D similarity metric (Benam-               rithm is applied to represent each shape with the same number
+842                                                N. Baka et al. / Medical Image Analysis 15 (2011) 840–850
+
+
+n of corresponding landmark points pj, j = 1, . . . , n (Ferrarini et al.,                                 landmark matching score function
+2007), which are interconnected to form triangulated surfaces.
+Principal component analysis (PCA) of the aligned shapes results
+in a model of the form
+                                                                                        1
+x  x þ Ubx ;                                                          ð2Þ
+                                                                                    0.8
+where x is the mean shape, U is the matrix of the main modes of
+variation, and bx is the representation of the shape x in parameter                 0.6
+space.
+   To penalize improbable shapes during optimization, the Maha-                     0.4
+lanobis distance of the shape to the model mean is utilized as the
+shape prior in the objective function:                                              0.2
+
+              T
+Eprior ¼ bx R1 bx ;                                                    ð3Þ             0
+                                                                                            pi
+where R represents the covariance matrix of the shapes in the                                    pi/2                                                               30
+parameter space.                                                                                           0                                          20
+                                                                                                                -pi/2                   10
+                                                                                                        angle           -pi
+2.3. Data ﬁt term                                                                                                             0              distance [mm]
+
+                                                                                  Fig. 1. The silhouette landmark matching score Hi(pj) with m = 5 as a function of the
+   The data ﬁt term Eﬁt is a function that has low value when the
+                                                                                  angle and the 3D distance. The non-linearity ampliﬁes the effect of close points as
+current 3D shape accurately matches the edges in the X-ray                        well as small angles, and suppresses the effect of far points likely to be outliers, and
+images. Edges are computed prior to matching using a Canny edge                   large angles which probably constitute false correspondences.
+detector. We propose to assign a matching score to every landmark
+point, and average over all landmark points and over all projection
+directions to obtain the data ﬁt function:                                        image gradient of the X-ray for the orientation weighing rather than
+                                                                                  the edge tangent of the edge map as in Jain et al. (1996), as it allows
+                   nproj
+            1      XX   n
+                                                                                  differentiation between edges of positive and negative orientation,
+Efit ¼                     Hi ðpj Þ;                                    ð4Þ
+         n  nproj i¼1 j¼1                                                        and thus it allows distinguishing parallel neighboring structures
+                                                                                  with similar shapes (such as joint surfaces).
+where nproj is the number of projections, and n is the number of                      Due to the subtraction in Eq. (5), the optimal matching score is
+landmark points of the model. The matching score Hi(pj) of land-                  zero. Fig. 1 shows Hi(pj) as a function of the angle a and the dis-
+mark pj in projection i is given as                                               tance di(pj). A step-by-step illustration of the proposed method is
+                                                                                  given in Fig. 2.
+Hi ðpj Þ ¼ 1  ui ðpj Þ  wi ðpj Þ  Di ðpj Þ;                          ð5Þ
+
+where the term ui(pj) masks the silhouette landmark points such                   2.4. Minimization algorithm
+that it results in 1 for silhouette landmarks who’s projection falls
+in the FOV of projection i, and in 0 otherwise. Silhouette landmarks                 The objective function in Eq. (1) has two sets of parameters: the
+were deﬁned as the landmark points shared by two triangles with                   pose parameters (translation, rotation, and isotropic scaling), and
+one normal pointing toward and the other pointing away from                       the shape parameters (the vector b from the shape model). The min-
+the source. The distance term Di(pj) is deﬁned as                                 imization strategy involves two stages: pose optimization of the
+                                                                                mean shape, followed by simultaneous pose and shape estimation.
+                 di ðpj Þ
+Di ðpj Þ ¼ exp            ;                                            ð6Þ          Pose optimization consists of translation followed by optimiza-
+                           m                                                      tion of rigid pose and isotropic scaling. Due to the large amount of
+where di(pj) denotes the 3D distance calculated as the distance of                local minima, a number nopt of afﬁne optimizations are performed
+the landmark point pj from the ray connecting the nearest Canny                   by adding small random displacements to the pose with lowest
+edge point of the projected landmark with the X-ray source. The                   objective function value.
+distance weighting factor m controls the smoothness of the expo-                     All optimizations were performed using preconditioned conju-
+nential. The distance term was constructed such that the 3D dis-                  gate gradients in a trust region approach, as implemented in the
+tances are mapped on the interval [0, 1]. The inherent non-                       Optimization Toolbox of Matlab. The algorithm is guaranteed to
+linearity of the function provides outlier suppression by converging              terminate by applying thresholds on step size, gradient magnitude,
+to zero for large distances.                                                      and maximum number of iterations.
+   The orientation weighting term wi(pj) 2 [0, 1] is deﬁned as
+                                                                                 3. Data
+             0;     if a > 90
+w¼                                                                      ð7Þ
+             cos a; otherwise
+                                                                                  3.1. Femur shape model
+where a is the angle between the projected normal vector of the 3D
+surface at landmark point pj and the gradient of the image at the                    The femur shape model was constructed using a semi-auto-
+corresponding edge location. The closest point correspondence on                  matic snake-based segmentation from CT Angiography scans of
+the Canny edge map does not ensure correspondence of a landmark                   the lower extremities of 30 patients and CT scans of 13 cadavers.1
+point to a relevant edge (a true object edge in the Canny edge map,               The 43 segmentations consisted of 25 mirrored right, and 18 left
+in our case femur edges). Therefore, the orientation weighing down-               femora. The population contained 30 male and 13 female subjects
+weighs correspondences with large angle difference, minimizing                    aged between 23 and 92 years. The bones were scanned on different
+the effect of probably false correspondences. The orientation weigh-
+ing furthermore provides additional information about the land-
+mark neighborhood, aiding convergence. We prefer to use the                         1
+                                                                                        All scans were performed for other reasons than osteoarthritis.
+                                                          N. Baka et al. / Medical Image Analysis 15 (2011) 840–850                                                       843
+
+
+
+
+Fig. 2. Method overview: The objective function is a combination of the shape prior term and the data ﬁt term. The data ﬁt term is calculated in six steps. The silhouette
+landmark points of the current model are determined (step 1), and projected to the plane (step 2). The projected landmarks are matched with the closest edge point in the
+Canny edge map using a pre-computed nearest neighbor transform (step 3). In case multiple landmark points map to the same point of the Canny edge map, only the
+correspondence of the closest landmark is kept. The 3D distance d of the silhouette landmarks from their closest edge point is determined by calculating the smallest distance
+of the ray connecting the 2D edge point with the X-ray source and the 3D landmark point (step 4). The angle between the projected normal vector of the 3D surface at
+landmark points and the gradient of the image at the corresponding edge position is calculated (step 5). The matching score Hi(pj) in Eq. (5) is calculated for every landmark
+point (step 6), and forms the data ﬁt term via Eq. (4).
+
+
+
+scanners with voxel sizes ranging from 0.625  0.625  0.8 mm3 to                         views of the femora were acquired simultaneously, with an angle
+0.782  0.782  0.8 mm3. Landmark points on the training shapes                           of 35°, containing approximately 50–60% of an average length fe-
+were calculated using the GAMES algorithm (Ferrarini et al., 2007)                        mur. For computational reasons, each X-ray image was down-sam-
+with an average landmark distance of 3 mm, yielding 931 landmarks                         pled to a pixel size of 0.47  0.47 mm. Each femur was imaged in
+for the entire femur. Retaining 95% variance at model construction                        four orientations: anterior–posterior (AP), medial–lateral (ML), lat-
+resulted in 30 out of 42 modes of variation.                                              eral–medial (LM), and posterior–anterior (PA). The AP orientation
+                                                                                          was scanned twice with a small displacement. Ground truth pose
+                                                                                          and shape were obtained from CT scans of the bones including
+3.2. Cadaver data
+                                                                                          the markers.
+   Uni-planar stereo X-rays of two naked cadaver femora of male
+subjects (74 and 86 years old) with 1 mm tantalum markers were                            3.3. Fluoroscopic data
+acquired using a standard Roentgen Stereophotogrammetric Anal-
+ysis (RSA) setup. The cadaver femora were placed above a calibra-                            We used subset of the data of an ongoing study designed to give
+tion box (Leiden Carbonbox 8), which enabled the computation of                           insight in 3D knee kinematics during jump-landing (e.g. Torry et al.
+the exact acquisition geometry (Valstar et al., 2005). Two X-ray                          (2010)). Subjects were asked to jump from a 40 cm high box to the
+844                                                   N. Baka et al. / Medical Image Analysis 15 (2011) 840–850
+
+
+ground in the ﬁeld of view of a custom built biplane ﬂuoroscopy                         The edge-surface (ES) distance was employed to indicate how
+system. The system was focused on the dominant landing support                       well the object edges3 in the projection images were approximated
+leg, and consisted of two modiﬁed C-arms (Philips Medical sys-                       by the 3D model. It was calculated as the 3D distance between the
+tems, Best, NL) placed at approx. 80° and equipped with synchro-                     ray connecting the selected edge pixels with the X-ray source, and
+nized high-speed cameras recording at 500 frames/s with a                            the ﬁtted 3D surface. The edge-surface distance of an entire shape
+resolution of 1024  1024 pixels. For further information on the                     was given as the root mean squared (RMS) ES distance of all selected
+calibration we refer to Torry et al. (2010). Biplane ﬂuoroscopic                     edge pixels.
+jump sequences and CT scans were acquired for 10 healthy sub-                           Absolute pose differences were computed to determine the
+jects (9 male and 1 female, aged 23–41 years). The FOV of the CT                     pose error between ground truth and reconstructed pose per
+ranged from approximately 12 cm above to 12 cm below the joint                       parameter (translation, rotation, isotropic scaling). Translation
+line of the knee.                                                                    parameters were based on world coordinates, while rotation and
+   We used single time-point biplane knee images of the 10 sub-                      scaling was performed in the shape coordinate system with axes
+jects, as well as the complete ﬂuoroscopic jump sequence of one                      pointing in the lateral–medial, anterior–posterior, and proximal–
+subject. Triangulated CT segmentations (extracted with Mimics,                       distal directions. Despite the different parameters not being inde-
+Materialize Inc., Plymouth, MI) were used as ground truth shapes,                    pendent from each other, this metric does provide relevant infor-
+and ground truth pose (translation, rotation and isotropic scaling)                  mation about rigid ﬁtting accuracy.
+was derived by 3D–2D registration of the ground truth shape to
+manually selected Canny edges of the ﬂuoroscopic images, using                       4.3. Parameter settings
+commercially available software for Model-Based Roentgen Ste-
+reophotogrammetric Analysis (MBRSA) (Medis-specials, Leiden,                             The proposed method incorporates four groups of parameters
+The Netherlands) (for details see Kaptein et al., 2003). For the ﬂuo-                that have to be selected prior to application. All experiments in
+roscopic jump sequence, ground truth pose was calculated in every                    Section 5 were computed with the following values.
+fourth time-frame. We note, that because of the high-speed cam-                          For the preprocessing of the X-ray images, we used r = 4 pixels
+eras the ﬂuoroscopic data used in this paper is lower quality than                   for the Gaussian blurring (matching the protocol of the ground
+standard ﬂuoroscopy.                                                                 truth pose generation of the ﬂuoroscopic data), and an upper
+   None of the subjects of the ﬂuoroscopic data was included in                      threshold of 0.04 for the Canny edge detection. For the lower
+the training data for the femur shape model.                                         threshold we chose a value of 20% of the upper threshold, which
+                                                                                     we found to be a sensible comprise between the amount of edges
+                                                                                     and computation time. The effect of varying these parameters on
+4. Evaluation scheme                                                                 the performance of the algorithm is evaluated in Section 5.5.
+                                                                                         The ﬁtting term has a distance weighting factor m = 5, which is
+4.1. Evaluation methodology                                                          equivalent to an outlier distance threshold of approximately
+                                                                                     20 mm. Note that different thresholds can be selected for a mul-
+    We adapted the evaluation methodology proposed by van de                         ti-resolution approach.
+Kraats et al. (2005), i.e. reconstructions were performed with ini-                      The optimization algorithm depends on the number and magni-
+tializations of varying distance from the ground truth (measured                     tude of random displacements during rigid optimization. We drew
+in point-to-surface distance, see Section 4.2). Initializations were                 nopt = 5 random displacements per rigid optimization from a nor-
+derived by random displacements (translation, rotation, scaling)                     mal distribution with a standard deviation of 3 (mm, °, and %
+of the mean shape in the ground truth pose, such that the initial                    respectively). These numbers were determined by pilot experi-
+accuracies were distributed within the distance range                                ments without extensive optimization, and represent a trade-off
+[P2SL, 14] mm, where P2SL is the shape distance between the model                    between accuracy and computation time.
+mean and the target shape. To ensure an even distribution                                The objective function has a factor k, which determines the rel-
+throughout this range, seven equally sized sub-intervals were                        ative weight of the prior term. A high value of k results in a rigid
+used. Maximum displacements per parameter per interval were                          model, which is able to ﬁt the image edges less accurately, while
+found via line search. Additionally, parameters were constrained                     low value of k might result in implausible shapes. We optimized
+to the range [10, 10] mm translation, [10, 10] degree rotation,                    this parameter (k = 0.01) on ﬂuoroscopic subject nr. 1 only, to ob-
+and [90, 110]% scaling. This was necessary due to the elongated,                     tain unbiased results. Results showed that subject nr. 1 did not out-
+tubular nature of the femoral bone. Displacements were selected                      perform other subjects, and is therefore not treated separately
+randomly from a uniform distribution within the calculated                           from the test set.
+parameter maximum bounds, and used as initialization if the
+resulting shape initialization belonged to the desired interval.
+                                                                                     5. Experiments and results
+
+4.2. Error metrics                                                                      We performed ﬁve experiments to evaluate different aspects of
+                                                                                     the proposed method.
+    Performance was evaluated with three types of distance met-
+rics: point-to-surface distances, edge-surface distances and abso-                   5.1. Rigid 3D–2D registration to ﬂuoroscopy
+lute pose differences.
+    The point-to-surface (P2S) distance of the shape estimate to the                 5.1.1. Experiment
+ground truth shape was used to evaluate the 3D reconstruction                            The ﬁrst experiment was designed to evaluate the data ﬁt term
+accuracy. P2S errors were only evaluated at the landmark points                      of the objective function, eliminating all possible errors caused by
+of the knee.2 The P2S distance of a shape is given as the root mean
+squared (RMS) distances of its landmark points. Matching conver-
+                                                                                       3
+gence was deﬁned as an RMS P2S error smaller than 3 mm.                                  In the ﬂuoroscopic data object edges were deﬁned as the manually selected
+                                                                                     Canny edges from the ground truth calculation (see Section 3). In the cadaver
+                                                                                     experiments object edges were deﬁned as the Canny edges close to the projected
+ 2
+      Up till approximately 12 cm above joint line.                                  ground truth shape.
+                                                                            N. Baka et al. / Medical Image Analysis 15 (2011) 840–850                                                                                        845
+
+
+the SSM. We performed rigid 3D–2D registration of the ground                                                            Table 1
+truth shape to the biplane ﬂuoroscopic image pairs of 10 volun-                                                         Cadaver experiment results of non-rigid ﬁtting of the SSM to the stereo X-rays of two
+                                                                                                                        cadavers in four scanning orientations. Mean RMS distances and standard deviations
+teers with initial pose according to Section 4.1.                                                                       of the ﬁtted SSM are given for all converged cases. Point-to-surface (P2S), and edge to
+                                                                                                                        surface (ES) distances are reported in mm.
+
+5.1.2. Results                                                                                                              #               Cadaver orientation                        P2S                        ES
+   A summary of the results is given in Table 2. Fig. 3 gives a more                                                        1               AP a                                       1.78 ± 0.13                1.12 ± 0.26
+detailed illustration of the achieved convergence radius and accu-                                                          1               AP b                                       1.81 ± 0.21                1.20 ± 0.33
+                                                                                                                            1               PA                                         1.93 ± 0.19                1.50 ± 0.30
+racy. The scatter plot (Fig. 3 left) shows all ﬁtting runs, while the
+                                                                                                                            1               LM                                         1.89 ± 0.21                1.04 ± 0.08
+box-plots (Fig. 3 middle, right) include only the converged cases,                                                          1               ML                                         1.83 ± 0.27                0.96 ± 0.26
+where convergence was deﬁned as a RMS P2S error smaller than                                                                2               AP a                                       1.22 ± 0.10                1.20 ± 0.05
+3 mm. We compared the quality of the pose estimation with the                                                               2               AP b                                       1.31 ± 0.15                1.29 ± 0.21
+ground truth based on the edge-surface distances. Results in                                                                2               PA                                         1.77 ± 0.21                1.24 ± 0.09
+                                                                                                                            2               LM                                         1.53 ± 0.09                1.38 ± 0.06
+Fig. 3 show a comparable rigid ﬁtting accuracy of the proposed
+                                                                                                                            2               ML                                         1.73 ± 0.18                1.17 ± 0.09
+method and model based RSA used to extract the ground truth                                                                                 all                                        1.68 ± 0.29                1.21 ± 0.25
+pose. The reconstructed pose varied with different starting posi-
+tions and due to randomness involved in the optimization. The
+spread of ﬁtting accuracies, however, remained small. Table 3                                                           5.3. Non-rigid 3D–2D registration to ﬂuoroscopy
+shows the absolute pose difference of the registration and the
+ground truth. The 95% convergence radius was 6.34 mm.                                                                   5.3.1. Experiment
+                                                                                                                           In the third experiment we evaluated the performance of our
+                                                                                                                        complete non-rigid 3D–2D registration framework in a realistic set-
+5.2. Non-rigid 3D–2D registration of Cadaver femora                                                                     up. The statistical model of the femur was ﬁtted to 10 ﬂuoroscopic
+                                                                                                                        biplane knee X-rays using the proposed method. Separately, we as-
+5.2.1. Experiment                                                                                                       sessed the effort of manual initialization starting from the mean
+   The second experiment was designed to test the non-rigid ﬁt-                                                         shape in the middle of the FOV. The user could adjust the pose
+ting on stereo X-rays of naked cadaver femora, i.e. in the absence                                                      per parameter seeing the updated silhouette overlaid on the X-rays.
+of overlapping structures. This way, the effect of the Canny param-
+eter selection was minimal, and the edge map contained nearly the                                                       5.3.2. Results
+entire silhouette of the object with a minimal amount of irrelevant                                                         A summary of the results is given in Table 2. The 3D–2D regis-
+edges. We used the cadaver data described in Section 3. The cadav-                                                      tration attained a mean P2S error of 1.33 mm and a mean RMS P2S
+ers used for testing were excluded from the training set from                                                           error of 1.68 mm from the ground truth. To interpret these num-
+which the SSM was built.                                                                                                bers, the optimal ﬁt of the SSM to the 3D ground truth shape
+                                                                                                                        was computed by minimizing the P2S distance, and was found to
+5.2.2. Results                                                                                                          be an RMS P2S distance of 0.78 mm on average. Convergence inter-
+    The 3D–2D ﬁtting of the SSM resulted in an average RMS P2S                                                          val, and accuracy plots are shown in Fig. 5. The 95% convergence
+distance of 1.68 mm for all converged cases. Detailed results are                                                       radius was 6.76 mm. Pose errors of the reconstructions are listed
+shown in Table 1. In all test cases the accuracy of the rigid ﬁt of                                                     in Table 3. An example ﬁt is given in Fig. 6. Supplemental movie
+the mean shape improved substantially with non-rigid ﬁtting (on                                                         1 shows all stages of the ﬁtting process for one subject. Manual ini-
+average by 0.47 mm P2S, and by 0.71 mm ES). An example stereo                                                           tialization with a few clicks per parameter resulted in RMS P2S dis-
+image pair in AP orientation is shown in Fig. 4 with initial position,                                                  tances smaller than 5 mm in all 10 cases.
+rigid and non-rigid ﬁtting results. As a reference, a 3D–3D ﬁtting of
+the SSM to the cadaver knee was also performed by minimizing the                                                        5.4. Fluoroscopic sequence
+P2S distance between the model and the target shape. The result-
+ing RMS P2S distance (1.1 mm for Cadaver 1, and 0.9 mm for Cada-                                                        5.4.1. Experiment
+ver 2) represents the best possible reconstruction accuracy with                                                           In the fourth experiment the applicability of the method to ﬂuo-
+our model.                                                                                                              roscopic sequences was investigated using a biplane ﬂuoroscopy
+
+
+                                      prior-post RMS P2S plot                               RMS P2S for the fluoroscopic image-pairs                                   RMS ES for the fluoroscopic image-pairs
+                         15                                                                 3                                                                         3
+
+
+
+                                                                                           2.5                                                                       2.5
+    post RMSE P2S (mm)
+
+
+
+
+                                                                            RMS P2S (mm)
+
+
+
+
+                                                                                                                                                       RMS ES (mm)
+
+
+
+
+                         10                                                                 2                                                                         2
+
+
+
+                                                                                           1.5                                                                       1.5
+
+
+
+                          5                                                                 1                                                                         1
+
+
+
+                                                                                           0.5                                                                       0.5
+
+
+
+                          0                                                                 0                                                                         0
+                              0   2     4       6      8     10   12   14                        1   2   3    4    5    6       7   8   9     10                           1   2   3    4    5    6    7      8     9   10
+                                            prior RMS P2S (mm)                                               fluoroscopic dataset                                                      fluoroscopic dataset
+
+Fig. 3. Rigid ﬁtting of the ground truth shape on 10 ﬂuoroscopic image pairs. Left: Convergence plot. Each dot represents a separate ﬁtting with the initial P2S distance on the
+‘x’ axis, and the post-registration distance on the ‘y’ axis. The red dotted line shows the convergence threshold, the dashed line is the no improvement line. Middle: Box-plot of
+P2S distances per ﬂuoroscopic dataset for all converged cases. Right: Box-plot of ES distances per ﬂuoroscopic dataset for all converged cases, the black triangles mark the ES
+distance of the ground truth pose. (For interpretation of the references to color in this ﬁgure legend, the reader is referred to the web version of this article.)
+846                                                                                N. Baka et al. / Medical Image Analysis 15 (2011) 840–850
+
+
+
+
+Fig. 4. An example ﬁt of Cadaver 1 in anterior–posterior pose. Canny edges are overlaid on the X-rays in black, red is the projection of the model. Top row: left images, Bottom
+row: right images. From left to right: initialization (P2S = 6.85 mm), rigid ﬁt with mean shape (P2S = 2.3 mm), non-rigid ﬁt of the SSM (P2S = 1.56 mm). (For interpretation of
+the references to color in this ﬁgure legend, the reader is referred to the web version of this article.)
+
+
+
+Table 2                                                                                                                         frames were left out from the experiment. We performed both ri-
+Average RMS accuracies with standard deviations for the biplane ﬂuoroscopic                                                     gid registration of the ground truth bone as well as non-rigid ﬁtting
+experiments (Sections 5.1 and 5.3). The ﬁrst row indicates the accuracy of the
+ground truth, second row gives the results of the 3D–2D rigid registration of the
+                                                                                                                                of the SSM 10 times on the sequence. In each frame, the algorithm
+ground truth shape, third row shows accuracies achieved with the 3D–2D non-rigid                                                was initialized with the shape of the previously ﬁtted frame and
+registration of the SSM, and last row shows the best achievable representation of the                                           the extrapolated pose calculated as the last pose updated with
+10 subjects using the SSM. We indicate point-to-surface distance (P2S) and edge to                                              the last motion vector. We started ﬁtting on the second available
+surface distance (ES) in mm.
+                                                                                                                                frame, where the initialization occurred with the mean shape
+  Method                                                             P2S                                    ES                  and ground truth pose of the ﬁrst frame. In the SSM experiments
+  Ground truth                                                          –                                   0.42 ± 0.05         we optimized pose (translation, rotation, scaling) as well as shape
+  3D–2D rigid registration                                           0.68 ± 0.28                            0.46 ± 0.16         parameters in each frame.
+  3D–2D non-rigid registration                                       1.68 ± 0.35                            0.96 ± 0.39
+  3D–3D SSM to ground truth                                          0.78 ± 0.07                            0.84 ± 0.22
+                                                                                                                                5.4.2. Results
+                                                                                                                                   Both rigid and non-rigid ﬁtting accuracies and their standard
+sequence of one subject (Section 3). Ground truth shape and pose                                                                deviation are given in Fig. 7. The bar charts show the convergence
+were available for every fourth frame. Accordingly, the in-between                                                              rate calculated from the 10 trials. Higher errors occurred at the
+
+
+                                        prior-post RMS P2S plot                                    RMS P2S for the fluoroscopic image-pairs                              RMS ES for the fluoroscopic image-pairs
+                           18                                                                      3                                                                    3
+
+                           16
+                                                                                                  2.5                                                                  2.5
+                           14
+      post RMSE P2S (mm)
+
+
+
+
+                                                                                   RMS P2S (mm)
+
+
+
+
+                                                                                                                                                         RMS ES (mm)
+
+
+
+
+                           12                                                                      2                                                                    2
+
+                           10
+                                                                                                  1.5                                                                  1.5
+                            8
+
+                            6                                                                      1                                                                    1
+
+                            4
+                                                                                                  0.5                                                                  0.5
+                            2
+
+                            0                                                                      0                                                                    0
+                                0   2      4       6      8     10     12    14                         1   2    3    4    5    6    7      8   9   10                       1   2   3    4    5    6    7      8   9   10
+                                               prior RMS P2S (mm)                                                    fluoroscopic dataset                                                fluoroscopic dataset
+
+Fig. 5. Non-rigid SSM ﬁtting results on 10 ﬂuoroscopic image pairs. Left: Convergence plot. Each dot represents a separate ﬁtting with the initial P2S distance on the ‘x’ axis,
+and the post-registration distance on the ‘y’ axis. The red dotted line shows the convergence threshold, the dashed line is the no improvement line. Middle: Box-plot of P2S
+distances per ﬂuoroscopic dataset for all converged cases. Right: Box-plot of ES distances per ﬂuoroscopic dataset for all converged cases. Black triangles mark the ES distance
+of the ground truth. (For interpretation of the references to color in this ﬁgure legend, the reader is referred to the web version of this article.)
+                                                            N. Baka et al. / Medical Image Analysis 15 (2011) 840–850                                        847
+
+
+Table 3                                                                                    this region, generating a PVSE higher than 100. Furthermore, we
+Mean and standard deviation of absolute pose distances of all converged reconstruc-        investigated the effect of Canny parameters on the ﬁtting accuracy
+tions of the rigid registration with the ground truth CT shape (ﬁrst experiment) and
+non-rigid ﬁtting of the SSM (third experiment) on the 10 ﬂuoroscopic datasets.
+                                                                                           by evaluating 12 different Canny parameter conﬁgurations.
+Translation is in the world coordinate system [mm], rotations are in a local coordinate
+system around lateral–medial axis (LM), anterio–posterio axis (AP) and proximal–
+                                                                                           5.5.2. Results
+distal axis (PD) in degree units, and scaling errors are in percentage.
+                                                                                              The spread of the POE and PVSE for the different Canny param-
+     Parameter                     Rigid CT bone                    Non-rigid SSM          eters are illustrated in Fig. 9. Colors code for Canny smoothing,
+     x (mm)                        0.29 ± 0.3                       0.68 ± 0.6             while line style indicates the employed threshold value. A negative
+     y (mm)                        0.26 ± 0.22                      0.92 ± 0.71            correlation between the measures can be observed: the more of
+     z (mm)                        0.45 ± 0.46                      0.99 ± 0.91
+                                                                                           the silhouette is visible, the smaller is the percentage of all edges
+     Rot LM (deg.)                 0.44 ± 0.45                      0.93 ± 0.72
+     Rot AP (deg.)                 0.38 ± 0.35                      0.78 ± 0.68            in the image that is relevant. Results of the non-rigid ﬁtting in
+     Rot PD (deg.)                 1.19 ± 1.01                      2.19 ± 1.73            Fig. 9 indicate that a relatively high amount of relevant edges in
+     Scale (%)                     1.43 ± 0.55                      1.55 ± 1.25            the image results in a larger convergence radius. Also, the larger
+                                                                                           the portion of the silhouette present in the image, the better the
+                                                                                           reconstruction accuracy. The rise at the end of the distance curve
+                                                                                           on the right of Fig. 9 shows deterioration of the ﬁt due to noise. Ta-
+                                                                                           ble 4 gives an overview of the performance with varying Canny
+                                                                                           parameters.
+
+
+                                                                                           6. Discussion and conclusions
+
+                                                                                               We presented a method to reconstruct bony anatomy from two
+                                                                                           (or more) calibrated X-ray images utilizing a statistical shape mod-
+                                                                                           el and a 3D distance based objective function using Canny edges in
+                                                                                           the projection images. Except for the initial pose estimate, the
+                                                                                           method performs reconstruction automatically.
+                                                                                               We performed several experiments to investigate the perfor-
+                                                                                           mance of the pose and shape ﬁtting of the distal femur from bi-
+                                                                                           plane images. The ﬁrst two experiments represented simpliﬁed
+                                                                                           problems containing pure pose estimation of the ground truth
+                                                                                           shape, and pose and shape estimation in the ideal case of clear
+                                                                                           boundaries. In the third experiment we evaluated the accuracy of
+                                                                                           the overall proposed methodology using biplane ﬂuoroscopic im-
+                                                                                           age pairs, which represent a realistic working environment for
+                                                                                           the method. Experiment four is a feasibility study showing the po-
+                                                                                           tential of the method for motion tracking from biplane ﬂuoroscopy.
+                                                                                           Lastly, the inﬂuence of the Canny parameter settings on the recon-
+Fig. 6. Top row: initialization Bottom row: matching scores (zero – dark blue; one –
+                                                                                           struction was evaluated.
+dark red) of the silhouette landmark points after SSM ﬁtting. Ground truth shape is
+overlaid in green. (For interpretation of the references to color in this ﬁgure legend,        The ﬁrst experiment demonstrated that the rigid ﬁtting of our
+the reader is referred to the web version of this article.)                                method with the proposed data ﬁt term obtained results compara-
+                                                                                           ble to those of the rigid ﬁtting of ground truth pose (Fig. 3 and Ta-
+                                                                                           ble 2). The results also indicated that the rotation around the
+begin and the end of the sequence, due to the knee partially being                         longitudinal axis of the femur was the most difﬁcult parameter
+outside the FOV, and additionally overlap of the two legs deterio-                         to estimate (Table 3), which indeed has the smallest effect on the
+rated the edge-map. Example frames from the graphs of Fig. 7                               projected silhouette.
+are shown in Fig. 8. Movie 2 of the Supplemental material shows                                The non-rigid ﬁtting accuracy of the method with an SSM was
+the sequence for a successful reconstruction.                                              assessed in experiment two and three. The second experiment
+                                                                                           was signiﬁed by high contrast and a small angle between the
+5.5. Inﬂuence of the Canny parameters                                                      images (35°). The third experiment was conducted on 90° biplane
+                                                                                           ﬂuoroscopic images, which due to the high-speed camera acquisi-
+5.5.1. Experiment                                                                          tion inhibit lower quality than standard ﬂuoroscopy. The recon-
+    In the last experiment we assessed the inﬂuence of the choice of                       struction of 10 subjects in the latter experiment resulted in an
+Canny parameters on the ﬁtting accuracy and success rate. Besides                          average RMS P2S accuracy of 1.68 mm (Table 2), and our experi-
+the relevant object edges, patient scans contain edges due to noise,                       ments on two cadaver femora yielded an RMS P2S accuracy of
+tissue overlap, and surrounding tissue. We therefore investigated                          1.68 mm as well (Table 1).
+the relation of the amount of object edges compared to all edges                               These point-to-surface non-rigid ﬁtting accuracies comprise
+in the image (percentage of object edges, POE), and of the amount                          several sources of errors. One important source is the model qual-
+of object edges compared to the full silhouette (percentage of vis-                        ity. The best possible representation (RMS P2S) of the ground truth
+ible silhouette edges, PVSE) to the ﬁtting result.4 Edges were                             shapes by the SSM was 0.78 mm and 1.0 mm for the ﬂuoroscopic,
+marked to belong to the object if they were within a region around                         and cadaver experiments respectively. Approximately half of the
+the ground truth projected contour. The extent of this region varied                       errors can thus be explained by this source. Further sources of er-
+with r, accounting for the shift in the contour position and the ES                        ror, also experienced in the rigid registration of the ground truth
+distance of the ground truth. In some cases also noise edges fell into                     shape, are sparseness of the imaging setup; partial edges on the
+                                                                                           images; and presence of irrelevant edges in the edge map. Noise
+ 4
+      we do not study the edge position with respect to the smoothing parameter.           edges may cause local minima affecting mainly the convergence
+848                                                                        N. Baka et al. / Medical Image Analysis 15 (2011) 840–850
+
+
+                                                      frame-accuracy plot                                                                                    frame-accuracy plot
+                                        3                                                                                                      3
+                                              P2S                                                                                                    P2S
+      point to surface distance [mm]
+
+
+
+
+                                                                                                            point to surface distance [mm]
+                                       2.5    ES fit                                                                                         2.5     ES fit
+                                              ES Ground Truth                                                                                        ES Ground Truth
+                                        2                                                                                                      2
+
+                                       1.5                                                                                                   1.5
+
+                                        1                                                                                                      1
+
+                                       0.5                                                                                                   0.5
+
+                                        0                                                                                                      0
+                                        260   280         300        320           340           360                                           260   280         300        320    340        360
+      conv. rate [%]
+
+
+
+
+                                                                                                        conv. rate [%]
+                                        1                                                                                                    100
+
+                                       0.5                                                                                                    50
+
+                                        0                                                                                                     0
+                                        260   280         300        320           340           360                                          260    280         300        320    340        360
+                                                           frame number                                                                                           frame number
+
+Fig. 7. Results on a biplane ﬂuoroscopic landing sequence. Fitting started at frame 263, and was performed on every 4th frame. The bar chart illustrates the convergence rate
+based on 10 trials, while the top graphs show mean, and standard deviation of the RMS distances of converged ﬁts. Left: Rigid ﬁtting results of the ground truth shape, Right:
+Non-rigid ﬁtting results of the statistical shape model. A visual impression of a few frames of this ﬁt is given in Fig. 8.
+
+
+
+
+Fig. 8. Examples of the SSM ﬁt on the ﬂuoroscopic soft landing sequence. Columns from left to right are frame 275, frame 307, and frame 331. Top row: Left images, Bottom
+row: Right images. Canny edges are overlaid on the X-ray with black. Red is the projection of the ﬁtted shape, while green is the ground truth. (For interpretation of the
+references to color in this ﬁgure legend, the reader is referred to the web version of this article.)
+
+
+
+
+radius. Partial edges on the other hand may cause false global min-                                                               plained by the small angle (35°) between the stereo images causing
+ima in the pose as well as the shape parameter landscape. Accord-                                                                 various shape characteristics being invisible in certain scan orien-
+ing to the rigid ﬁtting results these sources are responsible for an                                                              tations (e.g. the epicondyles in the lateral view).
+RMS P2S error of approximately 0.68 mm for the ﬂuoroscopic                                                                            In our experiments the cadaver reconstruction performed sim-
+images (Table 2). Results also suggest an orientation dependency                                                                  ilar to the biplane ﬂuoroscopy reconstruction. The smaller angle
+of the reconstruction accuracy (Table 1). This trend might be ex-                                                                 between the projections, and the more unusual shape of the
+                                                                                                                        N. Baka et al. / Medical Image Analysis 15 (2011) 840–850                                                                                                                               849
+
+
+                                                                                                                                                  effect of unrelevant egdes in the image                                                              effect of missing silhouette parts
+                                                                                                                                          14                                                                                               3
+                                    1.2                                                                                                          convergence radius                                                                                                                        convergence radius
+
+
+
+
+                                                                                                         point to surface distance [mm]
+
+
+
+
+                                                                                                                                                                                                         point to surface distance [mm]
+                                                                                                                                          12     accuracy
+                                    1.1                                                                                                                                                                                                   2.5
+                                                                                                                                          10
+    % of visible silhouette edges
+
+
+
+
+                                     1                                                                                                     8
+                                                                                                                                                                                                                                           2
+                                                                                                                                           6
+                                    0.9
+                                                                                                                                           4
+                                                                                                                                                                                                                                          1.5
+                                    0.8                                                                                                    2
+
+                                                                                                                                            0                                                                                               1
+                                    0.7                                                                                                           0.1          0.15         0.2             0.25   0.3                                        0.5     0.6      0.7        0.8        0.9           1
+                                                                                                                                          0.4                                                                                             0.4
+
+
+
+
+                                                                                                       percentage
+
+
+
+
+                                                                                                                                                                                                         percentage
+                                    0.6                                                                                                   0.2                                                                                             0.2
+
+                                    0.5                                                                                                    0                                                                                               0
+                                      0.05   0.1           0.15        0.2            0.25       0.3                                              0.1          0.15         0.2             0.25   0.3                                          0.5   0.6      0.7        0.8        0.9           1
+                                                   % of relevant edges in the image                                                                      % of relevant edges in the image                                                                   % of visible silhouette edges
+
+
+Fig. 9. Effect of Canny parameters on the 10 ﬂuoroscopic image-pairs. Left: percentage of object edges, and percentage of visible silhouette edges for different Canny
+parameters. Colors code for the amount of Canny blurring: red r = 8 pixels, green r = 6 pixels, blue r = 4 pixels, black r = 3 pixels; and line style shows the threshold: 0.02
+dotted, 0.04 dashed and 0.06 straight line. Middle: Convergence radius and accuracy of the 3D–2D non-rigid registration versus the percentage of object edges. Right:
+Convergence radius and accuracy of the 3D–2D non-rigid registration versus the percentage of visible silhouette edges. The histograms show the amount of test cases
+generating the plots. (For interpretation of the references to color in this ﬁgure legend, the reader is referred to the web version of this article.)
+
+
+
+Table 4                                                                                                                                                                         In the 3D reconstruction of ﬂuoroscopic sequences we initial-
+RMS P2S accuracy and 90% convergence interval results of the SSM ﬁtting to the 10                                                                                           ized the method with the shape and pose calculated from the pre-
+ﬂuoroscopic biplane X-rays, using different Canny parameters.
+                                                                                                                                                                            vious frames, such that manual initialization was only provided in
+  Sigma                                      3                        4                      6                                                   8                          the ﬁrst frame. Results using one sequence with an effective frame
+  Threshold                                  Conv          Acc.       Conv       Acc.        Conv                                         Acc.   Conv       Acc.            rate of 125 frames/second showed that the convergence radius of
+  0.02                                       4.18          1.75       4.92       1.72        6.77                                         1.74   1.55       2.03
+                                                                                                                                                                            rigid and non-rigid reconstruction (Figs. 3 and 5) was sufﬁcient
+  0.04                                       9             1.65       8.72       1.68        8.45                                         1.74   7.24       2.22            for motion reconstruction requiring one initial pose per sequence
+  0.06                                       7.44          1.86       8.26       1.86        9.03                                         1.92   1.83       2.28            in 80% of the cases (Fig. 7). Results also indicated a dependency
+                                                                                                                                                                            of accuracy (and convergence rate) on the extent of the distal bone
+                                                                                                                                                                            visible in the FOV (Fig. 7). This experiment shows the potential of
+cadaver bones due to their old age was most probably compen-                                                                                                                the proposed method to be used with ﬂuoroscopy, however, the
+sated by the larger FOV and the fact that cadaver X-rays contained                                                                                                          current method was not optimized to sequence reconstruction as
+the entire silhouette of the distal femur surrounded by almost no                                                                                                           no prior knowledge about a constant shape throughout the se-
+noise edges. The amount of visible silhouette edges was shown                                                                                                               quence was used. A more sophisticated adaptation of the method
+to have a positive inﬂuence on the non-rigid ﬁtting accuracy                                                                                                                to ﬂuoroscopic sequences is planned as future work.
+(Fig. 9). Often, the rigid ﬁt of the mean shape outperformed the                                                                                                                The presented method relies on the Canny edge map of the X-
+non-rigid ﬁt to a partial silhouette in healthy young subjects.                                                                                                             ray images. The effect of the choice of Canny parameters was as-
+Nonetheless, non-rigid ﬁtting led to signiﬁcant improvements                                                                                                                sessed in the last experiment. In conclusion, a smoothing parame-
+when the entire silhouette was visible, such as in the cadaver                                                                                                              ter of r = 3.0 pixels and an upper threshold of th = 0.04 performed
+experiments.                                                                                                                                                                the best on the 10 ﬂuoroscopic datasets used in this paper (Table 4).
+   The results of the proposed method for non-rigid shape recon-                                                                                                            We also conclude that there was no large difference in perfor-
+struction are comparable to previously published work on distal fe-                                                                                                         mance when applying slightly altered parameter values (e.g.
+mur reconstruction from sparse projection images. Fleute and                                                                                                                r = 4.0 pixels), ensuring that the parameter settings exhibit a high
+Lavallée (1999) reported an accuracy of 0.99 mm RMS P2S with                                                                                                                resemblance in the amount of noise edges, and object edges pres-
+90° biplane simulated silhouettes of the distal femur. It is unclear                                                                                                        ent in the edge-map. This is visualized as large overlaps in Fig. 9.
+from how many simulated cases this result was derived. Laporte                                                                                                                  By penalizing deviation from the mean shape in the optimiza-
+et al. (2003) reported an RMS P2S accuracy of 1.4 mm on eight                                                                                                               tion we limit the reconstruction method to healthy and mildly
+dry cadaver femora by elastic 3D model deformation to semi-auto-                                                                                                            pathologic bones. Cases of severe fracture, and severe osteoarthri-
+matically selected and region matched 2D contours. Tang and Ellis                                                                                                           tis cannot be reconstructed. However, most often knee replace-
+(2005) reported a mean RMS of 1.72 mm and 1.95 mm on two ca-                                                                                                                ment surgery is performed in an early stage of osteoarthritis,
+daver femora with soft tissue. They ﬁtted a hybrid atlas to three                                                                                                           before large bone remodeling occurs. In this paper both training,
+projection images by a DRR matching scheme. We found no other                                                                                                               and test subjects lacked symptoms of bone pathology.
+study than ours evaluating non-rigid reconstruction of distal fem-                                                                                                              Improvements over the current method may be achieved by
+ora from in vivo X-rays. While previous works require manual                                                                                                                application of additional features besides the Euclidean distance
+annotation of object contours (Fleute and Lavallée, 1999; Laporte                                                                                                           and the gradient angle for point correspondence and/or weighting.
+et al., 2003), and contour correspondence assignment (Laporte                                                                                                               Another extension of our work could be an active search of con-
+et al., 2003), our method solely expects a sufﬁciently close initial                                                                                                        tours (such as dynamic programming) in the region around the
+pose estimate. Care should be taken, though, when directly com-                                                                                                             shape estimate based on the Canny edges. This would provide a full
+paring the quantitative numbers, as all papers employ different                                                                                                             silhouette, which might improve reconstruction accuracy. Further-
+acquisition protocols, test subjects, and training datasets, FOVs, etc.                                                                                                     more, we currently model the entire femur bone, which is beneﬁ-
+   Pose estimation in the non-rigid SSM ﬁtting experiments re-                                                                                                              cial as information from the entire FOV can be used regardless of
+sulted in a good accuracy for translation, and in-plane rotation.                                                                                                           FOV size. However, in consequence variations of the shape in the
+Similar to the rigid registration of the ground truth shape, the most                                                                                                       non-imaged areas have to be modeled as well. An interesting
+difﬁcult pose parameter to infer from the biplane data was the                                                                                                              extension could be ﬁtting a FOV dependent shape model integrat-
+rotation along the longitudinal axis of the femur (Table 3).                                                                                                                ing beneﬁts of both region-focused and FOV focused approaches.
+850                                                            N. Baka et al. / Medical Image Analysis 15 (2011) 840–850
+
+
+   The current approach has a computation time of about ﬁve min-                              Harrysson, O.L., Hosni, Y.A., Nayfeh, J.F., 2007. Custom-designed orthopedic
+                                                                                                  implants evaluated using ﬁnite element analysis of patient-speciﬁc computed
+utes for a non-rigid 2D–3D reconstruction using the SSM on a
+                                                                                                  tomography data: femoral-component case study. BMC Musculoskeletal
+2.4 GHz, 2 GB laptop running an unoptimized Matlab                                                Disorders 8:91.
+implementation.                                                                               Hart, R., vb, P., Filan, P., 2008. Intraoperative navigation in hip surface arthroplasty:
+   In conclusion, we presented a method, which is able to recon-                                  a radiographic comparative analysis study. Archives of Orthopaedic and Trauma
+                                                                                                  Surgery 128, 429–434.
+struct 3D shape from two or more projection images with minimal                               Hurvitz, A., Joskowicz, L., 2008. Registration of a ct-like atlas to ﬂuoroscopic X-ray
+user interaction. We tested the method on low quality biplane                                     images using intensity correspondences. International Journal of Computer
+in vivo ﬂuoroscopy and achieved an accuracy of 1.68 mm (RMS                                       Assisted Radiology and Surgery (CARS) 3, 493–504.
+                                                                                              Iwashita, Y., Kurazume, R., Hasegawa, T., Hara, K., 2005. Fast alignment of 3D
+P2S), which is comparable to methods in recent literature. Rigid                                  geometrical models and 2D color images using 2D distance maps. In: 3DIM’05:
+pose estimation with the ground truth shape resulted in a sub-mil-                                Fifth International Conference on 3-D Digital Imaging and Modeling, pp. 164–
+limeter average RMS P2S accuracy (0.68 mm). The convergence ra-                                   171.
+                                                                                              Jain, A.K., Zhong, Y., Lakshmanan, S., 1996. Object matching using deformable
+dius of the method was shown to be sufﬁciently large to                                           templates. IEEE Transactions on Pattern Analysis and Machine Intelligence 18,
+reconstruct shape and motion from a ﬂuoroscopic sequence in                                       267–278.
+80% of the cases with minimal user interaction involving one man-                             Kaptein, B., Valstar, E., Stoel, B., Rozing, P., Reiber, J., 2003. A new model-based rsa
+                                                                                                  method validated using cad models and models from reversed engineering.
+ually initialized pose per sequence optimization.                                                 Journal of Biomechanics 36, 873–882.
+                                                                                              van de Kraats, E., Penney, G., Tomazevic, D., van Walsum, T., Niessen, W., 2005.
+Acknowledgments                                                                                   Standardized Evaluation Methodology for 2D–3D registration. IEEE
+                                                                                                  Transactions on Medical Imaging 24, 1177–1190.
+                                                                                              Krekel, P.R., Botha, C.P., Valstar, E.R., de Bruin, P.W., Rozing, P.M., Post, F.H., 2006.
+    The Netherlands Organization for Scientiﬁc Research (NWO)                                     Interactive simulation and comparative visualisation of the bone-determined
+Grant Nos. 612.065.618 and 639.021.610 is greatly acknowledged                                    range of motion of the human shoulder. In: SimVis, pp. 275–288.
+for ﬁnancial support of the project. This project was partly spon-                            Kurazume, R., Nakamura, K., Okada, T., Sato, Y., Sugano, N., Koyama, T., Iwashita, Y.,
+                                                                                                  Hasegawa, T., 2009. 3D reconstruction of a femoral shape using a parametric
+sored by the European Community (MXL Project 248693). The                                         model and two 2D ﬂuoroscopic images. Computer Vision and Image
+Department of Anatomy and Embryology of the Leiden University                                     Understanding 113, 202–211.
+Medical Center is acknowledged for providing the cadaver femora                               Lamecker, H., Wenckebach, T.H., Hege, H.C., 2006. Atlas-based 3D-shape
+                                                                                                  reconstruction from X-ray images. In: ICPR ’06: Proceedings of the 18th
+used in this project. The Department of Surgery, Division of Vascu-                               International Conference on Pattern Recognition. IEEE Computer Society,
+lar Surgery of the Leiden University Medical Center is acknowl-                                   Washington, DC, USA, pp. 371–374.
+edged for providing the CT data for building the SSM’s in this                                Laporte, S., Skalli, W., de Guise, J.A., Lavaste, F., Mitton, D., 2003. A biplanar
+                                                                                                  reconstruction method based on 2D and 3D contours: Application to the distal
+project.                                                                                          femur. Computer Methods in Biomechanics and Biomedical Engineering 6, 1–6.
+                                                                                              Lavallée, S., Szeliski, R., Brunie, L., 1993. Matching 3-D smooth surfaces with their 2-
+                                                                                                  D projections using 3-D distance maps. In: Selected Papers from the Workshop
+Appendix A. Supplementary data
+                                                                                                  on Geometric Reasoning for Perception and Action. Springer-Verlag, London,
+                                                                                                  UK, pp. 217–238.
+   Supplementary data associated with this article can be found, in                           Markelj, P., Tomaževič, D., Likar, B., Pernuš, F., 2010. A review of 3D/2D registration
+the online version, at doi:10.1016/j.media.2011.04.001.                                           methods for image-guided interventions. Medical Image Analysis.
+                                                                                              Mazzoli, A., Germani, M., Raffaeli, R., 2009. Direct fabrication through electron beam
+                                                                                                  melting technology of custom cranial implants designed in a phantom-based
+References                                                                                        haptic environment. Materials & Design 30, 3186–3192.
+                                                                                              Siston, R.A., Giori, N.J., Goodman, S.B., Delp, S.L., 2007. Surgical navigation for total
+Benameur, S., Mignotte, M., Parent, S., Labelle, H., Skalli, W., Guise, J.D., 2003. 3D/2D         knee arthroplasty: a perspective. Journal of Biomechanics 40, 728–735.
+    registration and segmentation of scoliotic vertebrae using statistical models.            Tang, T., Ellis, R., 2005. 2D/3D deformable registration using a hybrid atlas. Medical
+    Computerized Medical Imaging and Graphics 27, 321–337.                                        Image Computing and Computer-Assisted Intervention 8, 223–230.
+Cootes, T.F., Cooper, D.H., Taylor, C.J., Graham, J., 1992. Trainable method of               Torry, M.R., Shelburne, K.B., Peterson, D.S., Giphart, J.E., Krong, J.P., Myers, C.,
+    parametric shape description. Image Vision Comput. 10, 289–294.                               Steadman, J.R., Woo, S.L.Y., 2010. Knee kinematic proﬁles during drop landings:
+Dennis, D.A., Mahfouz, M.R., Komistek, R.D., Hoff, W., 2005. In vivo determination of             A biplane ﬂuoroscopy study. Medicine & Science in Sports & Exercise.
+    normal and anterior cruciate ligament-deﬁcient knee kinematics. Journal of                Valstar, E., Gill, R., Ryd, L., FLivik, G., Börlin, N., Kärrholm, J., 2005. Guidelines for
+    Biomechanics 38, 241–253. Knee Mechanics: An Update of Theoretical and                        standardization of radiostereometry (rsa) of implants. Acta Orthopaedica 76 (4),
+    Experimental Analyses.                                                                        563–572.
+Dworzak, J., Lamecker, H., von Berg, J., Klinder, T., Lorenz, C., Kainmüller, D., Seim, H.,   Yao, J., Taylor, R., 2003. Assessing accuracy factors in deformable 2D/3D medical
+    Hege, H.C., Zachow, S., 2010. 3D reconstruction of the human rib cage from 2D                 image registration using a statistical pelvis model. In: ICCV ’03: Proceedings of
+    projection images using a statistical shape model. In: International Journal of               the Ninth IEEE International Conference on Computer Vision. IEEE Computer
+    Computer Assisted Radiology and Surgery.                                                      Society, Washington, DC, USA, p. 1329.
+Feldmar, J., Ayache, N., Betting, F., 1995. 3D–2D projective registration of free-form        Zheng, G., Gollmer, S., Schumann, S., Dong, X., Feilkas, T., Ballester, M.A.G., 2008. A
+    curves and surfaces. In: ICCV, pp. 549–556.                                                   2D/3D correspondence building method for reconstruction of a patient-speciﬁc
+Ferrarini, L., Olofsen, H., Palm, W., van Buchem, M., Reiber, J., Admiraal-Behloul, F.,           3D bone surface model using point distribution models and calibrated X-ray
+    2007. Games: growing and adaptive meshes for fully automatic shape modeling                   images. Medical Image Analysis 13 (6), 883–899.
+    and analysis. Medical Image Analysis 11, 302–314.                                         Zheng, G., Schumann, S., 2009. 3D reconstruction of a patient-speciﬁc surface model
+Fleute, M., Lavallée, S., 1999. Nonrigid 3-D/2-D registration of images using                     of the proximal femur from calibrated X-ray radiographs: A validation study.
+    statistical models. In: MICCAI ’99: Proceedings of the Second International                   Medical Physics 36, 1155–1166.
+    Conference on Medical Image Computing and Computer-Assisted Intervention.
+    Springer-Verlag, London, UK, pp. 138–147.
+

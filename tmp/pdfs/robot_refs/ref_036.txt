@@ -1,0 +1,806 @@
+                                                    Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+                                                                   Contents lists available at ScienceDirect
+
+
+                                       Computer Methods and Programs in Biomedicine
+                                   journal homepage: https://www.sciencedirect.com/journal/computer-methods-and-
+                                                                 programs-in-biomedicine
+
+
+
+
+2D/3D registration based on biplanar X-ray and CT images for surgical
+navigation
+Demin Yang, Haochen Shi, Bolun Zeng, Xiaojun Chen ∗
+the Institute of Biomedical Manufacturing and Life Quality Engineering, School of Mechanical Engineering, Shanghai Jiao Tong University, Shanghai 200240, China
+
+
+
+ARTICLE               INFO                                ABSTRACT
+
+Keywords:                                                 Background and Objectives: Image-based 2D/3D registration is a crucial technology for fluoroscopy-guided
+Surgical navigation                                       surgical interventions. However, traditional registration methods relying on a single X-ray image into surgical
+Coordinate transformation                                 navigation systems. This study proposes a novel 2D/3D registration approach utilizing biplanar X-ray images
+C-arm calibration
+                                                          combined with computed tomography (CT) to significantly reduce registration and navigation errors. The
+2D/3D registration
+                                                          method is successfully implemented in a surgical navigation system, enhancing its precision and reliability.
+Similarity measure
+                                                          Methods: First, we simultaneously register the frontal and lateral X-ray images with the CT image, enabling
+                                                          mutual complementation and more precise localization. Additionally, we introduce a novel similarity measure
+                                                          for image comparison, providing a more robust cost function for the optimization algorithm. Furthermore, a
+                                                          multi-resolution strategy is employed to enhance registration efficiency. Lastly, we propose a more accurate
+                                                          coordinate transformation method, based on projection and 3D reconstruction, to improve the precision of
+                                                          surgical navigation systems.Results: We conducted registration and navigation experiments using pelvic, spinal,
+                                                          and femur phantoms. The navigation results demonstrated that the feature registration errors (FREs) in the
+                                                          three experiments were 0.505±0.063 mm, 0.515±0.055 mm, and 0.577±0.056 mm, respectively. Compared to
+                                                          the point-to-point (PTP) registration method based on anatomical landmarks, our method reduced registration
+                                                          errors by 31.3%, 23.9%, and 26.3%, respectively.
+                                                          Conclusion: The results demonstrate that our method significantly reduces registration and navigation errors,
+                                                          highlighting its potential for application across various anatomical sites. Our code is available at: https:
+                                                          //github.com/SJTUdemon/2D-3D-Registration
+
+
+
+1. Introduction                                                                                CT imaging takes considerable time and is unsuitable for real-time
+                                                                                               dynamic monitoring, whereas intra-op 2D fluoroscopic images can
+    In orthopedic surgeries, such as pelvic fracture reduction, spinal                         be obtained instantly, meeting real-time surgical requirements [7,8].
+pedicle screw implantation, and knee replacement, the procedures are                           (2) Radiation exposure: Intra-op CT delivers a higher radiation dose,
+challenging due to complex bone structures and limited operating
+                                                                                               while 2D fluoroscopic imaging offers a relatively lower dose [8]. (3)
+space [1]. Low surgical precision can result in failure, leading to
+                                                                                               Cost-effectiveness: Compared to intra-op CT, 2D fluoroscopy is less
+postoperative pain, functional impairment, and the potential need for
+revision surgery [2,3]. Surgical navigation systems help align the pa-                         expensive, reducing both medical resource consumption and the fi-
+tient’s anatomy with medical images, enabling surgeons to operate with                         nancial burden on patients [8]. Thus, 2D/3D registration, which uses
+greater accuracy, thereby improving overall surgical precision [4,5].                          intra-op 2D fluoroscopic images, addresses these challenges. To imple-
+    Traditional surgical navigation systems use the point-to-point (PTP)                       ment 2D/3D registration, various methods have been proposed, which
+registration method based on anatomical landmarks to align patients                            can be broadly categorized into three types: feature-based registra-
+with their medical images [6]. However, this approach often requires                           tion, grayscale-based registration, and deep learning-based registration
+full exposure of the lesion site to obtain accurate spatial coordinates                        methods.
+of landmarks, which increases patient trauma and complicates the                                   In the feature-based method, inherent anatomical landmarks at the
+goal of minimally invasive surgery. Intra-operative (Intra-op) computed                        lesion site or manually placed markers are used to achieve registration.
+tomography (CT) can capture anatomical information without exposing
+                                                                                               For example, Y. Kita et al. [9] employed neural networks for robust
+the lesion and can be registered with preoperative CT images. How-
+                                                                                               feature extraction, enabling fast localization and pose estimation of
+ever, it presents several challenges: (1) Real-time capability: Intra-op
+
+
+  ∗ Corresponding author.
+     E-mail address: xiaojunchen@sjtu.edu.cn (X. Chen).
+
+https://doi.org/10.1016/j.cmpb.2024.108444
+Received 27 April 2024; Received in revised form 23 September 2024; Accepted 24 September 2024
+Available online 9 October 2024
+0169-2607/© 2024 Elsevier B.V. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+D. Yang et al.                                                                                      Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+3D models. However, this method may require further optimization                 image, allowing for precise compensation of translation errors and
+for handling more complex shapes. Yu et al. [10] proposed a non-                 improving registration accuracy. Additionally, we introduce a multi-
+rigid 2D/3D registration method that utilizes a B-spline-based statistical       resolution strategy and a novel similarity measure by combining two
+deformation model (SDM) to enhance the accuracy of anatomical re-                existing measures to enhance registration efficiency. To integrate this
+constructions. Despite this, the deformation assumptions of the 3D               method into a surgical navigation system, we designed a new reference
+model may not fully align with the actual anatomy of each patient, re-           frame and developed a projection- and reconstruction-based approach
+sulting in some degree of registration error. Zhou, Chaochao et al. [11]         to establish a complete coordinate transformation chain. This method
+introduced a framework based on transfer learning to register 3D                 shortens the transformation chain, thereby reducing cumulative errors.
+anatomical skull models with 2D biplanar X-ray images. They also                 Finally, a registration software was developed to implement all these
+utilized a residual network (ResNet) to detect markers in digitally              advancements and integrated into the surgical navigation system.
+reconstructed radiographs (DRRs) generated from skull and neck CT                   The main contributions of this paper are: (1) a 2D/3D registration
+data, thereby improving the tracking accuracy of in-body motion.                 method based on biplanar X-ray images. Our method utilizes both
+While feature-based registration can achieve high accuracy, challenges           frontal and lateral images to complement each other and enhance
+remain, such as the complexity of anatomical feature extraction and the          registration accuracy; (2) a novel similarity measure for computing
+potential harm caused by artificial markers.                                     image similarity. It not only mitigates background noise in X-ray images
+    In the grayscale-based method, pixel intensities are used to com-            but is also effective when the relationship between the gray levels of
+pute a similarity measure, which serves as the optimization objective            the two images is nonlinear; (3) a precise coordinate transformation
+for achieving registration. For instance, Liu et al. [12] proposed a             method. We designed a new reference frame and employed projection
+registration algorithm based on Normalized Cross-Correlation (NCC),              and 3D reconstruction to streamline the coordinate transformation
+incorporating both edge information and internal details to address the          process, improving overall accuracy.
+issue of relying on a single information source. However, DRRs and
+real X-ray images may impact registration accuracy. Zhou, Chaochao               2. Method
+et al. [11] trained a cyclic generative adversarial network (GAN) for im-
+age style conversion, effectively overcoming these differences and en-
+                                                                                 2.1. Overview of the method
+hancing registration accuracy. Furthermore, Zhou, Chaochao et al. [13]
+developed a differentiable projection (DiffProj) rendering framework
+for efficient DRR computation, applying it to pose estimation. This                  As illustrated in Fig. 1, the entire registration process is divided into
+approach is highly valuable for the precise synthesis of DRRs, bridging          two stages. In the first stage, the markers in the calibration target’s
+the gap between DRRs and X-ray images, which is crucial for optimizing           frontal and lateral X-ray images are identified, and their 2D pixel
+X-ray pose estimation in image-guided interventions. Grayscale-based             coordinates are extracted. Next, the internal and external parameter
+registration methods are well-suited for minimally invasive procedures           matrices of the C-arm X-ray source are determined through calibration,
+since they do not rely on landmarks. However, the choice of simi-                using the markers’ 2D and 3D coordinates. Based on the calibration
+larity measure and optimization algorithm significantly influences the           results, the registration coordinate system (CS) is established, and the
+registration’s efficiency.                                                       registration matrix between the CT and X-ray images is obtained using
+                                                                                 our 2D/3D registration algorithm.
+    In deep learning-based registration methods, neural networks are
+                                                                                     In the second stage, the 2D coordinates of the four steel balls on
+typically used to predict initial pose parameters, enabling better initial
+                                                                                 the reference frame are extracted from the X-ray images, and their
+alignment before registration. For example, M. Grimm et al. [14]
+                                                                                 3D coordinates in the source CS are calculated using triangulation.
+proposed a novel automatic initialization method for fully automated
+                                                                                 A complete coordinate transformation chain is then established by
+registration between X-ray images and CT scans, providing an ini-
+                                                                                 combining the results of registration and triangulation, enabling the
+tial alignment within the capture range of existing grayscale-based
+                                                                                 transformation from the real-world CS to the CT virtual CS. This allows
+registration methods. Pan, J. et al. [15,16] introduced a globally op-
+                                                                                 for the real-time display of the surgical instruments’ position within the
+timized Branch-and-Bound (BnB) method incorporating a point set
+                                                                                 CT images.
+neural network to accelerate transformation estimation. Deep learning-
+based methods can significantly improve registration success rates and
+accuracy by offering better initial alignment. However, these methods            2.2. C-arm calibration
+require retraining the dataset for different anatomical regions, which
+limits their generalizability.                                                       Since the frontal and lateral X-ray images must be captured simulta-
+    Currently, most grayscale-based registration methods use a single            neously, the traditional flat calibration target becomes unrecognizable
+X-ray image and CT scan for registration [17,18]. However, since the             due to marker overlap in the lateral images [25,26]. To address this,
+C-arm imaging model resembles the pinhole imaging model [19], small              we designed a multi-layer, sparsely arranged calibration target with
+movements of 1–2 mm along the optical axis can have minimal impact               dimensions of 90 mm ∗ 90 mm ∗ 50 mm. Compared to traditional
+on the DRR when the distance between the source and the screen                   calibration targets [27] that need to be mounted at the end of the C-
+exceeds 1000 mm [20]. As a result, registration using this approach              arm, our target is smaller, more user-friendly, and effectively avoids
+can lead to significant translation errors in this direction [21,22].            the issue of marker overlap. Additionally, each of the first four layers
+Additionally, many existing registration methods struggle to achieve             contains four steel balls, with one smaller ball to help identify the
+efficient registration when relying on a single similarity measure and           target’s orientation.
+fixed optimization strategy [23,24].                                                 C-arm calibration requires both the 2D pixel coordinates of the
+    To address the aforementioned issues, we propose a registration              markers and their corresponding 3D world coordinates [28,29]. Since
+method based on orthogonal biplanar X-ray images and CT, along                   the markers are steel balls, their intensity in the X-ray images is signif-
+with a new coordinate transformation principle based on triangulation.           icantly different from other parts, making them easily distinguishable.
+In our approach, the optical axis direction in the frontal image is              To improve recognition accuracy, the frontal and lateral X-ray images
+aligned with the direction parallel to the image plane in the lateral            of the calibration target are first binarized. A two-stage Circular Hough
+
+                                                                             2
+D. Yang et al.                                                                                                     Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 1. Flow diagram of the proposed method. In the first stage, the 2D coordinates of markers on the calibration target are extracted from the X-ray images. Next, the internal and
+external parameter matrices are computed through calibration, followed by obtaining the registration matrix via 2D/3D registration. In the second stage, the complete coordinate
+transformation chain is constructed, and the result is integrated into the surgical navigation system.
+
+
+
+
+Transform (CHT) algorithm is then applied to detect circles in the                           landmarks, we obtain:
+binary images, determining the coordinates of the circle centers in the                      ⎡ 𝑥1      𝑦1    𝑧1    1     0      0      0     0     −𝑢1 𝑥1      −𝑢1 𝑦1
+image CS to be determined, which are the 2D pixel coordinates of the                         ⎢
+                                                                                             ⎢ 0       0     0     0     𝑥1     𝑦1     𝑧1    1     −𝑣1 𝑥1      −𝑣1 𝑦1
+markers [30]. Since the imaging system used is a flat-panel fluoroscope,                     ⎢
+distortion correction is not necessary. For the 3D world coordinates,                        ⎢         ⋮           ⋮            ⋮            ⋮
+                                                                                             ⎢
+a local CS is defined on the calibration target as the world CS, and                         ⎢𝑥𝑁       𝑦𝑁   𝑧𝑁     1     0      0      0     0    −𝑢𝑁 𝑥𝑁      −𝑢𝑁 𝑦𝑁
+the 3D coordinates of each marker are precisely measured using a                             ⎢ 0       0     0     0                         1    −𝑣𝑁 𝑥𝑁      −𝑣𝑁 𝑦𝑁
+                                                                                             ⎣                          𝑥𝑁     𝑦𝑁     𝑧𝑁
+trilinear coordinate measuring instrument. This provides both the 2D                                             ⎡𝑞 ⎤                                                         (2)
+                                                                                              −𝑢1 𝑧1     −𝑢1 ⎤ ⎢ 11 ⎥
+pixel coordinates and the 3D world coordinates of the markers.                                                ⎥ 12𝑞
+                                                                                               −𝑣1 𝑧1    −𝑣1 ⎥ ⎢𝑞 ⎥ ⎡0⎤
+   Building on the method proposed by Faugeras [31], this study                                               ⎥ ⎢⎢ 13 ⎥⎥ ⎢ ⎥
+presents a C-arm calibration algorithm that integrates both the internal                          ⋮           ⎥ ⎢𝑞14 ⎥ = ⎢⋮⎥
+                                                                                                              ⎥
+and external parameters of the C-arm, as follows:                                             −𝑢𝑁 𝑧𝑁 −𝑢𝑁 ⎥ ⎢𝑞21 ⎥ ⎣0⎦
+                                                                                                                 ⎢⋮ ⎥
+                                                                                              −𝑣𝑁 𝑧𝑁 −𝑣𝑁 ⎥⎦ ⎢ ⎥
+                                ⎡       𝑟1         𝑡𝑥 ⎤ ⎡𝑥⎤                                                      ⎣𝑞34 ⎦
+⎡𝑢⎤ ⎡𝛼𝑢          0    𝑢0     0⎤ ⎢                     ⎥⎢ ⎥                                               (                )
+⎢ 𝑣⎥ = ⎢ 0                              𝑟2         𝑡𝑦 ⎥ ⎢𝑦⎥
+                 𝛼𝑣   𝑣0     0⎥ ⎢                                                            Note that 𝑞31 , 𝑞32 , 𝑞33 is the third rotation vector in the extrinsic
+⎢ ⎥ ⎢                         ⎥⎢        𝑟3         𝑡𝑧 ⎥ ⎢𝑧⎥
+⎣1⎦ ⎣ 0          0    1      0⎦ ⎢                                                            matrix, so there is ‖                      ‖
+                                                                                                                       ‖𝑞31 , 𝑞32 , 𝑞33 ‖ = 1. Since the coordinates of the
+                                ⎣0      0    0     1 ⎥⎦ ⎢⎣1⎥⎦
+                                                                                             marks are measured with error, the aforementioned formula will not be
+                ⎡𝑥⎤                                          ⎡𝑥⎤                             strictly equal to 0. Therefore, the problem is transformed into the least
+                ⎢ ⎥ ⎡𝑞11               𝑞12   𝑞13     𝑞14 ⎤ ⎢ ⎥
+                                                                                             squares solution of 𝑞 under the constraint condition ‖                        ‖
+                 𝑦
+    = 𝑀𝑖 ⋅ 𝑀𝑒 ⋅ ⎢ ⎥ = ⎢𝑞21             𝑞22   𝑞23
+                                                              𝑦
+                                                     𝑞24 ⎥ ⋅ ⎢ ⎥                   (1)                                                                    ‖𝑞31 , 𝑞32 , 𝑞33 ‖ = 1.
+                ⎢𝑧⎥ ⎢                                    ⎥ ⎢𝑧⎥                               Finally, the intrinsic matrix and extrinsic matrix can be solved from
+                ⎢1⎥ ⎣𝑞31               𝑞32   𝑞33     𝑞34 ⎦ ⎢ ⎥
+                                                                                             matrix 𝑞 according to the following formula:
+                ⎣ ⎦                                          ⎣1⎦
+                                                                                                    (      )             (              )
+      ⎡𝑞1𝑇       𝑞14 ⎤ ⎡𝑥⎤       ⎡𝑥⎤                                                          𝑢0 = 𝑞1 , 𝑞3        𝑟1 = 𝑞1𝑇 − 𝑢0 𝑞3𝑇 ∕𝛼𝑢
+      ⎢              ⎥ ⎢⎢𝑦⎥⎥     ⎢ ⎥
+                                  𝑦                                                                 (      )            ( 𝑇             )
+    = ⎢𝑞2𝑇       𝑞24 ⎥        = 𝑞⎢ ⎥                                                          𝑣0 = 𝑞2 , 𝑞3        𝑟2 = 𝑞2 − 𝑣0 𝑞3𝑇 ∕𝛼𝑣
+      ⎢ 𝑇               ⎢
+                     ⎥⎢ ⎥ 𝑧 ⎥    ⎢𝑧⎥                                                                √
+      ⎣𝑞3        𝑞34 ⎦ 1         ⎢1⎥                                                         𝛼𝑢 = 𝑞12 − 𝑢20                𝑟3 = 𝑞3𝑇
+                        ⎣ ⎦      ⎣ ⎦
+                                                                                                    √                   (               )
+        [        ]𝑇      [             ]𝑇                                                    𝛼𝑣 = 𝑞22 − 𝑢20 𝑡𝑥 = 𝑞14 − 𝑢0 𝑞34 ∕𝛼𝑢
+where 𝑢 𝑣 1 and 𝑥 𝑦 𝑧 1 are the 2D and 3D homoge-
+                                                                                                                        (               )
+neous coordinates of markers, respectively. 𝑀𝑖 and 𝑀𝑒 are the intrinsic                                          𝑡𝑦 = 𝑞24 − 𝑣0 𝑞34 ∕𝛼𝑣
+matrix and extrinsic matrix of the C-arm, respectively. 𝑞 is the matrix                                                  𝑡𝑧 = 𝑞34
+to be solved. Matrix 𝑞 is the product of the intrinsic matrix 𝑀𝑖 and
+                                                                                                The accuracy of calibration directly impacts the precision of both
+extrinsic matrix 𝑀𝑒 . Thus, the internal and external parameters of the                      registration and coordinate transformation, which in turn affects the
+imaging system are combined into the matrix 𝑞 for a unified solution,                        overall accuracy of surgical navigation. Therefore, we assess calibration
+aligning with the characteristics of the C-arm X-ray imaging system,                         accuracy by calculating the reprojection and reconstruction errors.
+where both internal and external parameters are directly related to                             The 17 steel balls on the calibration target are projected onto the
+the C-arm’s pose. By substituting the 2D and 3D coordinates of 𝑁                             frontal and lateral planes using the calibration results. The reprojected
+
+                                                                                         3
+D. Yang et al.                                                                                                    Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 2. Flow diagram of the 2D/3D registration process. In the first stage, the CT and X-ray images are preprocessed separately. In the second stage, an optimization algorithm is
+employed to iteratively adjust the CT image’s pose to align it with the X-ray images.
+
+
+pixel coordinates 𝑝𝑅𝑒𝑝𝑟𝑜𝑗−𝑖 (𝑖 = 1, … , 17) are then compared with the                      registration, minimizing the impact of irrelevant elements, such as the
+known pixel coordinates 𝑝𝐼𝑀−𝑖 (𝑖 = 1, … , 17) from the X-ray images,                        surgical bed, and improving registration accuracy. The masks and ROI
+and the Euclidean distances between them are calculated. The average                        also reduce the number of voxels in the CT image and the number of
+Euclidean distances for the 17 pairs of points on the frontal and lateral                   pixels in the X-ray image, thus lowering the computational load for
+                                                                 (𝐿𝐴𝑇 )
+planes are used to determine the reprojection errors 𝐸𝑟𝑟𝑜𝑟𝐴𝑃  𝑅𝑒𝑝𝑟𝑜𝑗
+                                                                        , as                registration. Since X-ray images captured by different devices may have
+follows:                                                                                    significant variations in grayscale range [32], normalization is applied
+                √                                                                           to facilitate comparison with DRRs. As a result, preprocessing enhances
+                √
+                √1 ∑  17
+                          ‖                  ‖2
+𝐸𝑟𝑟𝑜𝑟𝑅𝑒𝑝𝑟𝑜𝑗 = √
+      𝐴𝑃 (𝐿𝐴𝑇 )                                                          (3)                registration accuracy and reduces registration time. Additionally, a
+                         (‖𝑝         − 𝑝𝐼𝑀−𝑖 ‖ )
+                  17 𝑖=1 ‖ 𝑅𝑒𝑝𝑟𝑜𝑗−𝑖          ‖                                              multi-resolution strategy for X-ray images is introduced in this study
+                                                                                            to further improve registration efficiency and accuracy, which will be
+    Using the calibration results and known pixel coordinates, we con-                      detailed in the optimization strategy section.
+struct frontal and lateral rays between the sources and pixel points                            In the second stage, the virtual projection space is constructed based
+in space. According to the projection principle, two rays originating                       on the position of the X-ray source and image plane obtained through
+from the same physical point should intersect at a point in space,                          C-arm calibration, referred to as the registration CS. The images to
+which represents the true spatial position of that physical point. The                      be registered are placed in this registration CS, with the CT image
+intersection points 𝑝𝐼𝑁𝑇 −𝑖 (𝑖 = 1, … , 17) are then compared with the                      initially positioned at the origin to simulate the real X-ray imaging
+known 3D coordinates 𝑝3𝐷−𝑖 (𝑖 = 1, … , 17), and the Euclidean distances                     scenario. Prior to formal registration, a set of initial pose parameters
+between them are calculated. The average Euclidean distance for the                         can be adjusted according to the positional deviation between the CT
+17 pairs of points is taken as the reconstruction error 𝐸𝑟𝑟𝑜𝑟𝑅𝑒𝑐𝑜𝑛 , as                     and X-ray images, reducing the pose discrepancy before registration
+follows:                                                                                    and increasing the success rate. Accurate initial pose estimation is
+             √
+             √                                                                              crucial, so we developed a dedicated module in the software to set
+             √ 1 ∑  17
+𝐸𝑟𝑟𝑜𝑟𝑅𝑒𝑐𝑜𝑛 = √         (‖                ‖2
+                        ‖𝑝𝐼𝑁𝑇 −𝑖 − 𝑝3𝐷−𝑖 ‖ )
+                                                                    (4)                     these parameters. The software first imports the X-ray and CT images,
+                17     𝑖=1                                                                  generating two DRRs from the CT image to represent its initial pose. By
+                                                                                            comparing the DRRs with the X-ray images, we can observe the pose
+2.3. 2D/3D registration                                                                     differences and manually adjust the six degrees of freedom to define
+                                                                                            the CT image’s initial pose parameters. Frontal and lateral DRR images
+    The method proposed in this study is a grayscale-based approach.                        are then generated from the CT image based on these parameters,
+As shown in Fig. 2, to enhance registration success rate and efficiency,                    and our proposed similarity measure is calculated by comparing them
+the entire process is divided into two stages.                                              with the corresponding frontal and lateral X-ray images. The weighted
+    In the first stage, the CT and X-ray images are preprocessed sepa-                      average of the frontal and lateral similarity measures is used as the final
+rately. For the CT image, preprocessing primarily involves cropping the                     cost function, which ensures that the two images to complement each
+region of interest (ROI), which is done using a user-defined bounding                       other and improves registration accuracy. An optimization algorithm
+box. For the X-ray images, preprocessing includes grayscale normaliza-                      is applied to iteratively adjust the CT image’s pose parameters until
+tion and the generation of masks to cover the affected area. Only the                       the cost function reaches its maximum value. The definitions of the
+similarity within the masked area will be calculated during subsequent                      similarity measure and the optimization algorithm are discussed below.
+
+                                                                                        4
+D. Yang et al.                                                                                           Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+2.3.1. Similarity measure                                                       2.3.2. Optimization methods
+    The similarity measure quantifies the degree of similarity between               To achieve precise alignment with the X-ray images in space, the CT
+two images by comparing the intensity of corresponding pixels [33].             image must be transformed. Since this method is applied in the context
+In medical image registration, common similarity measures include               of orthopedic surgery, only rigid transformations of the CT image are
+Mutual Information (MI) and the Normalized Correlation Coefficient              considered [36]. Thus, the transformation parameters are defined as
+(NCC).                                                                          𝑟𝑥 , 𝑟𝑦 , 𝑟𝑧 , representing the rotation angles around the three coordinate
+    According to the registration principle, the CT image is considered         axes, and 𝑡𝑥 , 𝑡𝑦 , 𝑡𝑧 , representing the translations along the three coor-
+the moving image, while the X-ray image is treated as the fixed image           dinate axes. Each time the CT image is adjusted to a new position,
+𝐼𝐹 . However, due to the difference in dimensions between them, we              the DRRs are regenerated, and the similarity measures between the
+cannot directly calculate their similarity. To address this, we project         DRRs and the X-ray images are recalculated. The registration process
+the 3D CT image into a 2D DRR using specific pose parameters. The               can therefore be defined as follows:
+DRR at this stage represents the CT’s pose and will change as the CT
+                                                                                𝜇̂ = arg max𝜇 𝐶(𝜇, 𝐼𝐹 , 𝐼𝑀 ), 𝜇 = [𝑟𝑥 , 𝑟𝑦 , 𝑟𝑧 , 𝑡𝑥 , 𝑡𝑦 , 𝑡𝑧 ]                   (9)
+image transforms. Thus, we treat the DRR as the moving image 𝐼𝑀 . By
+calculating the similarity between the X-ray image and the DRR we can           The goal is to find a set of optimal pose parameters that maximize
+indirectly measure the similarity between the CT and the X-ray image.           the cost function. Since the relationship between the images being
+MI is used to compute the similarity between 𝐼𝑀 and 𝐼𝐹 as follows [34]:         registered is nonlinear and there are no constraints on the pose pa-
+                                           (                )
+     (      )     ∑ ∑                           𝑝 (𝑓 , 𝑚)                       rameters, the optimization process can be treated as an unconstrained
+𝑀𝐼 𝐼𝐹 , 𝐼𝑀 =                𝑝 (𝑓 , 𝑚) log2                          (5)         nonlinear optimization problem. Given that DRRs must be generated
+                 𝑚∈𝐿 𝑓 ∈𝐿
+                                             𝑝𝐹 (𝑓 ) 𝑝𝑀 (𝑚)
+                   𝑀     𝐹
+                                                                                and similarity measures recalculated at each iteration, selecting an
+where 𝐿𝐹 and 𝐿𝑀 are sets of regularly spaced intensity bin centers.             appropriate optimization strategy is crucial to minimizing the number
+𝑝 represents the discrete joint probability, while 𝑝𝐹 and 𝑝𝑀 are the            of iterations.
+marginal discrete probabilities of the fixed and moving images, ob-                 The optimization algorithm used in this study is the Covariance Ma-
+tained by summing p over m and f, respectively. MI is well-suited               trix Adaptation Evolutionary Strategy (CMA-ES). Evolutionary Strategy
+for multi-modal image registration as it relies only on the relationship        (ES) is a black-box algorithm that searches for the optimal solution
+between the probability distributions of the gray levels in two images.         through repeated operations of ‘‘selection, crossover, and mutation’’.
+However, MI can be prone to errors when handling noisy data and                 It does not require establishing a complex intermediate function, but
+has higher computational complexity, leading to slower computation              instead influences the outcome by gradually selecting the best iteration.
+speeds.                                                                         ES is simple to implement, robust, and effective for global searches
+    NCC calculates the similarity between 𝐼𝑀 and 𝐼𝐹 as follows [35]:            in complex optimization problems [37]. In the context of image reg-
+      (         )                                                               istration, the algorithm generates random points based on a Gaussian
+𝑁𝐶𝐶 𝐼𝐹 , 𝐼𝑀 =
+        ∑        ( ( )      )(     ( )       )                                  distribution, utilizing the covariance information of the vectors in the
+          𝑥𝑖 ∈𝛺𝐹 𝐼𝐹 𝑥𝑖 − 𝐼𝐹     𝐼𝑀 𝑥𝑖 − 𝐼𝑀
+                                                                     (6)        X-ray images. It tracks historical step lengths and adjusts the Gaussian
+√             ( ( )     )2 ∑       (              )2                            distribution parameters for smooth optimization.
+   ∑                                   ( )
+     𝑥𝑖 ∈𝛺𝐹 𝐼𝐹 𝑥𝑖 − 𝐼𝐹       𝑥𝑖 ∈𝛺𝐹 𝐼𝑀 𝑥𝑖 − 𝐼𝑀                                      Finally, to address the number of iterations and high computational
+                                                                                demands, we propose a multi-resolution strategy to manage data com-
+                  1 ∑                                  ∑
+where 𝐼̄𝐹 =                  𝐼 (𝑥 ) and 𝐼̄𝑀 = 𝛺1               𝐼 (𝑥 ) are       plexity. In this approach, a series of 2D images with varying resolutions
+                |𝛺𝐹 | 𝑥𝑖 ∈𝛺𝐹 𝐹 𝑖                  | 𝐹 | 𝑥𝑖 ∈𝛺𝐹 𝑀 𝑖
+average gray values. 𝛺𝐹 is the domain of the fixed image 𝐼𝐹 , and ||𝛺𝐹 ||       are generated by downsampling and smoothing the X-ray images using
+is the number of pixels. NCC is robust to noise, so it can process images       different scaling factors. This not only reduces data complexity but also
+with more noise. However, in the case of inconsistent distribution of           significantly decreases the overall data volume.
+pixel values, the results of NCC may be inaccurate.                                 In this experiment, a three-stage downsampling strategy is em-
+    To address these challenges, we propose a new similarity mea-               ployed, resulting in three sets of X-ray images with different resolu-
+sure, the Mutual Information-Normalized Correlation Coefficient (MN),           tions. The pixel counts for these images are 1∕2, 1∕22 , and 1∕23 of
+which combines and weights the two previously mentioned similarity              the original image, respectively. The optimization process begins with
+measures.                                                                       the lowest resolution images, and the registration result at each lower
+      (      )             (       )                                            resolution is used as the initial value for the next higher resolution.
+𝑀𝑁 𝐼𝐹 , 𝐼𝑀 = 𝜔1 × 𝑀𝐼 𝐼𝐹 , 𝐼𝑀 +
+               (       )                                              (7)       This approach reduces the number of iterations at higher resolutions,
+     𝜔2 × 𝑁𝐶𝐶 𝐼𝐹 , 𝐼𝑀 , 𝜔1 + 𝜔2 = 1                                             thereby shortening registration time and improving overall efficiency.
+Since MN is a fusion of MI and NCC, it can not only overcome the
+background noise in X-ray images but also is applicable when the                2.4. Principle of coordinate transformation
+relationship between the grayscale of two images is nonlinear. Consid-
+ering that both of the two similarity measures are important in this                The preoperative CT image and intra-op X-ray images are aligned
+experiment, we take 𝜔1 = 𝜔2 = 0.5.                                              through 2D/3D registration. However, for surgical navigation, it is
+    Finally, since the proposed method utilizes both frontal and lateral        crucial to establish a coordinate transformation between the CT image
+biplanar X-ray images, it is necessary to evaluate the similarity mea-          CS and the probe CS. This allows the real-time position of the probe
+sures for both views simultaneously. Thus, the final cost function in           to be displayed within the CT image [38]. Coordinate transformation
+this study is defined as follows:                                               involves determining the relationship between different CSs and ex-
+  (        )       1                                                            pressing this relationship in a transformation matrix, without physically
+𝐶 𝐼𝐹 , 𝐼𝑀 = ∑                         𝑖
+                       𝜔𝑖 · 𝑀𝑁(𝐼𝐹𝑖 , 𝐼𝑀 )                            (8)        moving any CSs, including the X-ray source CS. The X-ray source CS is
+                 2
+                     𝜔
+                 𝑖=1 𝑖                                                          defined with the source as the origin, with the 𝑍-axis perpendicular
+                  𝑖 , 𝑖 = 1, 2 represent the frontal and lateral weights,
+where 𝜔𝑖 , 𝐼𝐹𝑖 , 𝐼𝑀                                                             to the image plane and the XOY plane parallel to the image plane.
+fixed images, and moving images, respectively. In this study, we assign         This study proposes a new coordinate transformation principle, which
+greater importance to the frontal X-ray image, as it contains more              requires only four steps to complete the transformation, as shown in
+detailed anatomical and lesion information, while the lateral X-ray             Fig. 3. In the CS chain, the coordinate system of the NDI (Northern
+image provides less information and mainly assists in positioning the           Digital Inc.) optical tracker {𝑇 𝑟𝑎} is treated as the global CS. The X-ray
+moving image along the frontal optical axis. Therefore, 𝜔1 is set to 2,         source CS {𝑆𝑅𝐶} serves as a junction, dividing the entire transforma-
+and 𝜔2 is set to 1.                                                             tion chain into two parts: the transformation from the preoperative CT
+
+                                                                            5
+D. Yang et al.                                                                                                  Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 3. Essential CSs and transformation matrices involved in this study. The transformation matrix chain is from preoperative image CS to C-arm X-ray source CS to phantom
+reference frame CS to optical tracker CS to probe CS.
+
+
+image CS {𝑃 𝑟𝑒} to {𝑆𝑅𝐶} and the transformation from {𝑆𝑅𝐶} to the                        two sets of coordinates, completing the transformation from {𝑃 𝑟𝑒} to
+probe CS {𝑃 𝑟𝑜𝑏𝑒}.                                                                       {𝑆𝑅𝐶}.
+    Transformation from {𝑃 𝑟𝑒} to {𝑆𝑅𝐶}: The Umeyama algorithm is                            Transformation from {𝑆𝑅𝐶} to {𝑃 𝑟𝑜𝑏𝑒}: In this step, the trans-
+used to calculate the transformation matrix 𝑇𝑃𝑆𝑅𝐶 𝑟𝑒
+                                                      from {𝑃 𝑟𝑒} to {𝑆𝑅𝐶}.              formation from {𝑆𝑅𝐶} to the phantom coordinate system {𝑃 ℎ𝑎} is
+This algorithm requires the coordinates of the same set of points in both                first completed. The system {𝑃 ℎ𝑎} is defined based on the phantom
+coordinate systems. To obtain these coordinates, we use projection and                   reference frame, and the Umeyama algorithm is again used to compute
+back-projection methods to determine the registration points in the two                  this transformation matrix. Unlike the previous case, the registration
+CSs, as outlined below:                                                                  points here are the four steel balls placed on the reference frame. Thus,
+    First, the registration points are projected. Since the Umeyama                      the coordinates of the steel balls in both {𝑃 ℎ𝑎} and {𝑆𝑅𝐶} need to be
+algorithm only requires that the registration points in both coordinate                  determined.
+systems are the same and correspond one-to-one, four or five points are                      The steel balls are placed in fixed positions on the reference frame so
+randomly selected in the CT image as the registration points, and their                  that their coordinates in {𝑃 ℎ𝑎} can be measured directly. To improve
+coordinates 𝑃𝑃 𝑟𝑒 in {𝑃 𝑟𝑒} are obtained. Next, using the transformation                 accuracy, these coordinates are obtained using a trilinear coordinate
+matrix from the 2D/3D registration, the registration points are trans-                   measuring instrument. The triangulation method is then applied to
+formed and projected onto the DRRs. At this stage, the frontal (𝐴𝑃 ) and                 reconstruct the coordinates of the steel balls in {𝑆𝑅𝐶} from the frontal
+                                           (𝐿𝐴𝑇 )                                        and lateral X-ray images. With the coordinates of the steel balls in both
+lateral (𝐿𝐴𝑇 ) 2D pixel coordinates 𝑃 𝐴𝑃
+                                       𝑃 𝑖𝑥𝑒𝑙
+                                                  of the registration points
+are determined as follows:                                                               {𝑆𝑅𝐶} and {𝑃 ℎ𝑎} now determined, the Umeyama algorithm is used
+                                                                                         to calculate the transformation matrix 𝑇𝑆𝑅𝐶   𝑃 ℎ𝑎 based on these two sets
+     (𝐿𝐴𝑇 )
+𝑃𝑃𝐴𝑃
+   𝑖𝑥𝑒𝑙
+            = 𝑀𝐼𝑛𝑡𝑟𝑖𝑛𝑠𝑖𝑐 · 𝑀𝐸𝑥𝑡𝑟𝑖𝑛𝑠𝑖𝑐 · 𝑇𝑃−1𝑟𝑒𝑅𝑒𝑔 · 𝑇𝑅𝑒𝑔
+                                                     −1
+                                                         · 𝑃𝑃 𝑟𝑒             (10)        of coordinates, thereby completing the transformation from {𝑆𝑅𝐶} to
+                                                                                         {𝑃 ℎ𝑎}.
+where 𝑇𝑃 𝑟𝑒𝑅𝑒𝑔 and 𝑇𝑅𝑒𝑔 represent the pre-registration matrix and the
+                                                                                             Using the optical tracker, the coordinates of the phantom reference
+formal registration matrix respectively. 𝑀𝐸𝑥𝑡𝑟𝑖𝑛𝑠𝑖𝑐 and 𝑀𝐼𝑛𝑡𝑟𝑖𝑛𝑠𝑖𝑐 repre-
+                                                                                         frame and the probe in {𝑇 𝑟𝑎} can be obtained, along with the trans-
+sent the extrinsic matrix and intrinsic matrix of the virtual X-ray source
+                                                                                         formation matrix 𝑇𝑃𝑇ℎ𝑎 𝑟𝑎 from {𝑃 ℎ𝑎} to {𝑇 𝑟𝑎}, and the transformation
+in the registration environment respectively.
+                                          (𝐿𝐴𝑇 )
+                                                                                                    𝑟𝑎 from {𝑃 𝑟𝑜𝑏𝑒} to {𝑇 𝑟𝑎}.
+                                                                                         matrix 𝑇𝑃𝑇𝑟𝑜𝑏𝑒
+    Secondly, the 2D coordinates 𝑃 𝐴𝑃 𝑃 𝑖𝑥𝑒𝑙
+                                                 obtained earlier are back-
+                                                                                             Finally, by linking the previously mentioned transformation matri-
+projected to retrieve their 3D coordinates 𝑃𝑆𝑅𝐶 in {𝑆𝑅𝐶} using the
+                                                                                         ces in series, the complete coordinate transformation matrix chain from
+triangulation method. This provides the coordinates of the registration
+                                                                                         {𝑃 𝑟𝑒} to {𝑃 𝑟𝑜𝑏𝑒} can be constructed.
+points in both {𝑃 𝑟𝑒} and {𝑆𝑅𝐶}. Finally, the Umeyama algorithm is
+                                                                                                                                     −1
+applied to calculate the transformation matrix 𝑇𝑃𝑆𝑅𝐶    𝑟𝑒
+                                                           based on these                𝑇𝑃𝑃𝑟𝑒𝑟𝑜𝑏𝑒 = 𝑇𝑃𝑆𝑅𝐶    𝑃 ℎ𝑎   𝑇 𝑟𝑎     𝑇 𝑟𝑎
+                                                                                                        𝑟𝑒 · 𝑇𝑆𝑅𝐶 · 𝑇𝑃 ℎ𝑎 · (𝑇𝑃 𝑟𝑜𝑏𝑒 )
+                                                                                                                                                                        (11)
+
+                                                                                     6
+D. Yang et al.                                                                                                    Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 4. The software for 2D/3D registration. The parameter setting area allows for configuring registration parameters, the calibration area is used to import X-ray images of the
+calibration target for calibration, and the registration area is where images are imported and registration results are displayed.
+
+
+In conclusion, {𝑃 𝑟𝑒} is sequentially transformed into {𝑆𝑅𝐶}, {𝑃 ℎ𝑎},                       CS was computed and applied to the surgical navigation system. To
+{𝑇 𝑟𝑎}, and finally {𝑃 𝑟𝑜𝑏𝑒}, completing the entire coordinate transfor-                    compare our method with traditional registration methods, we con-
+mation.                                                                                     ducted PTP registration experiments based on anatomical landmarks.
+                                                                                            In the pelvic phantom experiments, landmarks such as the iliac crest,
+3. Experiments and results                                                                  iliac fossa, anterior superior iliac spine, anterior inferior iliac spine, and
+                                                                                            iliopubic eminence were selected. For the spinal phantom experiments,
+3.1. Experimental setting                                                                   the spinous processes of five spinal segments were used as registration
+                                                                                            landmarks. In the femur phantom experiments, landmarks included the
+    Our method was validated using image data from pelvic, spinal,                          lateral malleolus, medial malleolus, medial superior malleolus, external
+and femur phantoms. The 3D models of these anatomical parts were                            superior malleolus, and the intermalleolar fosse. We manually selected
+first segmented and reconstructed from CT scans of three patients, with                     these landmarks in the CT images and obtained their coordinates in
+clinical data provided by Zhongshan Hospital affiliated with Fudan Uni-                     the CT image CS. Using a surgical probe and optical tracker, we
+versity. The patients, aged 43, 33, and 35, included two males and one                      then recorded the corresponding coordinates of these landmarks in
+female, all of Asian descent, with no medical conditions affecting the                      the probe CS. The Umeyama algorithm was applied to compute the
+areas of interest. To ensure privacy, all data was anonymized. The 3D                       transformation matrix between the CT image CS and probe CS based
+phantoms were then printed using 3D printing equipment (UnionTech                           on these two sets of coordinates [39]. Due to potential human error in
+Lite600, China) with R4600 photosensitive resin as the material. CT                         the manual selection of anatomical landmarks in the PTP registration
+scans and X-ray images of the phantoms were captured using Siemens                          method and the influence of randomly chosen registration points in
+digital subtraction angiography equipment (Siemens Artis Q ceiling,                         our method, navigation experiments were repeated by five different
+Germany). The CT images had a resolution of 512 × 512 × 388 and a                           operators. In each trial, an operator performed both PTP and 2D/3D
+voxel size of 0.5×0.5×0.5 mm3 , while the X-ray images had a resolution                     registration on the three phantoms: the femur, pelvis, and spine.
+of 1240 × 960 and a pixel size of 0.308 × 0.308 mm2 .                                           In addition, CT images containing the reference frame were used for
+                                                                                            registration with the X-ray images, and DRRs were fused with the X-ray
+3.1.1. Implementation details                                                               images before and after registration to assess the registration results.
+    To evaluate our method, we designed and conducted both quanti-                          The steel balls on the reference frame provided a clear visual reference,
+tative and qualitative experimental studies. First, we performed C-arm                      which made it easier to observe positional differences between the
+calibration based on X-ray images of the calibration target. To ensure                      DRRs and X-ray images and perform a qualitative evaluation of the
+the accuracy of the subsequent registration and coordinate transfor-                        registration accuracy.
+mations, we validated the calibration by calculating the reprojection                           To implement our registration method in the surgical navigation
+and reconstruction errors. Afterward, we preprocessed the X-ray and                         system and verify the coordinate transformation process, we devel-
+CT images, which involved generating masks for the X-ray images,                            oped a 2D/3D registration software (shown in Fig. 4) using several
+performing grayscale normalization, and cropping the region of interest                     open-source toolkits, including Qt (https://www.qt.io), VTK (https://
+(ROI) in the CT images. Following this, 2D/3D registration was com-                         www.vtk.org), and ITK (https://www.itk.org). The entire registration
+pleted. Finally, the transformation matrix from the CT CS to the probe                      process, along with the coordinate transformation, was encapsulated
+
+                                                                                        7
+D. Yang et al.                                                                                                     Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+                              Table 1
+                              The reprojection errors and reconstruction errors in the calibration experiments.
+                               Rounds                                     1            2              3           4           5             Mean
+                                                                AP        0.192        0.198          0.201       0.204       0.202         0.199
+                               Reprojection errors (pixel)
+                                                                LAT       0.173        0.223          0.223       0.217       0.372         0.242
+                               Reconstruction errors (mm)                 0.059        0.064          0.059       0.062       0.069         0.063
+
+
+
+within the software. In the registration parameter section, users can                      Table 2
+                                                                                           The values of FRE of our proposed method and PTP registration method in the three
+set various parameters such as pre-registration settings and multi-
+                                                                                           phantom experiments.
+resolution levels. The calibration section allows the import of X-ray
+                                                                                            Methods           Rounds      FRE from pelvic      FRE from spinal   FRE from femur
+images of the calibration target for C-arm calibration. The registration                                                  phantom (mm)         phantom (mm)      phantom (mm)
+area comprises four windows: the top two display the frontal and lateral
+                                                                                                              1           0.815                0.791             0.868
+X-ray images, respectively; the bottom left window shows the DRR                                              2           0.743                0.639             0.730
+projected from the original CT, representing the CT’s initial pose; and                     PTP Method        3           0.740                0.675             0.832
+the bottom right window displays the DRR projected from the regis-                                            4           0.693                0.650             0.781
+tered CT, representing the final registration result. This software was                                       5           0.684                0.631             0.705
+
+then integrated into the BeiDou-SNS oral and maxillofacial navigation                                         1           0.598                0.594             0.654
+system [39], developed by our research group, enabling the application                                        2           0.552                0.469             0.540
+                                                                                            Our method        3           0.491                0.439             0.633
+of 2D/3D registration in surgical navigation.                                                                 4           0.420                0.525             0.507
+                                                                                                              5           0.466                0.548             0.552
+3.1.2. Evaluation metrics
+    The Feature Registration Error (FRE) is a commonly used metric
+to assess registration accuracy, defined as the mean distance error
+between the registered feature points. A smaller FRE indicates better                      3.2.2. Quantitative evaluation
+registration performance, so we used FRE as the final metric in our                            As shown in Fig. 5, we conducted registration and navigation ex-
+experiments. FRE was calculated by determining the root mean square                        periments on pelvic, spinal, and femur phantoms. The FRE values for
+error (RMSE) between the virtual point set and the physical point                          both our method and the PTP registration method in the three phantom
+set. The virtual points 𝑣𝑖 (𝑖 = 1, … , 5) were the selected registration                   experiments are presented in Table 2. In the pelvic phantom experi-
+points in the CT images, while the physical points 𝑝𝑖 (𝑖 = 1, … , 5)                       ment, the FRE for the PTP registration method was 0.735 ± 0.047 mm,
+corresponded to points in the probe CS, obtained through projection                        while our method achieved an FRE of 0.505 ± 0.063 mm. In the
+and back-projection. Firstly, projection refers to projecting the selected                 spinal phantom experiment, the PTP registration method had an FRE of
+feature points onto the frontal and lateral imaging planes to obtain                       0.677 ± 0.059 mm, compared to 0.515 ± 0.055 mm with our method.
+their pixel coordinates. Since the registration is complete, the projected                 Similarly, in the femur phantom experiment, the FRE for the PTP regis-
+pixel coordinates should match those of the corresponding points in                        tration method was 0.783 ± 0.061 mm, while our method achieved an
+the real X-ray images. These pixel coordinates are then used for back-                     FRE of 0.577 ± 0.056 mm. Overall, our method reduced FRE values by
+projection in the real perspective environment. Back-projection, on                        31.3%, 23.9%, and 26.3% in the pelvic, spinal, and femur experiments,
+the other hand, involves calculating the 3D coordinates of the feature                     respectively, when compared to the PTP registration method.
+points in the C-arm X-ray source coordinate system based on the pixel                          Fig. 6 presents a line chart comparing the FRE values from our
+coordinates. Given the known internal and external parameters of the                       method and the PTP method across the three phantom experiments.
+X-ray projection system and the pixel coordinates on both planes, the                      While the PTP method achieved FRE values below 1 mm, it still
+3D coordinates are determined by finding the intersection of rays ex-                      falls short for higher precision requirements. Additionally, the PTP
+tending from the source to the pixel points in space. These intersection                   method requires manual selection of registration points in both the CT
+points represent the reconstructed 3D coordinates in the C-arm X-ray
+                                                                                           image and the patient’s lesion site. The surgical probe must also access
+source CS. Additionally, the transformation matrix from the C-arm
+                                                                                           the lesion site, meaning full exposure is necessary for registration. In
+X-ray source CS to the probe CS was obtained using the reference
+                                                                                           contrast, our method not only improved accuracy in all experiments
+frame and the NDI optical tracker, allowing direct conversion of the 3D
+                                                                                           but also eliminates the need to expose the lesion site, making it more
+coordinates to the probe CS, where they serve as the physical points.
+                                                                                           suitable for minimally invasive surgeries.
+The FRE was then computed as follows:
+         √
+         √ 5
+         √1 ∑
+                  ‖                    ‖2
+𝐹 𝑅𝐸 = √                                                              (12)                 3.2.3. Qualitative evaluation
+                 (‖𝑣𝑖 − 𝑇𝑃𝑃𝑟𝑒𝑟𝑜𝑏𝑒 · 𝑝𝑖 ‖ )
+            5     ‖                    ‖                                                       The registration results were qualitatively analyzed by comparing
+                 𝑖=1
+                                                                                           the relative positions of the CT images before and after registration with
+                                                                                           the X-ray images, as shown in Fig. 5. The second row illustrates the
+3.2. Experiment results
+                                                                                           relative position between the X-ray images and the initial CT before
+3.2.1. Calibration accuracy evaluation                                                     registration. To determine the initial CT pose, a virtual projection
+    To verify the accuracy and stability of the calibration method, we                     environment was constructed based on the C-arm calibration results,
+calculated the reprojection and reconstruction errors using five pairs                     with the original CT placed directly in this environment without any
+of X-ray images taken at different positions. In each round, one frontal                   transformation. At this stage, the DRR representing the initial pose
+and one lateral X-ray image of the calibration target, along with the                      was generated from the CT image. The third row shows the relative
+corresponding real 3D coordinates, were used. The results are shown                        position between the X-ray images and the CT after 2D/3D registration.
+in Table 1. We observed that the average reprojection errors were                          We observed that, since the grayscale-based method relies solely on
+0.199 pixels for the frontal images and 0.242 pixels for the lateral                       pixel intensity and not on anatomical landmarks, the complexity of the
+images, with an average reconstruction error of 0.063 mm. These                            anatomical structures had minimal impact on the registration. Thus,
+results demonstrate that the method provides high calibration accuracy                     the experimental results demonstrate that accurate registration can be
+and strong stability.                                                                      achieved across phantoms of different anatomical regions.
+
+                                                                                   8
+D. Yang et al.                                                                                                     Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 5. Phantom experiments for surgical navigation. (a) An X-ray scanning for the phantom. (b) pelvic phantom, femur phantom, and spinal phantom for surgical navigation.
+(c)–(h) Registration between the CT images with X-ray images. The second row shows the relative position of X-ray images and initial CT before registration. The third row shows
+the relative position after 2D/3D registration. (c), (f) The results based on the pelvic phantom. (d), (g) The results based on the femur phantom. (e), (h) The results based on the
+spinal phantom.
+
+
+                                                                                                 images include soft tissue, which can influence grayscale values and
+                                                                                                 potentially affect the registration outcome. To assess the performance
+                                                                                                 of our method in the presence of soft tissue, we conducted additional
+                                                                                                 registration experiments using CT and X-ray images from real patients.
+
+                                                                                                 3.3.1. Experimental setting
+                                                                                                     The real image data used in this experiment were provided by
+                                                                                                 Zhongshan Hospital Affiliated with Fudan University. The data set
+                                                                                                 includes CT images of the hip joints from two male patients and
+                                                                                                 one female patient, as well as frontal and lateral X-ray images. The
+                                                                                                 patients are 45, 36, and 46 years old, all of Asian descent, with no
+                                                                                                 medical conditions affecting the areas of interest. All data have been
+                                                                                                 anonymized to protect patient privacy. The images include the spine,
+                                                                                                 sacrum, tailbone, pelvis, and femur. The CT image sizes range from
+                                                                                                 512 × 512 × 361 to 512 × 512 × 379, with voxel resolutions varying
+                                                                                                 from 0.707 × 0.707 × 0.75 mm3 to 0.7695 × 0.7695 × 0.7521 mm3 . The X-ray
+                                                                                                 images have a resolution of 2962 × 2589 pixels, with a pixel size of
+Fig. 6. Results of the experiments. Comparison between our method and the PTP
+                                                                                                 0.139 × 0.139 mm2 .
+method for varying operators in three different phantom experiments. In this graph,
+‘‘OUR’’ indicates our proposed method, and ‘‘PTP’’ indicates the point-to-point registra-        3.3.2. Implementation details
+tion method. And, ‘‘-F’’ indicates the femur phantom, ‘‘-S’’ indicates the spinal phantom,          To assess the performance of our method on real patient images,
+and ‘‘-P’’ indicates the pelvic phantom.
+                                                                                                 we designed and conducted qualitative experimental studies. First, we
+                                                                                                 preprocessed the data by cropping the ROI, generating masks, and
+                                                                                                 performing grayscale normalization. Next, we applied the proposed
+3.3. Real case                                                                                   2D/3D registration method to align the CT and X-ray images. Fi-
+                                                                                                 nally, the images before and after registration were fused to observe
+   In the phantom experiments mentioned above, we used 3D-printed                                the registration results, which enabled a qualitative evaluation of the
+phantoms that did not contain any soft tissue. However, real X-ray                               registration accuracy.
+
+                                                                                             9
+D. Yang et al.                                                                                                      Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+
+
+Fig. 7. Patients experiments for 2D/3D registration between the CT images and X-ray images. The first row shows the relative position of X-ray images and initial CT before
+registration. The second row shows the relative position after registration. (a), (d) The results based on the first case. (b), (e) The results based on the second case. (c), (f) The
+results based on the third case.
+
+
+3.3.3. Experiment results                                                                     arise with single similarity measures. This combination improves both
+    The registration effect was qualitatively analyzed by comparing the                       the accuracy and the adaptability of the algorithm. NCC excels in cap-
+relative positions of the CT image before and after registration with                         turing local structural details, while MI incorporates global information
+the X-ray images, as shown in Fig. 7. We observed that the DRRs and                           so that the registration process can better handle variations in different
+X-ray images exhibited similar grayscale values in the bone structures,                       types of images.
+though some differences were present in the soft tissue regions. Despite                          Many deep learning-based 2D/3D registration methods require large
+this, the final registration results demonstrated that the CT and X-ray                       training datasets to train neural network models and often need sep-
+images were successfully aligned. Additionally, we noted differences in                       arate models for different tasks [41]. In contrast, our approach is
+similarity measures between the real case and phantom experiments.                            adaptable to any anatomical site. Additionally, most current com-
+In the real case experiments, the presence of soft tissue altered the                         mercial surgical navigation systems based on 2D/3D registration rely
+                                                                                              on specialized equipment and are not open-source. Our registration
+grayscale values, reducing the similarity measure. However, the sim-
+                                                                                              method, however, was developed using open-source toolkits such as
+ilarity measure still reached an extreme value, indicating successful
+                                                                                              ITK, VTK, and Qt. A custom registration software was also created to
+alignment of the CT and X-ray images at that point. Furthermore,
+                                                                                              integrate our method into surgical navigation systems. Moreover, we
+the real case experiments included multiple anatomical structures that
+                                                                                              plan to make both the registration algorithm and software open-source,
+could potentially affect one another. Despite this, the preoperative
+                                                                                              potentially enabling effective, non-invasive registration for surgical
+and intraoperative images we used showed minimal deformation be-                              navigation systems in clinical settings.
+tween different parts, and the use of masks ensured that all structures                           By utilizing a new similarity measure that combines MI and NCC,
+were aligned. In conclusion, the experimental results demonstrate that,                       this method improves adaptability to various tissue types and imaging
+although soft tissue and other anatomical structures may influence                            conditions. Its enhanced robustness enables more accurate image reg-
+grayscale values, accurate registration between CT and X-ray images                           istration in clinical settings, assisting surgeons in precisely locating le-
+can still be achieved in real cases.                                                          sions and reducing surgical risks. The novel coordinate transformation
+                                                                                              principle streamlines the conversion process, reducing computational
+4. Discussion                                                                                 time and allowing for rapid acquisition of transformation results during
+                                                                                              surgery. This is especially critical in scenarios requiring real-time image
+    The implementation of common surgical navigation techniques typ-                          updates. Additionally, the method does not depend on anatomical
+ically relies on the spatial alignment of preoperative 3D images with                         information, further increasing its versatility. The integration of the
+intraoperative anatomical structures. This critical step, known as im-                        registration software into the surgical navigation system enhances both
+age registration, is essential for ensuring accurate navigation during                        its functionality and applicability. For example, in orthopedic proce-
+surgery. In this study, we propose a registration method based on                             dures such as spinal surgeries and joint replacements, precise image
+intraoperative biplanar X-ray images and preoperative CT images. This                         registration enables surgeons to accurately position surgical tools and
+approach addresses the challenge of insensitivity to translation along                        implants, ensuring greater precision and improving surgical outcomes.
+                                                                                                  Our method has several limitations. Although we have improved
+the optical axis in 2D images, a significant limitation when using a
+                                                                                              registration efficiency through enhancements in the similarity measure,
+single X-ray image. In the lateral X-ray image, this direction becomes
+                                                                                              optimization algorithm, and multiresolution strategy, our grayscale-
+parallel to the imaging plane, making it more sensitive to translation
+                                                                                              based approach inherently requires processing the grayscale of each
+along that axis. As a result, translation errors in this direction can be
+                                                                                              pixel, which increases computational demands. To address this, future
+minimized.
+                                                                                              research could explore utilizing Graphics Processing Units (GPUs) to
+    Compared to other traditional 2D/3D registration methods [17,40],                         accelerate DRR generation, potentially alleviating the computational
+our approach introduces a new similarity measure that combines two                            burden. Additionally, our method relies on global grayscale information
+metrics: NCC and MI. Traditional image registration methods typically                         for registration. When images contain multiple anatomical structures
+rely on a single similarity measure, such as NCC or MI, each with                             with positional offsets between different parts, the method can only
+inherent limitations that can impact the accuracy and robustness of                           register a single part accurately. Future research could focus on achiev-
+the registration. Specifically, NCC is less effective when dealing with                       ing simultaneous registration of multiple anatomical structures. In this
+multimodal images, while MI is sensitive to noise and has high com-                           study, we conducted qualitative analysis with a limited number of
+putational complexity, limiting its real-time application potential. Our                      patient cases. To further validate the method’s accuracy, future re-
+method innovatively combines NCC and MI to overcome the challenges                            search should include a larger sample size and incorporate quantitative
+of low registration accuracy and efficiency in multimodal scenarios that                      analysis.
+
+                                                                                         10
+D. Yang et al.                                                                                                       Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+5. Conclusion                                                                                  [11] Chaochao Zhou, et al., Transfer learning from an artificial radiograph-landmark
+                                                                                                    dataset for registration of the anatomic skull model to dual fluoroscopic X-ray
+                                                                                                    images, Comput. Biol. Med. 138 (2021) 104923.
+    In this study, we propose a framework to address the challenges
+                                                                                               [12] Shan Liu, Bo Yang, Yang Wang, Jiawei Tian, Lirong Yin, Wenfeng Zheng, 2D/3D
+of 2D/3D registration between biplanar X-ray images and CT images.                                  multimode medical image registration based on normalized cross-correlation,
+This framework includes C-arm calibration, a registration algorithm                                 Appl. Sci. 12 (6) (2022) 2828.
+based on the MN similarity measure, and coordinate transformation ac-                          [13] Chaochao Zhou, et al., The impact of loss functions and scene representations
+curacy optimization, specifically designed to overcome the limitations                              for 3D/2D registration on single-view fluoroscopic X-ray pose estimation, 2024,
+                                                                                                    arXiv.org, arXiv.org, 2024-02.
+of traditional registration methods. Extensive validation experiments
+                                                                                               [14] M. Grimm, J. Esteban, M. Unberath, N. Navab, Pose-dependent weights and
+using various phantoms have demonstrated the method’s effectiveness                                 domain randomization for fully automatic X-ray to CT registration, IEEE Trans.
+and robustness. Additionally, we developed registration software to                                 Med. Imaging 40 (9) (2021) 2221–2232.
+enhance its clinical applicability. In the future, we plan to explore our                      [15] Jin Pan, Zhe Min, Yutian Shen, Tingting Liu, Max Q.-H. Meng, Sparse branch-
+method in more registration tasks and apply it to other anatomical                                  and-bound 2D-3D registration based on prior correspondences of dense points, in:
+                                                                                                    2022 International Conference on Advanced Robotics and Mechatronics, ICARM,
+regions.
+                                                                                                    2022, pp. 151–156.
+                                                                                               [16] Jin Pan, Zhe Min, Ang Zhang, Han Ma, Max Q.-H. Meng, Globally learnable
+CRediT authorship contribution statement                                                            point set registration between 3D CT and multi-view 2D X-ray images of hip
+                                                                                                    phantom, in: 2021 IEEE International Conference on Robotics and Biomimetics,
+   Demin Yang: Writing – review & editing, Writing – original draft,                                ROBIO, 2021, pp. 272–277.
+Validation, Software, Methodology. Haochen Shi: Writing – review &                             [17] B. Aubert, T. Cresson, J.A. de Guise, C. Vazquez, X-ray to DRR images translation
+                                                                                                    for efficient multiple objects similarity measures in deformable model 3D/2D
+editing, Methodology. Bolun Zeng: Writing – review & editing. Xiao-                                 registration, IEEE Trans. Med. Imaging 42 (4) (2023) 897–909.
+jun Chen: Writing – review & editing, Resources, Funding acquisition.                          [18] L. Dong, X. Xu, Y. Shen, Sub-pixel registration and stitching technology based on
+                                                                                                    interpolation and iterative optimization algorithm, in: 2020 39th Chinese Control
+Declaration of competing interest                                                                   Conference, CCC, Shenyang, China, 2020, pp. 1391–1395.
+                                                                                               [19] X. Ji, Y. Lu, X. Zhuo, Y. Zhang, S. Zhu, Y. Chen, A geometrical calibration method
+                                                                                                    for C-arm CT based on a nonlinear registration model, IEEE Trans. Instrum. Meas.
+    The authors declare that they have no known competing finan-                                    72 (2023) 4506513, 1–13.
+cial interests or personal relationships that could have appeared to                           [20] A.P. Bora, A.D. Joshi, S.T. Sawant, Digitally reconstructed radiograph generation
+influence the work reported in this paper.                                                          for enabling AI/ML in medical imaging, in: 2020 11th International Confer-
+                                                                                                    ence on Computing, Communication and Networking Technologies, ICCCNT,
+Acknowledgments                                                                                     Kharagpur, India, 2020, pp. 1–6.
+                                                                                               [21] A. Zeighami, R. Dumas, J. Bleau, F. Lavoie, J.d. Guise, R. Aissaoui, A method for
+                                                                                                    quantitative evaluation of a valgus knee orthosis using biplanar x-ray images, in:
+    This work was supported by grants from National Natural Science                                 2020 42nd Annual International Conference of the IEEE Engineering in Medicine
+Foundation of China (82330063; M-0019), Shanghai Jiao Tong Univer-                                  & Biology Society, EMBC, Montreal, QC, Canada, 2020, pp. 4815–4818.
+sity Foundation on Medical and Technological Joint Science Research,                           [22] R. Munbodh, J.P. Knisely, D.A. Jaffray, D.J. Moseley, 2D-3D registration for
+China (YG2022QN056; YG2023ZD19; YG2023ZD15; YG2024QNA23;                                            cranial radiation therapy using a 3D kV CBCT and a single limited field-of-view
+                                                                                                    2D kV radiograph, Med. Phys. 45 (2018) 1794–1810.
+YG2024QNB26), SJTU Global Strategic Partnership Fund, China (2023
+                                                                                               [23] Z. Mohammadi, M.R. Keyvanpour, Similarity measures in medical image regis-
+SJTU-CORNELL; SJTU-UCL), and the Funding of Xiamen Science and                                      tration a review article, in: 2021 12th International Conference on Information
+Technology Bureau, China (3502Z20221012).                                                           and Knowledge Technology (IKT), Babol, Iran, Islamic Republic of, 2021, pp.
+                                                                                                    89–95.
+References                                                                                     [24] S. Babahenini, F. Charif, A. Taleb-Ahmed, Multimodal medical images using rigid
+                                                                                                    iconic registration based on flower pollination algorithm and butterfly optimiza-
+                                                                                                    tion algorithm, in: 2022 2nd International Conference on New Technologies of
+ [1] Y. Luo, E. Badreddin, Survey of navigation guided robotics for orthopedic surgical
+                                                                                                    Information and Communication, NTIC, Mila, Algeria, 2022, pp. 1–6.
+     assistance-concept and components, in: 2022 6th International Conference on
+                                                                                               [25] M. Danyu, X. Guili, D. Wende, A simple calibration method for line-structured
+     Robotics and Automation Sciences, ICRAS, Wuhan, China, 2022, pp. 92–99.
+                                                                                                    light vision sensor based on planar target of different positions, in: 2020
+ [2] F. Mancino, S.M.P. Rossi, R. Sangaletti, et al., A new robotically assisted tech-
+                                                                                                    International Conference on Computer Vision, Image and Deep Learning, CVIDL,
+     nique can improve outcomes of total knee arthroplasty comparing to an imageless
+                                                                                                    Chongqing, China, 2020, pp. 117–121.
+     navigation system, Arch. Orthop. Trauma. Surg. 143 (2023) 2701–2711.
+                                                                                               [26] Y.-L. Xian, C.-Z. Wang, Y. Dai, Image registration based on camera calibration
+ [3] S. Lu, et al., Preoperative virtual reduction planning algorithm of fractured
+                                                                                                    for dual-wavelength retinal oximetry, IEEE Access 7 (2019) 128498–128509.
+     pelvis based on adaptive templates, IEEE Trans. Biomed. Eng. 70 (10) (2023)
+     2943–2954, http://dx.doi.org/10.1109/TBME.2023.3272007.                                   [27] Y. Shiyi, L. Song, M. Wenhua, Z. Fengfeng, S. Lining, Research on back
+ [4] H. Chen, X. Wang, Advances in the study and application of robotic navigation                  projection method of robot navigation based on bi-plane calibration method,
+     technology in pedicle screw fixation, in: 2022 International Conference on                     in: 2017 IEEE 7th Annual International Conference on CYBER Technology in
+     Automation, Robotics and Computer Engineering, ICARCE, Wuhan, China, 2022,                     Automation, Control, and Intelligent Systems, CYBER, Honolulu, HI, USA, 2017,
+     pp. 1–5.                                                                                       pp. 1220–1223.
+ [5] W. Liang, W. Zhou, D. Luo, Effects of system parameters on the measurement                [28] F. Heemeyer, A. Choudhary, J.P. Desai, Pose-aware C-arm calibration and image
+     accuracy of optical surgical navigation system, in: 2023 13th International                    distortion correction for guidewire tracking and image reconstruction, in: 2020
+     Conference on Information Science and Technology, ICIST, Cairo, Egypt, 2023,                   International Symposium on Medical Robotics, ISMR, Atlanta, GA, USA, 2020,
+     pp. 333–342.                                                                                   pp. 181–187.
+ [6] X. Jiao, J. Zhao, C. Lv, F. Duan, Z. Pan, X. Li, Robust 3D craniofacial landmarks         [29] B. Wei, T. Qingguo, G. Baozhen, Camera calibration based on color-coded
+     localization by an end-to-end regression network, in: 2023 IEEE International                  phase-shifted fringe, Opto-Electron. Eng. 48 (1) (2021) 200118.
+     Conference on Multimedia and Expo, ICME, Brisbane, Australia, 2023, pp.                   [30] R. Ismail, S. Nagy, A novel gradient-weighted voting approach for classical
+     900–905.                                                                                       and fuzzy circular hough transforms and their application in medical image
+ [7] Taeyong Park, et al., Rapid and accurate registration method between in-                       analysis—Case study: Colonoscopy, Appl. Sci. 13 (2023) 9066.
+     traoperative 2D XA and preoperative 3D CTA images for guidance of                         [31] W. Shi, L. Zhang, Y. Yao, J. Zuo, X. Yao, Linear calibration for robot vision, in:
+     percutaneous coronary intervention, Comput. Math. Methods Med. 2019 (2019)                     2016 8th International Conference on Intelligent Human–Machine Systems and
+     3253605–3253612.                                                                               Cybernetics, IHMSC, Hangzhou, China, 2016, pp. 431–435.
+ [8] Wei Xia, et al., Thorax X-ray and CT interventional dataset for nonrigid 2D/3D            [32] K. Ono, T. Yoshitake, K. Akahane, et al., Comparsion of doses and image quality
+     image registration evaluation, Med. Phys. (Lancaster) 45 (11) (2018) 5343–5351.                among various chest X-ray systems for optimization using our original phantoms
+ [9] Y. Kita, D.L. Wilson, J.A. Noble, N. Kita, A quick 3D-2d registration method for               of lung adenocarcinoma according to Noguchi’s classification, 2022;
+     a wide-range of applications, in: Proceedings 15th International Conference on                 D.F. Martino, S. Sessa, A novel image similarity measure based on greatest and
+     Pattern Recognition, ICPR-2000, Vol. 1, Barcelona, Spain, 2000, pp. 981–986.                   smallest eigen fuzzy sets, Symmetry 15 (5) (2023) 1104.
+[10] Weimin Yu, Moritz Tannast, Guoyan Zheng, Non-rigid free-form 2D-3D regis-                 [33] X. Bai, Y. Zhang, H. Liu, Z. Chen, Similarity measure-based possibilistic FCM
+     tration using a B-spline-based statistical deformation model, Pattern Recognit.                with label information for brain MRI segmentation, IEEE Trans. Cybern. 49 (7)
+     (ISSN: 0031-3203) 63 (2017) 689–699.                                                           (2019) 2618–2630.
+
+
+                                                                                          11
+D. Yang et al.                                                                                                       Computer Methods and Programs in Biomedicine 257 (2024) 108444
+
+
+[34] C. Aldrich, A. Amankwah, Spatially weighted mutual information for image reg-             [38] S. Lim, et al., Augmented reality assisted surgical navigation system for epidural
+     istration, in: 2021 IEEE International Geoscience and Remote Sensing Symposium                 needle intervention, in: 2021 43rd Annual International Conference of the IEEE
+     IGARSS, Brussels, Belgium, 2021, pp. 5429–5432.                                                Engineering in Medicine & Biology Society, EMBC, Mexico, 2021, pp. 4705–4708.
+[35] L. Wu, L. Zhao, ISAR image registration based on normalized correlation                   [39] C. Qin, Z. Cao, S. Fan, et al., An oral and maxillofacial navigation system
+     coefficient, in: 2023 IEEE 3rd International Conference on Power, Electronics                  for implant placement with automatic identification of fiducial points, Int. J.
+     and Computer Applications, ICPECA, Shenyang, China, 2023, pp. 354–359.                         Comput. Assist. Radiol. Surg. 14 (2019) 281–289.
+[36] S. Wang, J. Li, Y. Peng, J. Feng, R. Ma, G. Li, Cone beam CT series images rigid          [40] U. Ushakiran, S.N. Bhat, R.R. Naik, A. H, Evaluation of similarity measure for
+     registration for temporomandibular joint via self-supervised learning network, in:             feature based 3D-2D registration in vertebral pose estimation, in: 2023 4th
+     2021 IEEE International Conference on Medical Imaging Physics and Engineering,                 International Conference for Emerging Technology, INCET, Belgaum, India, 2023,
+     ICMIPE, Hefei, China, 2021, pp. 1–5.                                                           pp. 1–5.
+[37] J.E.C. Saire, A. Singh, A comparative analysis of quantum inspired evolutionary           [41] N.B. Khameneh, C. Vazquez, T. Cresson, F. Lavoie, J.d. Guise, Highly accurate
+     algorithm with differential evolution, evolutionary strategy and particle swarm                automated patient-specific 3D bone pose and scale estimation using bi-planar
+     optimization, in: 2019 IEEE Latin American Conference on Computational                         pose-invariant patches in a CNN-based 3D/2D registration framework, in: 2021
+     Intelligence, LA-CCI, Guayaquil, Ecuador, 2019, pp. 1–6.                                       IEEE 18th International Symposium on Biomedical Imaging, ISBI, Nice, France,
+                                                                                                    2021, pp. 681–684.
+
+
+
+
+                                                                                          12
+

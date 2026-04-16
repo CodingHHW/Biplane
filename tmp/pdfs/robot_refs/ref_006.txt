@@ -1,0 +1,972 @@
+Int. J. Oral Maxillofac. Surg. 2006; 35: 1081–1095
+doi:10.1016/j.ijom.2006.09.015, available online at http://www.sciencedirect.com
+
+
+
+
+                                                                                                                     Invited Review Paper
+
+
+Image-to-patient registration                                                                             G. Eggers, J. Mühling, R. Marmulla
+                                                                                                          Department of Oral and Cranio-Maxillofacial
+                                                                                                          Surgery, Heidelberg University Hospital, Im
+                                                                                                          Neuenheimer Feld 400, 69120 Heidelberg,
+
+techniques in head surgery                                                                                Germany
+
+
+
+
+G. Eggers, J. Mühling, R. Marmulla: Image-to-patient registration techniques in head
+surgery. Int. J. Oral Maxillofac. Surg. 2006; 35: 1081–1095. # 2006 International
+Association of Oral and Maxillofacial Surgeons. Published by Elsevier Ltd. All rights
+reserved.
+
+Abstract. Frame-based stereotaxy was developed in neurosurgery at the
+beginning of the last century, evolving from atlas-based stereotaxy to stereotaxy
+based on the individual patient’s image data. This established method is still in use
+in neurosurgery and radiotherapy. There have since been two main developments
+based on this concept: frameless stereotaxy and markerless registration.
+Frameless stereotactic systems (‘navigation systems’) replaced the cumbersome
+stereotactic frame by mechanically and later also optically or magnetically tracked
+instruments. Stereotaxy based on the individual patient’s image data introduced the
+problem of patient-to-image data registration. The development of navigation
+systems based on frameless stereotaxy has dramatically increased its use in surgical
+disciplines other than neurosurgery, but image-guided surgery based on fiducial
+marker registration needs dedicated imaging for registration purposes, in addition to
+the diagnostic imaging that might have been performed. Markerless registration
+techniques can overcome the resulting additional cost and effort, and result in more
+widespread use of image-guided surgery techniques. In this review paper, the
+developments that led to today’s navigation systems are outlined, and the
+applications and possibilities of these methods in the field of maxillofacial surgery
+are presented.                                                                                            Accepted for publication 20 September 2006
+
+
+
+
+One hundred years ago, the foundations                   information obtained from the image data         devices were conceived. Frame-based
+for stereotaxy were laid. Stereotaxy allows              onto the patient’s body, the surgeon had to      stereotaxy is routine in neurosurgery
+the accurate transfer of image data onto                 rely on imagination, spatial acumen and          today. The position (e.g. of a pathology)
+the patient in the operating room. Hence,                anatomical knowledge. Allocating a               in the image data is calculated to a position
+image-guided surgery relies on the exis-                 pathological finding in image data to the        in the patient’s head using the frame,
+tence of an image of the patient’s indivi-               patient’s body, e.g. for surgery, was inac-      which is visible in the image data and is
+dual anatomy. In October 1895, Wilhelm                   curate, so this method may be called ‘sur-       also attached to the patient during surgery.
+Conrad Roentgen discovered the existence                 gery based on information obtained from          Registration is performed by localizing
+of X-rays. Their importance for imaging                  image data’. For image-guided surgery,           features of the frame in the image data.
+of human anatomy was acknowledged                        extremely accurate transfer of information       A desired position in the image can then
+almost immediately, and as early as                      from the image to the body of the patient is     be transformed into physical space by
+December 1895 the first radiograph (the                  required. Determination of a relation            calculation.
+hand of Roentgen’s wife) was produced.                   between image data and the body is called           Stereotactic systems that do not need a
+In the following years, the number of                    registration. Interestingly, the foundations     stereotactic frame attached to the patient’s
+applications for this new technology                     for this technology were laid as early as        head represent a more recent development.
+grew rapidly, but for transferral of the                 100 years ago, when the first stereotactic       The workflow differs considerably: after
+
+0901-5027/121081 + 15 $30.00/0         # 2006 International Association of Oral and Maxillofacial Surgeons. Published by Elsevier Ltd. All rights reserved.
+1082       Eggers et al.
+
+registration of patient and image, a pointing     So, in mathematical terms, the task of a         allowed the use of patient individual ana-
+device is tracked continuously and its tip is     registration procedure is to determine the       tomical information from conventional X-
+displayed in real time in the image data on a     rotation and transformation between the          ray imaging were conceived and realized
+computer workstation. The patient’s head          image data and the patient’s body.               in the field of neurosurgery. The stereo-
+does not need to be immobilized; its motion                                                        tactic frame should allow rigid and exact
+can be tracked as well and compensated                                                             positioning of the head and be as light-
+                                                  Frame-based stereotaxy
+by the system. With the development of                                                             weight as possible to reduce patient dis-
+frameless stereotactic systems, the so-           The first step in this development was to        tress165. In the device by SPIEGEL &
+called ‘navigation systems’, the concept          give the patient’s body (in this case the        WYCIS165, plastic plates with lead markers
+of stereotaxy has evolved beyond neuro-           head) a coordinate system. One century           were mounted orthogonally to the frame
+surgery into many surgical fields like ortho-     ago, HORSLEY & CLARK conceived a device          and allowed correlation of the images. In
+pedic surgery, ENT surgery, and oral and          that could be attached to the head4. After       the system by LEKSELL97, the frame was
+maxillofacial surgery. Here is presented a        attachment, positions in the head could be       attached to the patient and then to the X-
+review of the history and development of          accessed by a coordinate system that was         ray tube to ensure accurate alignment.
+today’s navigation systems and their              integrated into the device75. The authors        Other systems used millimetre scales that
+impact on maxillofacial surgery.                  coined the term ‘stereotaxy’ that is still in    were engraved into the markers and became
+                                                  use today, but the purpose of this device        visible on the X-ray film108. The exact
+                                                  was not image-to-patient registration.           orthogonal alignment of the two X-ray
+Registration
+                                                  HORSLEY & CLARK used their device under          images was necessary for accurate mea-
+Registration is a term for the alignment of       the assumption that the position of certain      surements (Fig. 1). This was not the case
+coordinate systems and can be used for            intracranial structures is related to the        with later systems, as the X-ray films were
+diagnostics as well as for therapy: in            position of extracranial features that could     digitized using a computer workstation.
+image-to-image registration141, a typical         easily be localized. These relations were        Using the marker positions in image data,
+application is the registration of functional     not individual data but experience values.       the computer would correct any distortion
+imaging, e.g. positron emission tomogra-          Further developments of stereotaxy were          in image data caused by misalignment82.
+phy (PET), to anatomical imaging, e.g.            aimed at the integration of a patient’s             The introduction of CT posed a new
+computed tomography (CT). As a result,            image data to find intracranial positions        problem, as two-dimensional image slices
+information from corresponding regions is         with high accuracy, taking into considera-       through the head had to be registered. The
+displayed at the same site to enhance the         tion the individual anatomy. Systems that        key concept was conceived by Roberts and
+diagnostic value of the image data with
+additional information84. Image data of
+the same patient obtained with the same
+imaging modality at different times can be
+used to monitor the course of a disease or
+the success of a therapy. Here, the coor-
+dinate systems of the two image data sets
+have to be aligned.
+   In image-guided surgery, registration is
+the spatial correlation of a patient’s body
+and the image data of this individual anat-
+omy. To fulfil this task accurately, an
+image data coordinate system that gives
+unambiguous coordinates to any point in
+image space, and a patient coordinate
+system that gives unambiguous coordi-
+nates to any point in the physical space
+of the patient’s body are required. Finally,
+the coordinate transform has to be deter-
+mined that links the very position of image
+space and physical space. In mathematical
+terms, a linear coordinate transform is
+necessary to transform coordinates from
+the image data coordinate system into the
+coordinate system associated with the
+patient. This transform consists of a rota-
+                                          y):
+tion matrix (B) and a linear translation (~
+
+             ~i þ~
+  ~i Þ ¼ B  Q
+’ðQ              y¼~
+                   Pi                      (1)
+to transform points Q  ~i from coordinate
+system Q to points ~Pi in coordinate system
+P. The theoretical and mathematical basis         Fig. 1. Patient prepared for stereotactic X-ray imaging: (1) stereotactic ring; (2) cassette
+of registration is extensively discussed by       mounting support; (3) fixation attachment for AP X-ray pictures; (4) metal ruler for determining
+various authors16,37,45–48,155,163,167,173,174.   X-ray distortion. From: reference 149.
+                                                                       Image-to-patient registration techniques in head surgery             1083
+
+                                                                                                      surgery, FIALKOV et al. presented a
+                                                                                                      stereotactic frame for CT-image data
+                                                                                                      acquisition that was attached to the exter-
+                                                                                                      nal auditory canal and a dental splint32
+                                                                                                      (Fig. 3). Other non-invasive fixation meth-
+                                                                                                      ods were stereotactic frames that were
+                                                                                                      attached to individually fabricated face
+                                                                                                      masks for stereotactic radiation ther-
+                                                                                                      apy101,146 (Fig. 4).
+                                                                                                         The concept of frame-based stereotaxy
+                                                                                                      proved to be very accurate and reliable,
+                                                                                                      and is still in use in neurosurgery. The
+                                                                                                      rigidly mounted frame also serves as a
+                                                                                                      support for targeting devices. The surgeon
+                                                                                                      does not have to reach an indicated posi-
+                                                                                                      tion free handed. The stereotactic frame
+                                                                                                      does have several shortcomings. The
+                                                                                                      frame has to be mounted rigidly and inva-
+                                                                                                      sively to the patient’s head using screws
+                                                                                                      and must not be removed between image-
+                                                                                                      data acquisition and surgery. For the sur-
+                                                                                                      geon who wants to access other regions
+                                                                                                      than the brain, the frame itself is an obsta-
+                                                                                                      cle rather than a support. Hence, frame-
+                                                                                                      based stereotaxy never had a notable
+                                                                                                      impact in oral and maxillofacial surgery
+                                                                                                      or ENT surgery.
+
+                                                                                                      Frameless stereotaxy
+                                                                                                      From the 1980s, with emerging computer
+                                                                                                      technology, frameless stereotactic systems
+                                                                                                      were realized81,88,89,186,189. Instead of a
+                                                                                                      stereotactic frame that is attached as a
+                                                                                                      whole, single markers are mounted sepa-
+                                                                                                      rately to the patient’s head. In contrast to
+                                                                                                      frame-based stereotaxy where the marker
+                                                                                                      geometry is always similar, in frameless
+                                                                                                      stereotaxy the geometry of the markers
+                                                                                                      always differs. A targeting device is used
+Fig. 2. (a) BRW (Brown–Roberts–Wells) localizer for CT-to-patient registration. From refer-           to measure the positions of these markers,
+ence 108. (b) Axial CT image slice of the head. The 9 localizer rods intersect the imaging plane      and its position is tracked by a computer
+(arrows). The positions of these intersection allow calculation of the position of the image slice.   system that also holds all image data
+                                                                                                      (Fig. 5). This targeting device is usually
+                                                                                                      a pointer that is held by the surgeon. After
+
+
+Brown, who applied rods as markers that
+allowed the exact registration of an image
+slice in space108. The stereotactic frame
+was equipped with six vertical and three
+diagonal rods, distributed as three N-
+shaped assemblies around the head. In
+an axial CT-image slice of the head, these
+rods appeared as 9 spots whose distribu-
+tion allowed a definite allocation of the
+image slice in patient space (Fig. 2a and
+b). This concept proved to be reliable and
+accurate and was subsequently adapted
+in other stereotactic frame systems82,99,
+as well as for MRI-based stereo-
+taxy96,99,108, and was extended for the
+use of additional image data from angio-
+graphy177,178. Especially for craniofacial         Fig. 3. Fialkov frame for registration in craniofacial surgery. From reference 32.
+1084       Eggers et al.
+
+                                                                                                    the region of the head, this could be the tip
+                                                                                                    of the nose, the angulus oculi, the tragus
+                                                                                                    on the skin surface or the spina nasalis on
+                                                                                                    the bone surface. The advantage of this
+                                                                                                    method is its simplicity: no specific
+                                                                                                    marker has to be attached to the patient
+                                                                                                    prior to imaging, and there is no danger
+                                                                                                    of loss of registration if the marker gets
+                                                                                                    lost between imaging and surgery. No
+                                                                                                    specific image-data acquisition with
+                                                                                                    markers for registration is necessary.
+                                                                                                    The accuracy of this method is limited
+                                                                                                    because superficial landmarks are not
+                                                                                                    definite or reliable due to possible skin
+                                                                                                    shift or swelling, and distinct marks on
+                                                                                                    the bone are not always available at the
+                                                                                                    site of surgery and require invasive regis-
+                                                                                                    tration 2,5,19,22,34,44,49,52,57,61,67,70,78,93,107,
+                                                                                                    121,128,131,135,137,143,145,147,154,168,176,179,
+Fig. 4. LBL system. The frame consists of top cross member (A), yoke (B) and support bars (C)       193,195,196
+and is attached to an individually fabricated face mask. Pins (F) ensure accurate positioning of             . Use of this method is described
+the mask. Fiducial markers for registration are mounted on the sideplates (D) for lateral           for image-guided surgery of the lateral
+radiographs and on the arch (E) for AP radiographs. From reference 101.                             skull base19, spine78 and spinal chord94.
+
+
+
+
+registration, the position of the device is
+displayed in image data on the computer
+screen. Alternatively, there are systems
+where the marker is aimed at by means
+of a tracked microscope80. Intraoperative
+guidance can also be given by means of a
+tracked microscope71. Generally speaking,
+two technical concepts for patient-to-image
+registration have been developed: pair-
+point registration5,82,91,131,136,170 and,
+more recently, surface-matching techni-
+ques16,23,49,54,55,56,68,94,111,148.
+
+Markerless pair-point registration
+In pair-point registration, a set of at least
+three positions must be known in image
+space and physical space. These positions
+must be linearly independent (in this case,
+not lying on a line). By correlating these
+two sets of points in image data (by mark-
+ing them on the computer screen) and
+physical space (by touching them with
+the tracked pointing device), both coordi-
+nate systems can be unambiguously regis-
+tered. The navigation system calculates a
+least-square solution for a transformation
+matrix to transfer one set of points into the
+other. With this very matrix, the naviga-
+tion system can now transfer any point in
+image physical space into the coordinates
+in image data and vice versa. In practice
+there are various realizations of this con-
+cept. In markerless pair-point registration,     Fig. 5. Components of a standard frameless stereotaxy system: computer workstation on a cart
+characteristic points (‘anatomical land-         with CRT screen as user interface and for the display of image and navigation data. The infrared
+marks’) are identified in image data             (IR) tracking camera is attached to the cart (top left) and tracks the position of a pointing device
+as well as on the patient129,130,131,142. In     that is equipped with IR-LEDs.
+                                                                       Image-to-patient registration techniques in head surgery            1085
+
+Marker-based pair-point registration
+
+In marker-based registration, markers are
+attached to the patient’s body prior to
+imaging10,25,40,53,95,131,129,130,162,168,183,
+187,196
+        . They are designed to be clearly
+identifiable in image data as well as on the
+patient’s body and hence stand for the two
+sets of points needed in image space and
+patient space. It is of utmost importance
+for the accuracy of registration that their
+position does not change between preo-
+perative imaging and intraoperative regis-
+tration. Various systems have been
+conceived to solve the practical problem
+of marker attachment to the patient. The
+fall into the categories of skin-mounted            Fig. 6. Maxillary registration splint with titanium screws as fiducial markers.
+fiducials, bone-mounted fiducials and
+systems, where the markers are not                  systems consist of a base that is drilled into   maintain an accurate position92,135,160.
+attached separately but where a config-             the bone and an exchangeable body that           Other devices are connected to the denti-
+uration of markers as a whole is attached           has a filling dependent on the imaging           tion of the upper jaw. These can be tem-
+to the patient’s head.                              method used1,3,13,39,65,102,103,132,158,194.     plates with integrated titanium markers29
+   Skin markers are attached to the skin            Owing to their rigid fixation there is no        (Fig. 6). For registration, the tracked poin-
+using an adhesive, preferably at locations          danger of loss or displacement, and high         ter has to be moved to the intraoral mar-
+where the mobility of the skin on the               registration accuracy can be achieved. The       kers. This concept is accurate for surgery
+underlying tissues is limited, and where            disadvantage of this technique is the neces-     of the maxilla, face, orbit and anterior
+displacement through swelling of soft tis-          sity of additional although minor surgery to     skull base. For more remote regions of
+sues is expected to be minimal3,6–8,18,35,          insert the fiducials prior to image-data         surgery, there are devices that are attached
+36,38,43,51,59–62,90,105,109,139,140,144,150–152,
+                                                    acquisition under local anaesthesia.             to the dentition of the maxilla, but have
+161,164,166,175,180,185,188,192,197
+                                    . Dependent        In an attempt to achieve the accuracy of      additional extensions that hold the regis-
+on the intended imaging method15 (CT,               registration of bone-mounted fiducials           tration markers closer to the site of sur-
+MRI, PET, etc.), the markers are designed           without their invasiveness, various sys-         gery, for example in the lateral skull
+to be optimally visible128. It is of impor-         tems have been presented where the mar-          base76 (Fig. 7). Other maxilla-mounted
+tance that from the appearance of the               kers are not attached separately. An             devices have additional extraoral support
+fiducial marker in image data a definite            assembly holding all the fiducial markers        rods64. Another approach is the use of a
+fiducial point can be defined, for example          is attached rigidly, but non-invasively, to      malleable mask that is fitted to the surface
+as the geometric centre of gravity53,131,183        the patient’s head prior to imaging and is       of the patient’s face and bears the regis-
+or a geometric pattern131. Skin-marker              re-attached in the same position prior to        tration markers. The use of this system has
+systems can either be made from one                 surgery. Headsets or headgears are               been described for endoscopic sinus sur-
+piece or composed of a base that is                 attached to the porion bilaterally and to        gery2. The manual identification of fidu-
+attached to the skin and the marker that            the nasion and by this are supposed to           cial markers in image data as well as in
+is mounted reproducibly for image-data
+acquisition90. There are a few limitations.
+The region of the skin has to be selected
+carefully to reduce marker displacement
+by swelling or shifting of the tissue. Care
+must be taken that the markers are not
+accidentally removed between imaging
+and surgery. The restrictions in marker
+placement may lead to marker configura-
+tions that require imaging of a larger
+portion of the body and hence may cause
+an increased irradiation dose in the case of
+CT imaging17. Finally, studies on this
+method revealed but modest registration
+accuracy26.
+   Bone-mounted fiducial markers provide
+a solution to these problems. They can
+consist merely of a titanium screw that
+is drilled into the bone under local anaes-
+thesia104. The head of the screw is clearly
+visible in CT image data and the pit in its
+head is used for intraoperative registration        Fig. 7. The ‘Banana Bar’ registration system is mounted to the maxilla using a template: MPAP,
+with the tracked pointing device. Other             mouthpiece attachment plate; FM/AAFM, fiducial markers for registration. From reference 76.
+1086       Eggers et al.
+
+patient space is time consuming and error
+prone; methods for automation of these
+tasks have been introduced. In automated
+pre-registration, the fiducial markers are
+identified automatically in image data by
+image-analysis software, where the algo-
+rithm has ‘knowledge’ of the appearance
+of the fiducial marker in image data89. The
+identification of the markers in the oper-
+ating room (OR) is performed convention-
+ally. These systems can be more accurate
+than manual marker detection and more           Fig. 8. Concept of surface matching. Left: prior to registration, the two data sets that represent
+                                                the same surface (e.g. derived from preoperative image data and intraoperatively obtained
+robust to lower image resolution28.
+                                                surface data from the face) are in an arbitrary relation. By surface matching, the point distances
+                                                from one surface to the other are minimized, resulting in a match of the surfaces and
+Surface registration                            subsequently in the registration of the coordinate systems (right).
+
+A major problem of all marker-based pair-
+point registration techniques is the fact       than a given threshold. The surface infor-        the navigation system that is later used for
+that the markers have to be attached to         mation in image space is calculated from          tracking (z-touch, Brainlab, Heimstetten,
+the patient prior to image-data acquisition.    image data using contouring algorithms            Germany)54,148,156. Alternatively, the dis-
+Often patients have already undergone           that extract for example the skin surface         tance to the dot on the skin is measured by
+diagnostic imaging at the time when the         from image data. For the retrieval of sur-        the laser device itself. The position of the
+decision is made to use image-guided            face data in patient space, various methods       device is measured by the IR camera and
+surgical techniques. Then, an additional        have been implemented: in tactile surface         hence the position of the dot on the skin
+image-data set has to be acquired for           registration, surface information is gath-        can be calculated (Fazer, Medtronic, Min-
+registration purposes. This means addi-         ered point-by-point using the tracked             neapolis, MN, USA). Moving the laser
+tional cost and, in the case of CT, addi-       pointer of the navigation system. The             around the face, a surface model is created
+tional radiation exposure for the patient.      number of points collected is between             for registration. Regions for registration
+Another approach is to use the surface          40 and 2009,41,50,69,79,133,157,169,171,172.      are forehead, nose and area around the
+geometry of the face for image-to-patient       The positions of these points are then            orbits, because here the light is not
+registration, as these data are already         correlated with the corresponding surface         obstructed by hair and there is little soft
+available from diagnostic imaging. In           from image data, and an estimate of the           tissue between skin and bone. Since regis-
+point-based registration there are a rela-      residual error is given194. This method is        tration points are in the anterior regions of
+tively small number of point pairs that         time consuming83. Methods to speed up             the head, there is greater registration error
+describe corresponding locations in either      data collection include pointers with auto-       in the occipital region148. Registration
+coordinate system (image space and              mated surface-contact detection (Soft-            with the z-touch system is less accurate
+patient space) with high accuracy. In sur-      ouch, Brainlab, Heimstetten, Germany),            and more time consuming than marker-
+face registration there are two large sets of   a robot-guided registration tool50 and con-       based registration156, but is sufficient for
+points (hundreds, thousands or more) that       tinuous collection of surface points69,79.        endonasal sinus surgery and still more
+describe the same surface, but there are no     The present authors have previously               accurate than headgears54. Systems that
+point pairs. It is not known which point in     demonstrated the feasibility of a technique       use laser surface scanners are more accu-
+the surface from image space corresponds        of mechanical surface registration: a             rate because they acquire a higher number
+to which point on the surface in patient        stereolithographic negative of a bone sur-        of points (100,000 surface points with a
+space. Instead, the surfaces are viewed as a    face is produced using the image data.            laser-surface scanner versus hundreds of
+whole. Using a surface-matching algo-           Similar to a key in a keyhole, this negative      points with a z-touch system)123. Further
+rithm, a transformation is calculated that      can only be attached to the bone surface in       improvement in accuracy is sought by
+aligns both surfaces optimally (Fig. 8).        one particular position, thus inherently          means of automated rejection of surface
+This transformation matrix is then used         performing the registration114,125,126,127.       points that do not belong to the face16, but
+for navigation similarly to those derived       In optical surface registration, the surface      the matching accuracy also relies on the
+from pair-point registration. This techni-      information is gathered using contact-free        quality of the image data and the extent of
+que is also used for image-to-image regis-      optical systems. Several technical solu-          swelling. Finally, the position of the
+tration21. Various solutions have been          tions have been described54–56,61,68,94,          patient in surgery and imaging must be
+                                                111,117,119,148
+proposed for the calculation of surface-                       . Using a projector, similar       similar to avoid soft-tissue shifts124. A
+matching transformations. Registration          to a video beamer, patterns can be pro-           problem with surface registration is that
+between the surfaces is optimal when            jected onto the patient’s skin and be read        residual rotational errors can result after
+some measure of distance between them           out by a stereoscopic camera system74.            matching. They are not relevant near the
+is at a minimum. The most common algo-          Alternatively, laser surface scanners use         registration surface, but can cause major
+rithm is the Iterative Closest Point algo-      a laser beam to project lines onto the skin       registration error in more distant regions.
+rithm12 that is here outlined.                  which are read by a camera system122.             Hence, hybrid registration techniques
+   For each point in the first data set the     Finally, there are systems that use a device      have been proposed, where the surface
+closest point in the second data set is         similar to a laser pointer. The class-I           registration is amended with pair-point
+identified. A least-square rigid-body trans-    device is moved freehandedly by the sur-          registration using fiducial markers. This
+form is calculated for these point sets. This   geon. The visible red dot on the patient’s        method is more accurate than surface-
+cycle is repeated until the match is better     skin is measured by the same IR camera of         based or point-based registration alone130.
+                                                                    Image-to-patient registration techniques in head surgery               1087
+
+Methods of tracking                              of these IR-LEDs. The marker positions           their optical properties when they are bent
+                                                 are calculated stereophotogrammetrically         and hence allow determination of the posi-
+In frameless stereotaxy, after registration
+                                                 from the camera views. In passive IR             tion of the far end in relation to the base
+of patient and image, any position of a
+                                                 navigation systems, there are no IR-LEDs         without any external hardware. A possible
+pointing device in the patient’s body is
+                                                 attached that require power supply by            application is integration into flexible
+displayed accordingly in the image data.
+                                                 batteries or wire and make handling more         endoscopes that could be navigated
+Usually, the tip is projected as crosshairs
+                                                 cumbersome. Instead, the markers consist         through the patient’s body112. Working
+in the corresponding axial, coronal and
+                                                 of reflective spheres that reflect IR light      prototypes of these fibres have been
+sagittal slices of the image data, or in a
+                                                 emitted from the camera system. Passive          demonstrated, but this concept is still
+3D visualization. If the patient is immo-
+                                                 and active systems have a similar accu-          under development.
+bilized, as in frame-based stereotaxy,
+                                                 racy191. So far, this is the best of all
+tracking of the pointing device is suffi-
+                                                 presented concepts. The RMS (root mean
+cient, but if movement of the patient is                                                          Accuracy and error
+                                                 square) error is below 0.5 mm, and this
+desired, the position of the head has to be
+                                                 concept today is the de-facto standard in        A critical aspect in frameless stereotaxy is
+tracked as well. Various technologies with
+                                                 commercially available navigation sys-           the accuracy of the navigation information
+their particular advantages and shortcom-
+                                                 tems. An alternative not yet used routinely      provided: how exact is the localization of
+ings have been used.
+                                                 in the OR is the optical tracking of markers     the instrument the surgeon uses intrao-
+                                                 with a checkerboard pattern, using a pair        peratively, in the image data? Registration
+Mechanical tracking                              of video cameras and image-analysis soft-        accuracy is crucial for the accuracy of
+                                                 ware (Micron Tracker, Claron Technolo-           navigation11,31,58,79,83,98,100,120,134,153,184.
+The first navigation systems used mechan-        gies, Toronto, Ontario, Canada). The             Unfortunately, there are various expres-
+ical arms with angular sensors in the            disadvantage of any optical navigation is        sions for the errors that occur during
+joints, similar to those used as coordinate      the ‘line-of-sight problem’. If the camera       registration and navigation (e.g. MACIUNAS
+measurement machines87,91. The compu-            system cannot ‘see’ the marker, tracking is      et al.106). For a systematic analysis of
+ter workstation calculated the position of       impossible. To address this problem, var-        error, we are going to adhere to the
+the tip from the known geometry of the           ious systems have been conceived that            nomenclature used by FITZPATRICK et al.33.
+arm and the sensor information. This way         scan the tracking area redundantly with             In pair-point registration, the Fiducial
+the first working frameless stereotaxy sys-      multiple camera systems from various             Localization Error (FLE) denotes the error
+tems were realized. The disadvantages of         positions to reduce the probability of           (usually in mm) that occurs when points in
+this concept were the limited accuracy and       obstruction of the line of sight. In addition,   image data or on the patient are marked for
+the interference of the arm with the surgi-      the marker has to be located outside the         registration (Fig. 9a). The extent of the
+cal workspace. Also, the arm could only          body while being connected rigidly to the        error depends on the accuracy of the track-
+track the pointing device and hence the          body. Alternative tracking methods for           ing system, on the design, number and
+patient had to be immobilized for the            navigation of structures in body cavities        arrangement of the fiducial markers36,188,
+whole procedure.                                 are still under consideration.                   and on the image data. CT images have a
+                                                                                                  higher resolution and geometric accuracy,
+Acoustic tracking                                                                                 and allow more exact registration than
+                                                 Electromagnetic tracking
+                                                                                                  MRI data52,161, but movement of the
+Alternative concepts were conceived and          Electromagnetic systems use a field gen-         patient during image-data acquisition
+realized that allowed non-contact tracking       erator that generates a magnetic field in the    can result in motion artefacts that are
+of the pointer as well as the patient, so that   operation field77. The object that has to be     invisible in the image slices but have a
+for example the orientation of the head          tracked is equipped with coils that inter-       detrimental effect on the geometric accu-
+could be changed during surgery while still      fere with the magnetic field, depending on       racy of the image data set182.
+maintaining accurate navigation. Ultra-          their position and orientation. This inter-         After registration has been performed
+sound-based systems used emitters that           ference is measured and the position of the      and image coordinates can be transformed
+were attached to the patient63. Microphones      coil in the field can be calculated. There is    into patient coordinates, the marker posi-
+at various positions in the operating room       a major drawback: while under ideal con-         tions should be identical in either coordi-
+received the ultrasound waves. From the          ditions there is good accuracy of electro-       nate system. In reality this is never the
+differing runtime of the ultrasound signal to    magnetic systems181, under OR conditions         case; the marker positions will always
+the microphones the original position of the     they are inferior to optical tracking sys-       differ slightly. This alignment error is
+emitter and hence the patient could be           tems. Metal objects like surgical instru-        called the Fiducial Registration Error
+triangulated. This concept lacked accuracy       ments may cause interference with the            (FRE) (Fig. 9b). Usually, it is given in
+as well and was very much susceptible to         magnetic field and impair the accuracy           mm  RMS62.
+changes in room temperature with conse-          of tracking77. This means additional effort         Finally, when the surgeon is guided by
+cutive changes in the speed of sound.            in the use of these systems with the exist-      the navigation system to a certain position,
+                                                 ing hardware in the OR. There is contin-         the difference between the positions he
+                                                 uous development and improvement of              was guided to, based on the image data,
+Optical tracking
+                                                 this kind of tracking system to address          and the real position in patient space is the
+Today, the standard method in intraopera-        these problems.                                  Target Registration Error (TRE) (Fig. 9c).
+tive tracking is based on IR light. In active                                                     After registration, navigation systems
+IR navigation systems, IR light-emitting                                                          usually calculate the FRE and display
+                                                 Glass-fibre tracking
+diodes (IR-LED) are attached to the                                                               the value as a measure for accuracy, but
+patient. A camera system constructed of          A new, completely different concept is           this error is not the accuracy that can be
+two or three cameras localizes the position      based on glass fibres. These fibres change       expected by the surgeon when approach-
+1088       Eggers et al.
+
+
+
+
+Fig. 9. (a) The arrows indicate the FLE, the distance between the true and measured position of the fiducial markers. (b) The arrows indicate the
+FRE, the distance after registration between the measured position of the fiducial markers in one space and their counterparts in the other space. (c)
+The arrow indicates the TRE for the point T, the distance after registration between the target position in one space and its counterpart in the other
+space. Modified from WEST et al.188
+
+
+
+ing a target (TRE). This clinically much           kers36,188. Additional accuracy can then be        the guided approach to selected positions
+more relevant measure is not uniform over          reached by combining surface and marker            along predefined paths as defined in image
+the patient volume but changes depending           registration techniques130,133. The gold           data. Their disadvantage is that the frame
+on the distribution of the markers and on          standard in registration accuracy is fidu-         needs to be rigidly attached to the patient’s
+the position of the target relative to the         cial marker registration using bone mar-           head. The frame system can impede sur-
+markers. As a rule of thumb, the error             kers. Besides accuracy there are further           gical access. Native image data cannot be
+increases with distance from the centroid          criteria for the selection of an appropriate       used; dedicated imaging with the frame is
+of all fiducial markers, and is lower in           registration method: site of surgery, speed,       always necessary. In neurosurgical tasks,
+directions where the distribution of the           invasiveness and ease of use for surgeon as        like the placement of stimulation electro-
+registration markers is highest33.                 well as patient. Today there is no optimal         des, these disadvantages are less relevant
+   Registration accuracy increases with            registration method for all tasks31. Stereo-       and hence this method is still in use
+the number of markers used. Three mar-             tactic frames require rigid fixation to the        today138. In frameless stereotaxy, there
+kers are the theoretical minimum for pair-         skull. In one device, they provide a coor-         is a wide choice of registration methods.
+point registration, but four markers are           dinate system in image data as well as in          Marker-based registration is most widely
+considerably more accurate. There is not           patient space and allow accurate registra-         used, and there is always a trade-off
+much gain in accuracy beyond six mar-              tion. They can give mechanical support for         between accuracy and invasiveness. If
+                                                                     Image-to-patient registration techniques in head surgery                1089
+
+the dentition is sufficient and surgery is        head. Scanning of the ears could be an             the delicate skull base must remain intact.
+not to be done very remotely, registration        alternative for lateral skull-base surgery113.     In the planning software provided with
+based on markers that are attached to the                                                            navigations systems, positions can be
+maxilla is a good compromise, but an                                                                 marked as targets in the image data set
+                                                  Support for the surgeon
+individual splint has to be produced110,118,                                                         prior to surgery. Intraoperatively, the rela-
+which might be more complicated in sur-           With the tracking information provided,            tive position or orientation of the pointing
+gical specialties that are not familiar with      the surgeon can see the position of the tip        device to the target is displayed and gui-
+the teeth.                                        of a pointing device on the computer               dance can be provided by the system.
+   Anatomical landmarks and surface-              screen, in the image data of the patient.          Given the beginning and end of a linear
+registration methods both have the advan-         Moving around the pointer in the patient’s         path as positions in the planning system,
+tage that they can be performed on existing       body, the position of the tip is displayed         the surgeon can be guided to the target
+image data, but anatomical landmarks are          simultaneously in the image data and is            along the specified trajectory, avoiding
+of very limited accuracy. Laser surface           updated continuously. This can be used to          risk structures. Some navigation systems
+scanning is more accurate, but commer-            approach positions or avoid structures and         allow the surgeon to use not only the
+cially available systems work with regis-         is used for example in endoscopic para-            pointer but any surgical instrument for
+tration of the face, so that accuracy             nasal sinus surgery: the ethmoid sinus has         navigation. For this purpose, the instru-
+decreases in more posterior parts of the          to be cleared from pathologic tissue, while        ment is equipped with a detachable track-
+
+
+
+
+Fig. 10. Intraoperative screenshot of foreign body removal. In triplanar sections (top left: coronal; top right: sagittal; bottom left: axial) the
+position of the tip of the pointing device is displayed with crosshairs in CT image data. The direction of the pointer is visualized by the diagonal
+line. The bottom right image shows a 3D reconstruction of the skull (white) and tooth 28 under the anterior zygomatic arch (T). The pointing device
+(P) is visualized in real time.
+1090       Eggers et al.
+
+ing unit and is registered to the navigation    these methods are all in routine use. Navi-         gation. Stud Health Technol Inform
+system using a calibration tool. Then it is     gation systems are becoming more and                2001: 81: 1–7.
+possible, for example, to see the position      more easy to use. Graphical user interfaces      2. Albritton FD, Kingdom TT, Del-
+and direction of the tip of a biopsy forceps    and integration into OR workflow improve            Gaudio JM. Malleable registration
+                                                                                                    mask: application of a novel registration
+in image data while it is guided towards a      continuously. This is one of the key                method in image guided sinus surgery.
+space-occupying lesion.                         requirements for the routine use of these           Am J Rhinol 2001, Jul-Aug: 15: 219–224.
+   These methods have been demonstrated         systems. If the use of a navigation system       3. Alp MS, Dujovny M, Misra M, Char-
+to be useful in maxillofacial surgery for a     requires excessive use of resources, it will        bel FT, Ausman JI. Head registration
+number of applications; for example, for-       only be used – if at all – in selected cases.       techniques for image-guided surgery.
+eign bodies identified and marked in            The additional set-up time must be com-             Neurol Res 1998: 20: 31–37.
+image data can be removed under gui-            pensated for by quicker, safer or better         4. Al-Rodhan NR, Kelly PJ. Pioneers of
+dance of the navigation system via a mini-      surgery. Since volume image data like CT            stereotactic neurosurgery. Stereotact
+mal surgical access and avoiding risk           or MRI is more often available anyway,              Funct Neurosurg 1992: 58: 60–66.
+                                                                                                 5. Altobelli DE, Kikinis R, Mulliken
+structures27,159. Figure 10 shows an intrao-    this prerequisite for image-guided surgery
+                                                                                                    JB, Cline H, Lorensen W, Jolesz F.
+perative screenshot of a clinical case. A       is not an impediment. Another limitation            Computer-assisted three-dimensional
+patient was referred to the authors’ depart-    is the financial effort associated with the         planning in craniofacial surgery. Plast
+ment after failed removal of tooth 28. The      use of navigation systems. As a rough               Reconstr Surg 1993: 92: 576–585.
+tooth had been moved beneath the zygo-          estimate, simple navigation systems start        6. Barnett GH, Barnett GH, Kormos
+matic arch and could not be retrieved in        at approximately s50,000, and the price             DW, Steiner CP, Weisenberger J.
+conventional transoral removal. A CT            of fully equipped systems with additional           Intraoperative localization using an arm-
+scan was performed using a maxillary            features and special software can easily            less, frameless stereotactic wand. Tech-
+registration splint (Fig. 6). Under guidance    amount to hundreds of thousands of euros.           nical note. J Neurosurg 1993: 78: 510–
+by the navigation system, the tooth was         Taking into account the considerable                514.
+                                                                                                 7. Barnett GH, Kormos DW, Steiner
+removed safely via transoral access. Den-       investment and the need for service and             CP, Weisenberger J. Use of a frame-
+tal implants can be planned in the image        maintenance of a medical product, it is             less, armless stereotactic wand for brain
+data set and can be placed with signifi-        important that the vendor still exists after        tumor localization with two-dimen-
+cantly increased accuracy when the burr         several years. With the progress of film-           sional and three-dimensional neuroima-
+hole for the implant has been created using     less radiology units, picture archiving and         ging. Neurosurgery 1993: 33: 674–678.
+a navigated drill14,115,116. Craniofacial       communication systems and teleradiol-            8. Barnett GH, Miller DW, Weisen-
+implants can also be inserted using             ogy, the navigation system should be able           berger J. Frameless stereotaxy with
+image-guided surgery85. In orthognathic         to read the image data from a physical              scalp-applied fiducial markers for brain
+surgery, navigation systems can be used to      source, like a CD-ROM, but also directly            biopsy procedures: experience in 218
+                                                                                                    cases. J Neurosurg 1999: 91: 569–576.
+transfer a preoperative plan into intrao-       from a radiological network. Ease of use is
+                                                                                                 9. Barnett GH, Roberts DW. Funda-
+perative reality20, to maintain the position    an important issue and, although there              mentals of registration. In: Barnett
+of the joint-bearing parts of the mandible      have been considerable improvements                 GH, Roberts D, Maciunas RJ, eds:
+in sagittal split procedures, and displace-     over the last years, a navigation system            Image-Guided Neurosurgery: Clinical
+ment of bone segments after osteotomies         is not a ‘plug and play’ device. Some               Applications of Surgical Navigation.
+can be performed accurately125,126,127. An      dedication is necessary to appreciate the           New York: Marcel Dekker 1998: 3–15.
+ongoing issue is the accurate prediction of     concept; otherwise the machine ends up in       10. Barnett GH, Steiner CP. Image-
+soft-tissue changes after craniofacial and      a corner of the OR, unused.                         guided neurosurgery using sonic digiti-
+orthognathic surgery190. The feasibility of        An ongoing subject of research is intrao-        zers. In: Gildenberg PL, Tasker RR,
+image-guided cranial osteotomies and            perative imaging. It lies within the concept        eds: Textbook of Stereotactic and
+                                                                                                    Functional Neurosurgery. McGraw-Hill
+orbital reconstruction needs to be demon-       of image-guided surgery, as described, that         1997: 209–214.
+strated30,42. Transfer of an individual         planning and registration are performed on      11. Benardete EA, Leonard MA, Wei-
+facial analysis and planning of a cranio-       preoperative image data. As soon as the             ner HL. Comparison of frameless
+facial procedure24,86 might be a future         operation begins, the image data does not           stereotactic systems: accuracy, preci-
+application.                                    reflect the anatomy anymore. It was neu-            sion, and applications. Neurosurgery
+   At the present authors’ institution, navi-   rosurgery, again, where this topic was              2001: 49: 1409–1415.
+gation systems have been used for the           tackled first, by means of intraoperative       12. Besl PJ, McKay BD. A method for
+biopsy of space-occupying lesions at deli-      MRI scanners. Recently, methods of intrao-          registration of 3D shapes. IEEE Trans
+cate locations, e.g. the skull base. The        perative imaging have been proposed for             Pattern Anal Mach Intell 1992: 14: 239–
+                                                                                                    256.
+method proved to be appropriate to reduce       maxillofacial surgery as well, based on
+                                                                                                13. Birkfellner W, Solar P, Gahleit-
+the number of false negative results, and       intraoperative CT scanners72 or fluoro-             ner A, Huber K, Kainberger F, Ket-
+minimally invasive access could be per-         scopy66. This is a highly interesting subject       tenbach J, Homolka P, Diemling M,
+formed with a lower risk of collateral          because it would allow image-guided sur-            Watzek G, Bergmann H. In-vitro
+damage. Tumours can be resected, the            gery based on actual patient data.                  assessment of a registration protocol
+resulting cavity can be cross-checked with                                                          for image guided implant dentistry. Clin
+the preoperative extent of the tumour from                                                          Oral Implants Res 2001: 12: 69–78.
+                                                References                                      14. Brief J, Edinger D, Hassfeld S,
+image data, and interstitial tumour therapy
+can be planned and executed73.                    1. Abbasi HR, Grzeszczuk R, Chin S,               Eggers G. Accuracy of image-guided
+   While there is a continuous increase in           Fahrig R, Holz H, Hariri S, Kim D,             implantology. Clin Oral Implants Res
+                                                     Adler J, Shahidi R. Clinical fluoro-           2005: 16: 495–501.
+the number of applications of image-                                                            15. Bucholz R, Levy AL, Marzouk S.
+                                                     scopic fiducial-based registration of
+guided interventions described in the lit-                                                          Computed tomography and magnetic
+                                                     the vertebral body in spinal neuronavi-
+erature, it is difficult to determine whether
+                                                                 Image-to-patient registration techniques in head surgery               1091
+
+    resonance imaging as neurosurgical              perative navigation in lateral skull base       canal. J Craniomaxillofac Surg 2001:
+    imaging data sets. In: Alexander E,             surgery. HNO 2003: 51: 386–393 [in              29: 271–275.
+    Maciunas RJ, eds: Advanced Neuro-               German].                                    39. Gall KP, Verhey LJ, Wagner M.
+    surgical Navigation:. Thieme 1999: 35–      27. Eggers G, Haag C, Hassfeld S.                   Computer-assisted positioning of radio-
+    48.                                             Image-guided removal of foreign                 therapy patients using implanted radio-
+16. Bucholz R, Macneil W, Fewings P,                bodies. Br J Oral Maxillofac Surg               paque fiducials. Med Phys 1993: 20:
+    Ravindra A, McDurmont L, Bau-                   2005: 43: 404–409.                              1153–1159.
+    mann C. Automated rejection of con-         28. Eggers G, Kozak J, Däuber S,               40. Galloway Jr RL, Maciunas RJ, Ed-
+    taminated surface measurements for              Deppe O, Korb W, Welzel T,                      wards: 1226–1231.
+    improved surface registration in image          Hassfeld S. Semi-automated fiducial         41. Ge Y, Maurer C, Fitzpatrick J. Sur-
+    guided neurosurgery. Stud Health Tech-          marker registration reduces target              face-based 3-D image registration using
+    nol Inform 2000: 70: 39–45.                     registration error. In: Lemke H,                the Iterative Closest Point algorithm
+17. Cartellieri M, Vorbeck F. Endo-                 Vannier MW, Inamura K, Farman                   with a closest point transform. Proceed-
+    scopic sinus surgery using intraoperative       AG, Doi K, Reiber JHC, eds: Proce-              ings of SPIE 1996: 2710: 358–367.
+    computed tomography imaging for                 edings of CARS 2004. Amsterdam:             42. Gellrich NC, Schramm A, Hammer
+    updating a three-dimensional navigation         Elsevier 2004 : 1305.                           B, Rojas S, Cufi D, Lagreze W,
+    system. Laryngoscope 2000: 110: 292–        29. Eggers G, Mühling J, Marmulla R.               Schmelzeisen R. Computer-assisted
+    296.                                            Template-based registration for image           secondary reconstruction of unilateral
+18. Cartellieri M, Vorbeck F, Kremser               guided maxillofacial surgery. J Oral            posttraumatic orbital deformity. Plast
+    J. Comparison of six three-dimensional          Maxillofac Surg 2005: 63: 1330–1336.            Reconstr Surg 2002: 110: 1417–1429.
+    navigation systems during sinus surgery.    30. Eggers G, Wirtz C, Korb W, Engel            43. Germano IM. The NeuroStation Sys-
+    Acta Otolaryngol 2001: 121: 500–504.            D, Schorr O, Kotrikova B, Racz-                 tem for image-guided, frameless stereo-
+19. Caversaccio M, Zulliger D, Bach-                kowsky J, Wörn H, Mühling J, Hass-            taxy. Neurosurgery 1995: 37: 348–350.
+    ler R, Nolte LP, Hausler R. Practical           feld S, Marmulla R. Robot-assisted          44. Germano IM, Villalobos H, Silvers
+    aspects for optimal registration (match-        craniotomy. Minim Invasive Neurosurg            A, Post KD. Clinical use of the optical
+    ing) on the lateral skull base with an          2005: 48: 154–158.                              digitizer for intracranial neuronaviga-
+    optical frameless computer-aided poin-      31. Van den Elsen PA, Pol ED, Vierg-                tion. Neurosurgery 1999: 45: 261–270.
+    ter system. Am J Otol 2000: 21: 863–            ever MA. Medical image matching – a         45. Gildenberg PL. Whatever happened to
+    870.                                            review with classification. IEEE Eng            stereotactic surgery? Neurosurgery
+20. Chapuis J, Ryan P, Blaeuer M, Lan-              Med Biol Mag 1993: 12: 26–39.                   1987: 20: 983–987.
+    glotz F, Hallermann W, Schramm              32. Fialkov JA, Phillips JH, Gruss JS,          46. Gildenberg PL. Where have we been?
+    A, Caversaccio M. A new approach for            Kassel EE, Zuker RM. A stereotactic             Where are we going? Stereotact Funct
+    3D computer-assisted orthognathic sur-          system for guiding complex craniofacial         Neurosurg 1997: 68: 1–9.
+    gery – first clinical case. In: Lemke H,        reconstruction. Plast Reconstr Surg         47. Gildenberg PL. The history of stereo-
+    Vannier MW, Inamura K, Farman                   1992: 89: 340–345.                              tactic and functional neurosurgery. In:
+    AG, Doi K, Reiber JHC, eds: Proceed-        33. Fitzpatrick JM, West JB, Maurer Jr              Gildenberg PL, Tasker RR, eds: Text-
+    ings of CARS 2005. Amsterdam: Else-             CR. Predicting error in rigid-body point-       book of Stereotactic and Functional
+    vier 2005: 1217–1222.                           based registration. IEEE Trans Med              Neurosurgery. McGraw-Hill 1997: 5–
+21. Chen GT, Pelizzari CA. Image corre-             Imaging 1998: 17: 694–702.                      19.
+    lation techniques in radiation therapy      34. Fright WR, Linney AD. Registration          48. Gildenberg PL, Franklin PO. An
+    treatment planning. Comput Med Ima-             of 3-D head surfaces using multiple             informal survey of stereotactic and func-
+    ging Graph 1989: 13: 235–240.                   landmarks. IEEE Trans Med Imaging               tional neurosurgery. Stereotact Funct
+22. Claes J, Koekelkoren E, Wuyts FL,               1997: 12: 515–520.                              Neurosurg 1994: 63: 104–123.
+    Claes GM, Van den Hauwe L, Van              35. Fountas KN, Kapsalaki EZ, Smis-             49. Gleason PL, Kikinis R, Altobelli D,
+    de Heyning PH. Accuracy of computer             son 3rd HF, Hartman LP, Johnston                Wells W, Alexander 3rd E, Black
+    navigation in ear, nose, throat surgery:        KW, Robinson Jr JS. Results and com-            PM, Jolesz F. Video registration virtual
+    the influence of matching strategy. Arch        plications from the use of a frameless          reality for nonlinkage stereotactic sur-
+    Otolaryngol Head Neck Surg 2000: 126:           stereotactic microscopic navigator sys-         gery. Stereotact Funct Neurosurg 1994:
+    1426–1462.                                      tem. Stereotact Funct Neurosurg 1998:           63: 139–143.
+23. Collignon A, Vandermeulen D,                    71: 76–82.                                  50. Glozman D, Shoham M, Fischer A. A
+    Suetens P, Marchal G. Surface based         36. Fuchs M, Wischmann H, Neumann                   surface-matching technique for robot-
+    registration of 3D medical images. Pro-         A, Weese J, Zylka W, Sabczynski J,              assisted registration. Comput Aided
+    ceedings of SPIE 1993: 5749: 32–42.             Kuhn MH, Buzug TM, Schmitz G,                   Surg 2001: 6: 259–269.
+24. Cutting C, Bookstein FL, Grayson                Gieles PMC. Accuracy analysis for           51. Goerss SJ, Kelly PJ, Kall B, Stiving
+    B, Fellingham L, McCarthy JG.                   image-guided neurosurgery using fidu-           S. A stereotactic magnetic field digitizer.
+    Three-dimensional computer-assisted             cial skin markers, 3D CT imaging, and           Stereotact Funct Neurosurg 1994: 63:
+    design of craniofacial surgical proce-          an Optical Localizer System. In: Lemke          89–92.
+    dures: optimization and interaction with        HU, Vannier MW, Inamura K,                  52. Golfinos JG, Fitzpatrick BC, Smith
+    cephalometric and CT-based models.              Farman AG, eds: Computer Assisted               LR, Spetzler RF. Clinical use of a
+    Plast Reconstr Surg 1986: 77: 877–887.          Radiology. Amsterdam: Elsevier 1996:            frameless stereotactic arm: results of
+25. Day R, Heilbrun MP, Koehler S,                  770–775.                                        325 cases. J Neurosurg 1995: 83: 197–
+    McDonald P, Peters W, Siemionow             37. Gabriel E, Nashold B. Historical                205.
+    V. Three-point transformation for inte-         development of stereotactic frames. In:     53. Golfinos J, Spetzler R. The ISG Sys-
+    gration of multiple coordinate systems:         Gildenberg PL, Tasker RR, eds: Text-            tem for 3-D Craniotomy. In: Gilden-
+    applications to tumor, functional, and          book of Stereotactic and Functional             berg PL, Tasker RR, eds: Textbook of
+    fractionated radiosurgery stereotactic          Neurosurgery. McGraw-Hill 1997: 29–             Stereotactic and Functional Neurosur-
+    planning. Stereotact Funct Neurosurg            49.                                             gery. McGraw-Hill 1997: 499–505.
+    1994: 63: 76–79.                            38. Gaggl A, Schultes G, Karcher H.             54. Grevers G, Leunig A, Klemens A,
+26. Ecke U, Maurer J, Boor S, Khan M,               Navigational precision of drilling tools        Hagedorn H. CAS of the paranasal
+    Mann WJ. Common errors of intrao-               preventing damage to the mandibular             sinuses - technology and clinical experi-
+1092      Eggers et al.
+
+    ence with the Vector-Vision-Compact-           tures using a 3D C-arm system. Int J          80. Kaminsky J, Brinker T, Samii A, Ara-
+    System in 102 patients. Laryngorhinoo-         Oral Maxillofac Surg 2005: 34: 369–               ngo G, Vorkapic P, Samii M. Techni-
+    tologie 2002: 81: 476–483 [in German].         375.                                              cal considerations regarding accuracy of
+55. Grimson       WEL,     Ettinger      GJ,   67. Helm PA, Eckel TS. Accuracy of regis-             the MKM navigation system. An experi-
+    White SJ, Gleason PL, Lozano-                  tration methods in frameless stereotaxis.         mental study on impact factors. Neurol
+    Perez T, Wells 3rd WM, Kikinis R.              Comput Aided Surg 1998: 3: 51–56.                 Res 1999: 21: 420–424.
+    Evaluating and validating an automated     68. Henderson JM, Smith KR, Bucholz               81. Kato A, Yoshimine T, Hayakawa T,
+    registration system for enhanced reality       RD. An accurate and ergonomic method              Tomita Y, Ikeda T, Mitomo M, Har-
+    visualization in surgery. In: Ayache N,        of registration for image-guided neuro-           ada K, Mogami H. A frameless, armless
+    ed: Proceedings of CVRMed 95. Lecture          surgery. Comput Med Imaging Graph                 navigational system for computer-
+    Notes in Computer Science Vol. 905.            1994: 18: 273–277.                                assisted neurosurgery. J Neurosurg
+    Springer: Berlin 1995: 3–12.               69. Herring JL, Dawant BM. Automatic                  1991: 74: 845–849.
+56. Grimson WEL, Ettinger GJ, White                lumbar vertebral identification using         82. Kelly P, Kall B, Goerss S. Results of
+    SJ, Lozano-Perez T, Wells 3rd WM,              surface-based registration. J Biomed              computed tomography-based computer-
+    Kikinis R. An automatic registration           Inform 2001: 34: 74–84.                           assisted stereotactic resection of meta-
+    method for frameless stereotaxy, image     70. Hill DL, Hawkes DJ, Hussain Z,                    static intracranial tumors. Neurosurgery
+    guided surgery, and enhanced reality           Green SE, Ruff CF, Robinson GP.                   1988: 22: 7–17.
+    visualization. IEEE Trans Med Imaging          Accurate combination of CT and MR             83. Kitchen N, Lemieux L, Thomas D.
+    1996: 15: 129–140.                             data of the head: validation and applica-         Accuracy in frame-based and frameless
+57. Gronningsaeter A, Kleven A,                    tions in surgical and therapy planning.           stereotaxy. Stereotact Funct Neurosurg
+    Ommedal S, Aarseth TE, Lie T,                  Comput Med Imaging Graph 1993: 17:                1993: 61: 195–206.
+    Lindseth F, Lango T, Unsgard G.                357–363.                                      84. Klabbers BM, de Munck JC, Slot-
+    SonoWand, an ultrasound-based neuro-       71. Hirschberg H. Implementation of a                 man BJ, Langendijk HA, de Bree R,
+    navigation system. Neurosurgery 2000:          stereotactic microscope using an opti-            Hoekstra OS, Boellaard R, Lam-
+    47: 1373–1379.                                 cally coupled tracking system. Stereo-            mertsma AA. Matching PET and CT
+58. Gumprecht H, Lumenta CB. The                   tact Funct Neurosurg 1996: 66: 96–                scans of the head and neck area: devel-
+    operating microscope guided by a neu-          101.                                              opment of method and validation. Med
+    ronavigation system: a technical note.     72. Hoffmann J, Dammann F, Reinert S.                 Phys 2002: 29: 2230–2238.
+    Minim Invasive Neurosurg 1998: 41:             Initial experience with intraoperative        85. Klein M, Hein A, Lüth T, Bier J.
+    141–143.                                       computed tomography in maxillofacial              Robot-assisted placement of craniofa-
+59. Gumprecht HK, Widenka DC,                      surgery. Biomed Tech (Berl) 2002:                 cial implants. Int J Oral Maxillofac
+    Lumenta CB. BrainLab VectorVision              47(Suppl 1 Pt 1):470–473.                         Implants 2003: 18: 712–718.
+    Neuronavigation System: technology         73. Hoffmann J, Westendorff C,                    86. Kobayashi T, Ueda K, Honma K,
+    and clinical experiences in 131 cases.         Troitzsch D, Ernemann U, Reinert                  Sasakura H, Hanada K, Nakajima
+    Neurosurgery 1999: 44: 97–104.                 S. Image-guided navigation for the con-           T. Three-dimensional analysis of facial
+60. Hassfeld S. Rechnerunterstützte Pla-          trol interstitial laser therapy of vascular       morphology before and after orthog-
+    nung und intraoperative Instrumenten-          malformations in the head and neck                nathic surgery. J Craniomaxillofac Surg
+    navigation in der Mund-, Kiefer- und           region. Biomed Tech (Berl) 2004: 49:              1990: 18: 68–73.
+    Gesichtschirurgie. Habilitationsschrif-        199–201 [in German].                          87. Koivukangas J, Louhisalmi Y, Ala-
+    ten der Zahn-Mund-und Kieferheilk-         74. Hoppe H, Däuber S, Kübler C, Racz-              kuijala J, Oikarinen J. Ultrasound-
+    unde. Berlin: Quintessenz-Verlag 2000.         kowsky J, Wörn H. A new, accurate                controlled neuronavigator-guided brain
+61. Hassfeld S, Muhling J, Zoller J.               and easy to implement camera and video            surgery. J Neurosurg 1993: 79: 36–
+    Possibilities and developments of              projector model. Stud Health Technol              42.
+    intraoperative image-guided surgery in         Inform 2002: 85: 204–206.                     88. Kosugi Y, Watanabe E, Goto J,
+    craniofacial surgery. Mund Kiefer          75. Horsley VA, Clarke RH. The struc-                 Watanabe T, Yoshimoto S, Taka-
+    Gesichtschir 1998: 2(Suppl 1):S20–S24.         ture and functions of the cerebellum              kura K, Ikebe J. An articulated neuro-
+62. Hassfeld S, Muhling J. Comparative             examined by a new method. Brain                   surgical navigation system using MRI
+    examination of the accuracy of a               1908: 31: 45–124.                                 and CT images. IEEE Trans Biomed
+    mechanical and an optical system in        76. Howard 3rd MA, Dobbs MB, Simon-                   Eng 1988: 35: 147–152.
+    CT and MRT based instrument naviga-            son TM, LaVelle WE, Granner MA.               89. Kozak J, Nesper M, Fischer M,
+    tion. Int J Oral Maxillofac Surg 2000:         A noninvasive, reattachable skull fidu-           Lutze T, Goggelmann A, Hassfeld
+    29: 400–407.                                   cial marker system. J Neurosurg 1995:             S, Wetter T. Semiautomated registra-
+63. Hata N, Dohi T, Iseki H, Takakura K.           83: 372–376.                                      tion using new markers for assessing the
+    Development of a frameless and armless     77. Hummel J, Figl M, Kollmann C,                     accuracy of a navigation system. Com-
+    stereotactic neuronavigation system            Bergmann H, Birkfellner W. Eva-                   put Aided Surg 2002: 7: 11–24.
+    with ultrasonographic registration. Neu-       luation of a miniature electromagnetic        90. Kremser C, Plangger C, Bösecke R,
+    rosurgery 1997: 41: 608–613.                   position tracker. Med Phys 2002: 29:              Pallua A, Aichner F, Felber SR.
+64. Hauser R, Westermann B, Probst R.              2205–2212.                                        Image registration of MR and CT
+    Noninvasive tracking of patient’s head     78. Kalfas IH, Kormos DW, Murphy                      images using a frameless fiducial marker
+    movements during computer-assisted             MA, McKenzie RL, Barnett GH,                      system. Magn Reson Imaging 1997: 15:
+    intranasal microscopic surgery. Laryn-         Bell GR, Steiner CP, Trimble MB,                  579–585.
+    goscope 1997: 107: 491–499.                    Weisenberger JP. Application of fra-          91. Laborde G, Gilsbach J, Harders A,
+65. Heermann R, Issing PR, Husstedt H,             meless stereotaxy to pedicle screw fixa-          Klimek L, Moesges R, Krybus W.
+    Becker H, Lenarz T. CAS-System                 tion of the spine. J Neurosurg 1995: 83:          Computer assisted localizer for planning
+    MKM(R): use and results in lateral skull       641–647.                                          of surgery and intra-operative orienta-
+    base surgery. Laryngorhinootologie         79. Kall BA, Goerss SJ, Stiving SO,                   tion. Acta Neurochir (Wien) 1992: 119:
+    2001: 80: 569–575 [in German].                 Davis DH, Kelly PJ. Quantitative ana-             166–170.
+66. Heiland M, Schulze D, Blake F,                 lysis of a noninvasive stereotactic image     92. Laitinen LV, Liliequist B, Fager-
+    Schmelzle R. Intraoperative imaging            registration technique. Stereotact Funct          lund M, Eriksson AT. An adapter
+    of zygomaticomaxillary complex frac-           Neurosurg 1996: 66: 69–74.                        for     computed      tomography-guided
+                                                                     Image-to-patient registration techniques in head surgery              1093
+
+     stereotaxis. Surg Neurol 1985: 23: 559–           berg PL, Tasker RR, eds: Textbook of              navigation. German Patent Office:
+     566.                                              Stereotactic and Functional Neurosur-             Offenlegungsschrift DE 10135156 A1,
+ 93. Lavallee S. Registration for computer-            gery. McGraw-Hill 1997: 195–199.                  2003 [in German].
+     integrated surgery: methodology, state       104. Maciunas R. Craniotomy for deep-             119. Marmulla R, Hassfeld S, Lüth T,
+     of the art. In: Taylor RH, Lavallee               seated gliomas guided by optical track-           Mühling J. Laser-scan-based naviga-
+     SS, Burdea GS, Mösges R, eds: Com-               ing. In: Alexander E, Maciunas RJ,                tion in cranio-maxillofacial surgery. J
+     puter integrated surgery: technology and          eds: Advanced Neurosurgical Naviga-               Craniomaxillofac Surg 2003: 31: 267–
+     clinical applications. Cambridge, MA:             tion. Thieme 1999: 373–395.                       277.
+     MIT Press 1995: 77–97.                       105. Maciunas R. Overview of interactive          120. Marmulla R, Hilbert M, Nieder-
+ 94. Lavallee S, Sautot P, Troccaz J,                  image-guided neurosurgery: principles,            dellmann H. Intraoperative precision
+     Cinquin P, Merloz P. Computer-                    applications, and new techniques. In:             of mechanical, electromagnetic, infrared
+     assisted spine surgery: a technique for           Alexander E, Maciunas RJ, eds:                    and laser-guided navigation systems in
+     accurate transpedicular screw fixation            Advanced Neurosurgical Navigation.                computer-assisted surgery. Mund Kiefer
+     using CT data and a 3-D optical locali-           Thieme 1999: 15–32.                               Gesichtschir 1998: 2(Suppl 1):S145–
+     zer. J Image Guid Surg 1995: 1: 65–73.       106. Maciunas RJ, Galloway Jr RL, Lati-                S148 [in German].
+ 95. Lavallee S, Szeliski R, Brunie L.                 mer JW. The application accuracy of          121. Marmulla R, Hilbert M, Nieder-
+     Anatomy-based registration of three-              stereotactic frames. Neurosurgery 1994:           dellmann H. Inherent precision of
+     dimensional medical images, range                 35: 682–694.                                      mechanical, infrared and laser-guided
+     images, X-ray projections, and three-        107. Maintz JB, Viergever MA. A survey                 navigation systems for computer-
+     dimensional models using Octree-                  of medical image registration. Med                assisted surgery. J Craniomaxillofac
+     Splines. In: Taylor RH, Lavallee                  Image Anal 1998: 2: 1–36.                         Surg 1997: 25: 192–197.
+     SS, Burdea GS, Mösges R, eds: Com-          108. Malcolm F PELL, Thomas D, Cosman             122. Marmulla R, Hoppe H, Mühling J,
+     puter integrated surgery: technology and          E. Development and technical features             Hassfeld S. New augmented reality
+     clinical applications. Cambridge, MA:             of the Cosman-Roberts-Wells (CRW)                 concepts for craniofacial surgical proce-
+     MIT Press 1995: 115–143.                          stereotactic system. In: Pell MF, Tho-            dures. Plast Reconstr Surg 2005: 115:
+ 96. Leber KA, Eder HG, Pendl G. Loca-                 mas DGT, eds: Handbook of Stereotaxy              1124–1128.
+     lization of superficial cerebral lesions          using the CRW Apparatus. Baltimore:          123. Marmulla R, Lüth T, Mühling J,
+     using a magnetic resonance imaging-               Williams & Wilkins 1994: 1–52.                    Hassfeld S. Automated laser registra-
+     guided localizer. Minim Invasive Neu-        109. Malison RT, Miller EG, Greene R,                  tion in image-guided surgery: evaluation
+     rosurg 1995: 38: 87–89.                           McCarthy G, Charney DS, Innis RB.                 of the correlation between laser scan
+ 97. Leksell L. Stereotaxis and Radiosur-              Computer-assisted coregistration of               resolution and navigation accuracy. Int
+     gery: An Operative System.. Spring-               multislice SPECT and MR brain images              J Oral Maxillofac Surg 2004: 33: 642–
+     field, IL: Charles C Thomas 1971.                 by fixed external fiducials. J Comput             648.
+ 98. Lemieux L, Kitchen ND, Hughes SW,                 Assist Tomogr 1993: 17: 952–960.             124. Marmulla R, Mühling J, Lüth T,
+     Thomas DG. Voxel-based localization          110. Marmulla R. New possibilities of tem-             Hassfeld S. Physiological shift of facial
+     in frame-based and frameless stereotaxy           poromandibular joint registration during          skin and its influence on the change in
+     and its accuracy. Med Phys 1994: 21:              orthodontic operations. Mund Kiefer               precision of computer-assisted surgery.
+     1301–1310.                                        Gesichtschir 1999: 3: 67–72 [in Ger-              Br J Oral Maxillofac Surg 2006: 44:
+ 99. Lunsford       LD, Martinez            AJ,        man].                                             273–278.
+     Latchaw RE. Stereotaxic surgery with         111. Marmulla R. Computer aided bone              125. Marmulla R, Niederdellmann H.
+     a magnetic resonance- and computer-               segment navigation. Habilitationsschrif-          Computer-assisted bone segment navi-
+     ized tomography-compatible system. J              ten der Zahn-, Mund-und Kieferheilk-              gation. J Craniomaxillofac Surg 1998:
+     Neurosurg 1986: 64: 872–878.                      unde. Berlin: Quintessenz-Verlag 2000:            26: 347–359.
+100. Luxenberger W, Kole W, Stamm-                     [in German].                                 126. Marmulla R, Niederdellmann H.
+     berger H, Reittner P. Computer               112. Marmulla R, Brief J, Heurich T,                   Surgical planning of computer-assisted
+     assisted localization in endoscopic sinus         Mühling J, Hassfeld S. Perspectives              repositioning      osteotomies.     Plast
+     surgery – state of the art? The Insta Trak        of computer aided implantology. Z Zah-            Reconstr Surg 1999: 104: 938–944.
+     system. Laryngorhinootologie 1999:                närztl Implantol 2002: 18: 152–158 [in      127. Marmulla R, Niederdellmann H,
+     78: 318–325 [in German].                          German].                                          Lorenz B, Dammer R, Niederdell-
+101. Lyman JT, Phillips MH, Frankel KA,           113. Marmulla R, Eggers G, Mühling J.                 mann C. A new computer-aided surgi-
+     Fabrikant JI. Stereotactic frame for              Laser surface registration for lateral            cal approach for reconstruction of the
+     neuroradiology and charged particle               skull base surgery. Minim Invasive Neu-           orbit. Klin Monatsbl Augenheilkd 1998:
+     Bragg peak radiosurgery of intracranial           rosurg 2005: 48: 181–185.                         213: 301–305 [in German].
+     disorders. Int J Radiat Oncol Biol Phys      114. Marmulla R, Hassfeld S, Mühling             128. Mascott CR. The Cygnus PFS image-
+     1989: 16: 1615–1621.                              J. Subsurface surgery. Spektrum Wiss              guided system. Neurosurgery 2000: 46:
+102. Maciunas R, Fitzpatrick J, Gallo-                 2002: 84–85 [in German].                          235–238.
+     way R, Allen G. Beyond stereotaxy:           115. Marmulla R, Hassfeld S, Mühling             129. Maurer Jr CR, Aboutanos GB,
+     extreme levels of application accuracy            J. Computer aided implantology. Goals,            Dawant BM, Gadamsetty S, Margo-
+     are provided by implantable fiducial              state of the art, and perspectives. DDZ           lin RA, Maciunas RJ, Fitzpatrick
+     markers for interactive image-guided              2002: 111: 462–468 [in German].                   JM. Effect of geometrical distortion cor-
+     neurosurgery. In: Maciunas RJ, ed:           116. Marmulla R, Hassfeld S, Mühling                  rection in MR on image registration
+     Interactive Image-Guided Neurosur-                J. Perspectives of computer-aided                 accuracy. J Comput Assist Tomogr
+     gery. Park Ridge, IL: American Asso-              implantology. Z Zahnärztl Implantol              1996: 20: 666–679.
+     ciation of Neurological Surgeons 1993:            2002: 18: 152–158 [in German].               130. Maurer Jr C, Aboutanos GB,
+     259–270.                                     117. Marmulla R, Hassfeld S, Mühling J.               Dawant BM, Margolin RA, Maciu-
+103. Maciunas R, Fitzpatrick J, Gallo-                 Registration of patient position with 3-D         nas RJ, Fitzpatrick JM. Registration
+     way R. Implantable fiducial markers for           soft tissue laser scan. Biomed Tech (Berl)        of CT and MR brain images using a
+     interactive image-guided neurosurgery:            2002: 47(Suppl 1):29–32 [in German].              combination of points and surfaces med-
+     The Vanderbilt Acustar I Advanced Sur-       118. Marmulla R, Hassfeld S, Mühling J.               ical imaging. Proceedings of SPIE 1995:
+     gical Navigational System. In: Gilden-            System for passive tissue and organ               2434: 109–123.
+1094       Eggers et al.
+
+131. Maurer C, Fitzpatrick JA. Review of             the nasopharynx using external anato-             and clinical experiences in otorhinolar-
+     medical image registration. In: Maciu-          mical landmarks. Phys Med Biol 2000:              yngology. Comput Aided Surg 2001: 6:
+     nas RJ, ed: Interactive Image-Guided            45: 2403–2416.                                    1–13.
+     Neurosurgery. Park Ridge, IL: Ameri-       145. Peters T, Davey B, Munger P,                 158. Schultes G, Gaggl A. Ct-assisted
+     can Association of Neurological Sur-            Comeau R, Evans A, Olivier A.                     navigation for insertion of dental
+     geons 1993: 17–44.                              Three-dimensional multimodal image-               implants in maxilla models. Schweiz
+132. Maurer Jr CR, Fitzpatrick JM,                   guidance for neurosurgery. IEEE Trans             Monatsschr Zahnmed 2001: 111: 828–
+     Wang MY, Galloway Jr RL, Maciu-                 Med Imaging 1996: 15: 121–128.                    833 [in German].
+     nas RJ, Allen GS. Registration of head     146. Phillips MH. Introduction to physical        159. Siessegger M, Mischkowski RA,
+     volume images using implantable fidu-           principles. In: Phillips MH, ed: Physi-           Schneider BT, Krug B, Klesper B,
+     cial markers. IEEE Trans Med Imaging            cal Aspects of Stereotactic Radiosur-             Zöller JE. Image guided surgical navi-
+     1997: 16: 447–462.                              gery. Springer 1993: 3–44.                        gation for removal of foreign bodies in
+133. Maurer Jr CR, Maciunas RJ, Fitzpa-         147. Polido WD, Ellis 3rd E, Sinn DP. An               the head and neck. J Craniomaxillofac
+     trick JM. Registration of head CT               assessment of the predictability of max-          Surg 2001: 29: 321–325.
+     images to physical space using a                illary repositioning. Int J Oral Maxillo-    160. Siessegger M, Schneider BT, Mis-
+     weighted combination of points and sur-         fac Surg 1991: 20: 349–352.                       chkowski RA, Lazar F, Krug B, Kle-
+     faces. IEEE Trans Med Imaging 1998:        148. Raabe A, Krishnan R, Wolff R, Her-                sper B, Zöller JE. Use of an image-
+     17: 753–761.                                    mann E, Zimmermann M, Seifert V.                  guided navigation system in dental
+134. Maurer Jr C, McCrory JJ, Fitzpa-                Laser surface scanning for patient regis-         implant surgery in anatomically com-
+     trick JM. Estimation of accuracy in             tration in intracranial image-guided sur-         plex operation sites. J Craniomaxillofac
+     localizing externally attached markers          gery. Neurosurgery 2002: 50: 797–801.             Surg 2001: 29: 276–281.
+     in multimodal volume head images. Pro-     149. Riechert T. Stereotactic brain opera-        161. Sipos EP, Tebo SA, Zinreich SJ, Long
+     ceedings of SPIE Press 1993: 1898: 43–          tions. Methods, Clinical Aspects, Indi-           DM, Brem H. In vivo accuracy testing
+     54.                                             cations. Hans Huber Publishers 1980: p.           and clinical experience with the ISG
+135. Metson R, Gliklich RE, Cosenza M.               37.                                               Viewing Wand. Neurosurgery 1996:
+     A comparison of image guidance sys-        150. Roberts DW, Strohbehn JW, Hatch                   39: 194–202.
+     tems for sinus surgery. Laryngoscope            JF, Murray W, Kettenberger H. A              162. Smith KR, Frank KJ, Bucholz RD.
+     1998: 108: 1164–1170.                           frameless stereotaxic integration of              The NeuroStation – a highly accurate,
+136. Nabavi A, Manthei G, Blomer U,                  computerized tomographic imaging                  minimally invasive solution to frameless
+     Kumpf L, Klinge H, Mehdorn HM,                  and the operating microscope. J Neuro-            stereotactic neurosurgery. Comput Med
+     Neuronavigation. Computer-assisted              surg 1986: 65: 545–549.                           Imaging Graph 1994: 18: 247–256.
+     surgery in neurosurgery. Radiologe         151. Roessler K, Ungersboeck K, Aich-             163. SONKA M, FITZPATRICK J. Image registra-
+     1995: 35: 573–577 [in German].                  holzer M, Dietrich W, Goerzer H,                  tion. In: Sonka M, Fitzpatrick JM, eds:
+137. Nakajima S, Atsumi H, Kikinis R,                Matula C, Czech T, Koos WT. Fra-                  Handbook of Medical Imaging: Volume
+     Moriarty TM, Metcalf DC, Jolesz                 meless stereotactic lesion contour-               2. Medical Image Processing and Ana-
+     FA, Black PM. Use of cortical surface           guided surgery using a computer-navi-             lysis. SPIE 2000. 449–506.
+     vessel registration for image-guided            gated microscope. Surg Neurol 1998:          164. Spetzger U, Laborde G, Gilsbach
+     neurosurgery. Neurosurgery 1997: 40:            49: 282–288.                                      JM. Frameless neuronavigation in mod-
+     1201–1208.                                 152. Roessler K, Ungersboeck K, Die-                   ern neurosurgery. Minim Invasive Neu-
+138. Nashold BS. The history of stereotactic         trich W, Aichholzer M, Hittmeir                   rosurg 1995: 38: 163–166.
+     neurosurgery. Stereotact Funct Neuro-           K, Matula C, Czech T, Koos WT.               165. Spiegel E, Wycis H. Stereoencephalot-
+     surg 1994: 62: 29–40.                           Frameless stereotactic guided neurosur-           omy. New York: Grune & Stratton 1962.
+139. Olson JJ, Shepherd S, Bakay RA. The             gery: clinical experience with an infra-     166. Steinmeier R, Rachinger J, Kaus M,
+     EasyGuide Neuro image-guided surgery            red based pointer device navigation               Ganslandt O, Huk W, Fahlbusch R.
+     system. Neurosurgery 1997: 40: 1092–            system. Acta Neurochir (Wien) 1997:               Factors influencing the application accu-
+     1096.                                           139: 551–559.                                     racy of neuronavigation systems.
+140. Patil AA, Woosley RE. Scalp marking        153. Rosenman JG, Miller EP, Tracton                   Stereotact Funct Neurosurg 2000: 75:
+     of intracranial lesions using computed          G, Cullip TJ. Image registration: an              188–202.
+     tomography (CT) images. a technical             essential part of radiation therapy treat-   167. Strasters KC, Little JA, Buurman J,
+     note. Acta Neurochir (Wien) 1986: 80:           ment planning. Int J Radiat Oncol Biol            Hill DLG, Hawkes DJ. Anatomical
+     62–64.                                          Phys 1998: 40(1):197–205.                         landmark image registration: validation
+141. Pelizzari CA. Image processing in          154. Sadowsky O, Yaniv Z, Joskowicz L.                 and comparison. Lecture Notes in
+     stereotactic planning: volume visualiza-        Comparative in vitro study of contact-            Computer Science 1997: 1205: 161–
+     tion and image registration. Med Dosim          and image-based rigid registration for            170.
+     1998: 23: 137–145.                              computer-aided surgery. Comput Aided         168. Suess O, Kombos T, Kurth R, Suess S,
+142. Pelizzari CA, Chen GT, Spelbring                Surg 2002: 7: 223–236.                            Mularski S, Hammersen S, Brock M.
+     DR, Weichselbaum RR, Chen CT.              155. Schad LR, Boesecke R, Schlegel W,                 Intracranial image-guided neurosurgery:
+     Accurate three-dimensional registration         Hartmann GH, Sturm V, Strauss                     experience with a new electromagnetic
+     of CT, PET, and/or MR images of the             LG, Lorenz WJ. Three dimensional                  navigation system. Acta Neurochir
+     brain. J Comput Assist Tomogr 1989:             image correlation of CT, MR, and                  (Wien) 2001: 143: 927–934.
+     13: 20–26.                                      PET studies in radiotherapy treatment        169. Sugano N, Sasama T, Sato Y, Naka-
+143. Pelizzari C, Levin D, Chen G. Image             planning of brain tumors. J Comput                jima Y, Nishii T, Yonenobu K,
+     registration based on anatomic surface          Assist Tomogr 1987: 11: 948–954.                  Tamura S, Ochi T. Accuracy evalua-
+     matching. In: Maciunas RJ, ed: Inter-      156. Schlaier J, Warnat J, Brawanski A.                tion of surface-based registration meth-
+     active Image-Guided Neurosurgery.               Registration accuracy and practicability          ods in a computer navigation system for
+     Park Ridge, IL: American Association            of laser-directed surface matching.               hip surgery performed through a poster-
+     of Neurological Surgeons 1993: 47–62.           Comput Aided Surg 2002: 7: 284–290.               olateral approach. Comput Aided Surg
+144. Peters AR, Muller SH, de Munck             157. Schmerber S, Chassat F. Accuracy                  2001: 6: 195–203.
+     JC, van Herk M. The accuracy of                 evaluation of a CAS system: laboratory       170. Takizawa T. Isocentric stereotactic
+     image registration for the brain and            protocol and results with 6D localizers,          three-dimensional digitizer for neuro-
+                                                                     Image-to-patient registration techniques in head surgery               1095
+
+     surgery. Stereotact Funct Neurosurg               guided navigation in tumor surgery –         189. Westermann B, Trippel M, Rein-
+     1993: 60: 175–193.                                technical innovation. J Craniomaxillo-            hardt H. Optically-navigable operating
+171. Tan KK, Grzeszczuk R, Levin DN,                   fac Surg 1995: 23: 217–223.                       microscope for image-guided surgery.
+     Pelizzari CA, Chen GT, Erickson              181. Wagner A, Schicho K, Birkfellner                  Minim Invasive Neurosurg 1995: 38:
+     RK, Johnson D, Dohrmann GJ. A                     W, Figl M, Seemann R, König F,                   112–116.
+     frameless stereotactic approach to neu-           Kainberger F, Ewers R. Quantitative          190. Westermark A, Zachow S, Eppley
+     rosurgical planning based on retrospec-           analysis of factors affecting intraopera-         BL. Three-dimensional osteotomy plan-
+     tive patient-image registration. Technical        tive precision and stability of optoelec-         ning in maxillofacial surgery including
+     note. J Neurosurg 1993: 79: 296–303.              tronic and electromagnetic tracking               soft tissue prediction. J Craniofac Surg
+172. Taren J, Ross D, Lu Y, Harmon L. 3D               systems. Med Phys 2002: 29: 905–                  2005: 16: 100–104.
+     laser scanning for image guided stereo-           912.                                         191. Wiles AD, Thompson DG, Frantz
+     tactic neurosurgery. Acta Neurochir          182. Wagner A, Schicho K, Kainberger F,                DD. Accuracy assessment and interpre-
+     Suppl 1995: 64: 45–48.                            Birkfellner W, Grampp S, Ewers R.                 tation for optical tracking systems. Pro-
+173. Tsui WH, Rusinek H, van Gelder P,                 Quantification and clinical relevance of          ceedings of SPIE 2004: 5367: 421–432.
+     Lebedev S. Fast surface-fitting algo-             head motion during computed tomogra-         192. Willems PW, Noordmans HJ, Ber-
+     rithm for 3-D image registration. Pro-            phy. Invest Radiol 2003: 38: 733–741.             kelbach van der Sprenkel JW,
+     ceedings of SPIE 1993: 1898: 14–23.          183. Wang MY, Fitzpatrick JM, Maurer                   Viergever MA, Tulleken CA. An
+174. Turkington TG, Hoffman JM, Jaszc-                 CR, Maciunas RJ. An automatic tech-               MKM-mounted instrument holder for
+     zak RJ, MacFall JR, Harris CC,                    nique for localizing externally attached          frameless point-stereotactic procedures:
+     Kilts CD, Pelizzari CA, Coleman                   markers in MR and CT volume images                a phantom-based accuracy evaluation. J
+     RE. Accuracy of surface fit registration          of the head. Proceedings of SPIE 1994:            Neurosurg 2001: 95: 1067–1074.
+     for PET and MR brain images using full            2167: 214–224.                               193. Wirtz CR, Tronnier VM, Bonsanto
+     and incomplete brain surfaces. J Comput      184. Wang MY, Fitzpatrick JM, Maurer                   MM, Hassfeld S, Knauth M, Kunze
+     Assist Tomogr 1995: 19: 117–124.                  CR. Design of fiducials for accurate              S. Neuronavigation: methods and pro-
+175. Unsgaard G, Ommedal S, Muller T,                  registration of CT and MR volume                  spects. Nervenarzt 1998: 69: 1029–1036
+     Gronningsaeter          A,     Nagelhus           images. Proceedings of SPIE 1995:                 [in German].
+     Hernes TA. Neuronavigation by intrao-             2434: 96–108.                                194. Wirtz CR, Knauth M, Hassfeld S,
+     perative three-dimensional ultrasound:       185. Watanabe E, Mayanagi Y, Kosugi Y,                 Tronnier VM, Albert FK, Bonsanto
+     initial experience during brain tumor             Manaka S, Takakura K. Open surgery                MM, Kunze S. Neuronavigation–first
+     resection. Neurosurgery 2002: 50: 804–            assisted by the neuronavigator, a stereo-         experiences with three different com-
+     812.                                              tactic, articulated, sensitive arm. Neuro-        mercially available systems. Zentralbl
+176. Vandermeulen D, Collignon A,                      surgery 1991: 28: 792–799.                        Neurochir 1998: 59: 14–22.
+     Michiels J, Bosmans H, Suetens P,            186. Watanabe E, Watanabe T, Manaka               195. Wolfsberger          S,   Rossler       K,
+     Marchal G, Timmens G, van den                     S, Mayanagi Y, Takakura K. Three-                 Regatschnig R, Ungersbock K. Ana-
+     Elsen P, Viergever M, Ehricke H,                  dimensional digitizer (neuronavigator):           tomical landmarks for image registra-
+     Hentschel D, Graumann R. Multi-                   new equipment for computed tomogra-               tion     in     frameless     stereotactic
+     modality image registration within                phy-guided stereotaxic surgery. Surg              neuronavigation. Neurosurg Rev 2002:
+     COVIRA. In: Beolchi L, Kuhn MH,                   Neurol 1987: 27: 543–547.                         25: 68–72.
+     eds: Medical imaging: analysis of multi-     187. West J, Fitzpatrick JM, Wang MY,             196. Zaaroor M, Bejerano Y, Weinfeld
+     modality 2D/3D images, Vol. 19 of Stu-            Dawant BM, Maurer Jr CR, Kessler                  Z, Ben-Haim S. Novel magnetic tech-
+     dies in health, technology and                    RM, Maciunas RJ, Barillot C,                      nology for intraoperative intracranial
+     informatics. Amsterdam: IOS Press                 Lemoine D, Collignon A, Maes F,                   frameless navigation: in vivo and in vitro
+     1995: 29–42.                                      Suetens P, Vandermeulen D, van                    results. Neurosurgery 2001: 48: 1100–
+177. Vandermeulen D, Suetens P,                        den Elsen PA, Napel S, Sumana-                    1107.
+     Gybels J, Oosterlinck A. Angio-                   weera TS, Harkness B, Hemler PF,             197. Zamorano LJ, Nolte L, Kadi AM,
+     graphic localizer ring for the BRW                Hill DL, Hawkes DJ, Studholme C,                  Jiang Z. Interactive intraoperative loca-
+     stereotactic system. Acta Neurochir               Maintz JB, Viergever MA, Malan-                   lization using an infrared-based system.
+     Suppl (Wien) 1987: 39: 15–17.                     dain G, Pennec X, Noz ME, Maguire                 Neurol Res 1993: 15: 290–298.
+178. Vandermeulen D, Suetens P,                        Jr GQ, Pollack M, Pelizzari CA,
+     Gybels J, Oosterlinck A, Cosman                   Robb RA, Hanson D, Woods RP.
+     ER, Wells Jr TH. Angiographic loca-               Comparison and evaluation of retro-          Address: Georg Eggers
+     lizer for the BRW stereotactic system.            spective intermodality brain image           Department of Oral and
+     Appl Neurophysiol 1987: 50: 87–91.                registration techniques. J Comput Assist       Cranio-Maxillofacial Surgery
+179. Villalobos H, Germano IM. Clinical                Tomogr 1997: 21: 554–566.                    Heidelberg University Hospital
+     evaluation of multimodality registration     188. West JB, Fitzpatrick JM, Toms SA,            Heidelberg
+     in frameless stereotaxy. Comput Aided             Maurer Jr CR, Maciunas RJ. Fiducial          Germany
+     Surg 1999: 4: 45–49.                              point placement and the accuracy of          Tel: +49 6221 567332
+180. Wagner A, Ploder O, Enislidis G,                  point-based, rigid body registration.        Fax: +49 6221 564222.
+     Truppe M, Ewers R. Virtual image                  Neurosurgery 2001: 48: 810–816.              E-mail: georg.eggers@med.uni-heidelberg.de
+

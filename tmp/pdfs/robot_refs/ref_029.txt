@@ -1,0 +1,594 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003                                                                                    1407
+
+
+
+
+3-D/2-D Registration of CT and MR to X-Ray Images
+                                  Dejan Tomaževič, Boštjan Likar, Tomaž Slivnik, and Franjo Pernuš*
+
+
+
+   Abstract—A crucial part of image-guided therapy is registration                   tomography (CT) or magnetic resonance (MR) images, are used
+of preoperative and intraoperative images, by which the precise                      to diagnose, plan, simulate, guide, or otherwise assist a surgeon,
+position and orientation of the patient’s anatomy is determined                      or possibly a robot, in performing a surgical or therapeutic pro-
+in three dimensions. This paper presents a novel approach to
+register three-dimensional (3-D) computed tomography (CT) or
+                                                                                     cedure. The plan is constructed in the coordinate system relative
+magnetic resonance (MR) images to one or more two-dimen-                             to preoperative data, while the surgical procedure is performed
+sional (2-D) X-ray images. The registration is based solely on the                   in the coordinate system relative to the patient. The relationship
+information present in 2-D and 3-D images. It does not require                       or spatial transformation between preoperative data and plan
+fiducial markers, intraoperative X-ray image segmentation, or                        and physical space occupied by the patient during treatment is
+timely construction of digitally reconstructed radiographs. The                      established by registration. Registration, which is the crucial
+originality of the approach is in using normals to bone surfaces,
+preoperatively defined in 3-D MR or CT data, and gradients of                        part of IGT, allows any 3-D point defined in the preoperative
+intraoperative X-ray images at locations defined by the X-ray                        image to be precisely located in a patient coordinate system
+source and 3-D surface points. The registration is concerned with                    and may thus provide the surgeon information about position
+finding the rigid transformation of a CT or MR volume, which                         of his instruments relative to the planned trajectory, nearby
+provides the best match between surface normals and back pro-                        vulnerable structures, or the ultimate target. However, to be
+jected gradients, considering their amplitudes and orientations.
+We have thoroughly validated our registration method by using
+                                                                                     suitable for a clinical application, a registration algorithm
+MR, CT, and X-ray images of a cadaveric lumbar spine phantom                         must satisfy several requirements. These requirements concern
+for which “gold standard” registration was established by means                      registration accuracy, computation time, robustness to outliers,
+of fiducial markers, and its accuracy assessed by target registra-                   e.g., produced by surgical instruments, and complexity and
+tion error. Volumes of interest, containing single vertebrae L1–L5,                  invasiveness of intraoperative data acquisition.
+were registered to different pairs of X-ray images from different
+                                                                                        A variety of methods have been proposed in the last decade
+starting positions, chosen randomly and uniformly around the
+“gold standard” position. CT/X-ray (MR/X-ray) registration,                          for image to physical space (patient) registration. The ap-
+which is fast, was successful in more than 91% (82% except for                       proaches differ in the information on which registration relies.
+L1) of trials if started from the “gold standard” translated or                      The most accurate methods utilize points defined by fiducial
+rotated for less than 6 mm or 17 (3 mm or 8.6 ), respectively.                       markers that are preoperatively rigidly affixed to the patient’s
+Root-mean-square target registration errors were below 0.5 mm                        anatomy, most often to bone [3]–[5]. Intraoperatively, the loca-
+for the CT to X-ray registration and below 1.4 mm for MR to
+X-ray registration.                                                                  tions of markers, which can easily be detected in 3-D CT or MR
+                                                                                     images, are measured using a positioning device. Point-based
+  Index Terms—3-D/2-D image registration, computed to-                               registration is achieved by finding the rigid transformation that
+mography, “gold standard”, image-guided therapy, magnetic
+resonance, spine phantom, X-ray projections.
+                                                                                     brings the fiducial points in the two spaces into alignment.
+                                                                                     Although these methods are fast, accurate, and robust, they
+                                                                                     require fixation of fiducial markers to rigid structures, which
+                             I. INTRODUCTION                                         is not always possible or is too invasive to be acceptable. The
+                                                                                     advantage of fiducial marker-based approaches is that registra-
+M      EDICAL imaging is currently undergoing rapid devel-
+       opment with a strong emphasis being placed on the
+use of imaging technology to render surgical and therapeutic
+                                                                                     tion error depends only on fiducial localization and is, thus, to
+                                                                                     a large extent independent of the particular structure being reg-
+procedures less and less invasive and to improve the accuracy                        istered [6]. Because in both spaces fiducial marker localization
+with which a given procedure can be performed compared with                          may be very accurate, registration by this method is often used
+conventional methods [1], [2]. In image-guided therapy (IGT)                         as reference or “gold standard,” suitable for evaluating other
+(surgery, radiotherapy, or radiological intervention), preopera-                     registration methods [7]–[9].
+tive medical data, usually three-dimensional (3-D) computed                             Another class of registration methods is based on surfaces
+                                                                                     [9]–[14]. These methods rely on a description of the shape of an
+                                                                                     anatomical structure, usually skin or outer bone surface, which
+    Manuscript received February 25, 2003; revised August 12, 2003. This work
+was supported by the European Commission and by the Ministry of Education,
+                                                                                     is extracted from the preoperative 3-D image. Intraoperative
+Science and Sport, Republic of Slovenia under the IST-1999-12338 project. As-        modalities, used to acquire a similar representation of the
+terisk indicates corresponding author.                                               shape of the same structure include digitizing probes, passive
+    D. Tomaževič B. Likar, and T. Slivnik are with the University of Ljubljana,
+Faculty of Electrical Engineering, Tržaška 25, 1000 Ljubljana, Slovenia (e-mail:
+                                                                                     stereo, and structured light. A registration process, minimizing
+dejan.tomazevic@fe.uni-lj.si; bostjan.likar@fe.uni-lj.si; tomaz.slivnik@fe.uni-      points-to-surface or surface-to-surface distances, is then used
+lj.si).                                                                              to derive the spatial transformation [15]. The problems with
+    *F. Pernuš is with the University of Ljubljana, Faculty of Electrical Engi-     these techniques are that skin is not a rigid structure and that
+neering, Tržaška 25, 1000 Ljubljana, Slovenia (e-mail: franjo.pernus@fe.uni-
+lj.si).                                                                              bone surface, containing enough shape information, has to be
+    Digital Object Identifier 10.1109/TMI.2003.819277                                exposed during the procedure.
+                                                                 0278-0062/03$17.00 © 2003 IEEE
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+1408                                                                         IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+    The third class of registration methods relies on intraopera-
+tive X-ray projections acquired with a calibrated X-ray device.
+The location and orientation of a structure in 3-D CT or MR
+image with respect to the geometry of the X-ray device is de-
+termined by 3-D/two-dimensional (2-D) registration. Two dif-
+ferent 3-D/2-D registration approaches have been proposed. The
+first approach, which is a feature-based one, requires extracting
+bone surfaces from preoperative data and contours of the same
+structure from one or more intraoperative projection images [7],
+[16]. Registration is performed by minimizing the distance be-
+tween the surface model and the lines connecting contour points
+with the X-ray source. Once segmentation has been undertaken,
+the reduced amount of data makes the registration fast. Unfor-
+tunately, the intraoperative segmentation is hard to achieve au-
+tomatically and errors in segmentation lead to errors in regis-
+tration. The second approach to 3-D/2-D registration is based
+solely on voxel and pixel intensity information of 3-D preop-
+erative and 2-D intraoperative image, respectively. Simulated
+X-ray projection images [17], called digitally reconstructed ra-
+diographs (DRRs), are produced from a CT image and the un-
+known pose of the CT volume relative to the X-ray image set is
+estimated by optimizing the similarity measure calculated from
+the DRR and X-ray image [8], [18]. These algorithms require                     Fig. 1.   X-ray image generation – geometrical considerations.
+little or no segmentation but are time consuming. This problem
+may be reduced to some extent by calculating DRRs containing
+                                                                                markers [23]. We have used these data to study the capturing
+only structures of interest [19] or by implementing a faster DRR
+                                                                                range and registration accuracy of the proposed method.
+generation method [20], [21]. Nevertheless, these approaches
+are not suitable for registration of a preoperative MR image to
+X-ray images, because there is practically no correlation be-                                                   II. THEORY
+tween MR-based DRRs and X-ray projections.                                         In this section, we first formulate the X-ray image generation
+    In this paper, we present a novel method for registering                    process and then give the relationship between X-ray image in-
+3-D CT or MR images to 2-D X-ray images with the final                          tensity gradients and attenuation coefficient gradients, which is
+goal to estimate the position and orientation of the patient’s                  later used in our registration method.
+anatomy during surgery or therapy. The proposed method
+combines the advantages of both 3-D/2-D approaches, i.e., the                   A. X-Ray Image Generation
+reduced amount of data of the first approach, resulting in faster                 The following model describes the generation of an X-ray
+registration, and no need for intraoperative segmentation of                    image
+the second approach. Like in the first 3-D/2-D approach, the
+method assumes that surfaces of bony structures are extracted
+                                                                                                                                                     (1)
+preoperatively from CT or MR images. The method uses a
+novel criterion function (CF) to measure the match between
+                                                                                Image intensity        at point , lying on detector plane , is
+normals to the surface and corresponding back-projected
+                                                                                obtained by integrating the X-ray attenuation coefficient        ,
+intensity gradients of X-ray images. Such matching avoids in-
+                                                                                from X-ray source to point , along the projection beam
+traoperative segmentation of X-ray images and thus eliminates
+                                                                                (Fig. 1). The factor         describes the effect of X-ray beam
+misregistration induced by intraoperative segmentation errors.
+                                                                                divergence. Angle is the angle between a projection beam
+We use rigid registration, which is appropriate when the imaged
+                                                                                and line , which originates in X-ray source and is perpen-
+object is itself rigid, like vertebrae, femur, pelvis, other bones,
+                                                                                dicular to detector plane. is the reference image intensity at
+and head, which may be considered rigid for many diagnostic
+and therapeutic purposes. With respect to the application, we                   point where line      intersects the detector plane. If the X-ray
+focus on registration of lumbar vertebrae and provide results                   imaging system corrects for beam divergence, a simpler model
+that can be used in the context of pedicle screw placement.                     is obtained
+    A necessary step, required before widespread clinical use of
+any novel registration technique, is the evaluation and valida-                                                                                      (2)
+tion of the method [22]. One difficulty in evaluating a registra-
+                                                                                For the X-ray sensor with a logarithmic static response, the re-
+tion technique is the need for a highly accurate “gold standard.”
+                                                                                lationship between intensity       and attenuation coefficients
+Recently, we have devised a cadaveric lumbar spine phantom,
+acquired 3-D MR and CT images and 2-D X-ray images of the                             can be expressed by a linear model
+phantom, and established accurate “gold standard” rigid reg-
+                                                                                                                                                     (3)
+istration between 3-D and 2-D images by means of fiducial
+          Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+TOMAŽEVIČ et al.: 3-D/2-D REGISTRATION OF CT AND MR TO X-RAY IMAGES                                                                                   1409
+
+
+
+
+Fig. 2. Geometrical setup with normals to surfaces and intensity gradients used in 3-D/2-D registration.
+
+
+or even simpler                                                                   tion coefficient gradient       is projected to point (8), we
+                                                                                  can back-project the gradient        toward the X-ray source
+                                                                           (4)    and obtain the back-projected gradient        for any location
+                                                                                  along the beam
+
+B. Image Intensity and Attenuation Coefficient Gradients                                                                                                 (9)
+   We use the X-ray image generation model defined in (4) to                      Gradient         is the enlarged gradient      . The closer the
+derive the relationship between gradients of attenuation coef-                    point to the X-ray source the greater the enlargement. By
+ficients and image intensity gradients. Let           ,                           inserting (6) into (9) we obtain the expression by which the
+            , be the image intensity gradient in projection plane                 image intensity gradient          is back-projected toward the
+   and let         ,                       , be the intensity gra-                X-ray source
+dient in plane , which is perpendicular to projection beam
+(Fig. 1). Gradient         can be expressed by gradient                                                                                                 (10)
+and vice versa (Appendix A)
+                                                                           (5)                                   III. METHOD
+                                                                           (6)       Rigid 3-D/2-D registration is concerned with finding the rigid
+                                                                                  transformation that brings a 3-D (CT or MR) image into the best
+where is the unit normal to projection plane and a unit                           possible spatial relation with the corresponding 2-D projection
+vector defining the direction of projection beam .                                (X-ray) image. Registration objectives may be met if the fol-
+  The attenuation coefficient gradient           ,                                lowing two assumptions are fulfilled. First, the X-ray imaging
+         , can be divided into two components as (Appendix B)                     device is calibrated, i.e., for every X-ray image the precise po-
+                                                                           (7)    sition of X-ray source and position and orientation of detector
+The first component           has the same direction as the pro-                  plane are known in a reference coordinate system, and second,
+jection beam , while the second component             is perpen-                  CT, MR, and X-ray images are relatively accurate geometri-
+dicular to the beam. The relationship between intensity gradient                  cally. In a clinical setting, calibration could be performed as
+        and gradient         is given by (Appendix C)                             described in [24]. Features that we use for rigid 3-D/2-D reg-
+                                                                                  istration, are normals to surfaces of bony structures found in
+                                                                           (8)    preoperative CT or MR volumes and intensity gradients of in-
+                                                                                  traoperative X-ray images. Feature selection is founded on the
+where            and          are the distances of X-ray source
+                                                                                  assumption that strong intensity gradients in X-ray images cor-
+   to points and , respectively. This relation shows that in-
+                                                                                  respond to boundaries of bony structures.
+tensity gradient        depends only on attenuation coefficient
+                                                                                     Let      be a point, defined in the coordinate system     of a
+gradient component          , which is perpendicular to the pro-
+                                                                                  3-D volume (CT or MR), lying on the surface of a 3-D structure
+jection beam . The obtained relation is in accordance with
+                                                                                  and let       be the vector, normal to the surface at point
+the known fact that X-ray images depict structure changes per-
+                                                                                  (Fig. 2). The position of the same point in reference coordinate
+pendicular to the projection beam and not structure changes
+                                                                                  system        is given by the rigid transformation
+along the beam. From (8) it is also obvious that if point is
+closer to the X-ray source the component            has less im-                                                                                        (11)
+pact on          and, consequently, a smaller X-ray image in-                     where and describe, respectively, the rotation and transla-
+tensity gradient        is obtained. Knowing how the attenua-                     tion of coordinate system with respect to    . Matrix is
+             Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+1410                                                                            IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+
+Fig. 3. Weighting function f ( ) for different values of parameter n.
+
+
+defined by three angles                         representing rota-
+tions around , and axes, while vector
+describes translations along , , and axes. Transformation
+                                                                                  Fig. 4. Axial slices from a CT (top left) and MR (top right) image and AP
+is thus defined by six parameters                                .                (bottom left), and lateral (bottom right) X-ray image of the spine phantom with
+Let be the position of the X-ray source in the reference coor-                    fiducial markers.
+dinate system      . For a given position of a 3-D image, defined
+by vector , line , which connects and              and has direc-
+tion defined by unit vector , intersects the detector plane at                    “gold standard” on a section of cadaveric lumbar spine, com-
+point               (Fig. 2). The intensity gradient at    is    ,                prising vertebra L1–L5 with intervertebral disks and several
+                     .                                                            millimeters of soft tissue, of an 80-year-old female. The spine
+   To measure the correspondence between surface normals                          was placed into a plastic tube and tied to it with thin nylon
+and back-projected gradients       (10) we propose the following                  strings. Six fiducial markers were rigidly attached to the outside
+CF:                                                                               of tube. The tube was filled with water to simulate soft tissue. In
+                                                                                  this way, realistic MR, CT, and X-ray images were obtained. The
+                                                                                  CT image was obtained using a General Electric HiSpeed CT/i
+                                                                                  scanner. Axial slices were taken with intraslice resolution of
+                                                                         (12)
+                                                                                  0.27 0.27 mm and 1-mm interslice distance. For MR imaging
+                                                                                  (MRI), Philips Gyroscan NT Intera 1.5-T scanner and T1 pro-
+                                                                                  tocol (flip angle 90 , TR 3220 ms, TE 11 ms) was used.
+where       is the weighting function depending on angle                          Axial slices were obtained with 0.39 0.39-mm intraslice res-
+between gradients     and     , and is the number of surface                      olution and 1.9 mm between-slice distance. The MR image was
+points.                                                                           retrospectively corrected for intensity inhomogeneity by the in-
+  The function      , defined as                                                  formation minimization method [25]. X-ray images were ob-
+                                                                                  tained by PIXIUM 4600 (Trixell) digital X-ray detector with
+                                                             (13)
+                                    otherwise                                     a 429 429 mm large active surface, 0.143 0.143 mm pixel
+favors gradients that have similar directions. Parameter deter-                   size and 14 bits of dynamic range. The X-ray source and de-
+mines the sensitivity of weighting to angle (Fig. 3). In prac-                    tector-plane were fixed during image acquisition while the spine
+tice, the weighting function, for smaller then 90 , is calculated                 phantom was rotated on a turntable to simulate a setup with
+as                                                                                C-arm. By rotating (              ) the spine phantom around its
+                                                                                  long axis 18 X-ray images were acquired. CT, MR, and X-ray
+                                                                         (14)     images are given in Fig. 4.
+                                                                                     “Gold standard” registrations of CT to X-ray and MR to
+When more than one X-ray image is used for registration, the CF                   X-ray images were obtained by rigid registration of CT and
+is a sum of CFs of individual images. Rigid 3-D/2-D registration                  MR marker points to 3-D marker points reconstructed from
+is performed by finding the set of parameters that optimize the                   X-ray images, respectively. The accuracy of “gold standard”
+CF.                                                                               registration was obtained by estimating the target registration
+                                                                                  error TRE [26] for eight targets, four per each pedicle, which
+                            IV. EVALUATION                                        were manually defined on each of the five vertebrae. All root
+                                                                                  mean square (rms) TREs were below 0.29 mm for CT to X-ray
+A. “Gold Standard”                                                                registration and below 0.42 mm for MR to X-ray registration,
+   Because it is extremely difficult to obtain an accurate “gold                  which indicates that the “gold standard” is highly accurate.
+standard” registration on clinical images, we have obtained a                     A detailed description of the spine phantom, X-ray system
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+TOMAŽEVIČ et al.: 3-D/2-D REGISTRATION OF CT AND MR TO X-RAY IMAGES                                                                                 1411
+
+
+
+                                                            TABLE I
+      THE RMS AND MAXIMUM TARGET REGISTRATION AND ROTATION COMPONENT ERRORS BEFORE AND AFTER CT/X-RAY REGISTRATION AND THE
+                                             PROPORTION OF SUCCESSFUL REGISTRATIONS
+
+
+
+
+calibration, calculation of “gold standard” registration and                    vertebra. By using a smaller value of      for MR, we were able
+“gold standard” validation can be found in [23].                                to more precisely define the capturing ranges for MR/X-ray reg-
+                                                                                istrations, which were expected to be smaller than the capturing
+B. Implementation Details                                                       ranges for CT/X-ray registrations.
+   Cubic subvolumes that contained single vertebrae were de-                       To measure the registration error before and after registration,
+fined manually in CT and MR images. Each subvolume was                          TRE was calculated for eight target points (four on each pedicle)
+blurred using a Gaussian filter (             mm) and isotropi-                 as the distance between target points in registered and “gold
+cally re-sampled to the resolution of 1 mm. The Canny edge                      standard” position
+detector and a threshold were applied to automatically extract                                                                                        (15)
+locations of points corresponding to boundaries of bony struc-                  where is a target point, and         and      are the transforma-
+tures and to estimate surface normal directions at these points.                tions obtained by the proposed registration method and “gold
+This resulted in approximately 19 000 edge points per CT and                    standard” registration, respectively. The rotation error was de-
+32 000 points per MR image. The X-ray images were blurred                       termined by decomposing TRE to translation and rotation com-
+with a Gaussian filter (        mm) and Roberts edge detector                   ponents [28]. A registration was treated as successful if TREs
+was applied to calculate intensity gradients             . Gra-                 of all eight target points were below 2 mm.
+dients perpendicular to the projection beam                were
+then obtained using (6). Parameter (14), needed to calculate                    D. Results
+the CF, was set to 4. Optimization of transformation parameters                    Results of CT/X-ray and MR/X-ray registrations are pre-
+                             was performed by Powel’s method                    sented in Tables I and II, respectively. Both tables give the
+[27].                                                                           root mean squares and maximum values of TRE and rotation
+                                                                                    before and after registration. Only results of successful
+C. Experiments                                                                  registrations are given. The tables also give the proportion of
+   To test the accuracy, speed, and capturing range of the                      successful registrations for different intervals of displacements.
+method, registration was performed from a wide range of                         Displacements (in parametrical space) before and after reg-
+starting positions and orientations around the “gold standard”                  istration for 2250 registrations (450 registrations for each of
+registration position. If the parametrical space is normalized,                 five vertebrae) are illustrated in Fig. 5, which also show the
+Euclidean metrics may be used to calculate the displacement (in                 relationship between initial displacement and rate of successful
+parametrical space) of a starting position from “gold standard”                 registrations.
+position. Besides, the values of parameters defining the starting                  Successful CT to X-ray registrations of single vertebrae show
+point may be chosen randomly around the “gold standard”                         (Table I), that the root mean squares of TREs range from 0.2
+position in such a way that a uniform distribution of displace-                 mm for L3 to 0.5 mm for L5, and that the maximal TREs are
+ments in the interval [0,     ] is achieved. For single vertebrae               less than 1.2 mm. The rms angle error ranges from 0.35 for
+registration the following assumption was used to normalize                     vertebra L4 to 0.48 for L2, with a maximum of 3.2 obtained
+the parametrical space: rotation of a volume containing a single                for L2. More than 91% of registrations were successful if the
+vertebra of size 80 mm around its center of 0.1 radians (rad)                   starting position had not been more than 6 mm or 17.2 from
+(5.7 ) causes mean translation of volume points of 2 mm.                        the “gold standard” position. If the starting positions had been
+   Eighteen X-ray image pairs were chosen from the set of 18                    in the interval of 6–12 mm (17.2 –34.4 ) the registration suc-
+X-ray images, such that the rotation angle between two images                   ceeded in 42–56% cases, while less then 10% registrations were
+forming a pair was 80 . For each pair, registration was run from                successful if the initial displacement had been in the interval of
+25 staring positions generated as described above, setting     to               12–18 mm (34.4 –51.7 ).
+18 mm (51.6 ) and to 9 mm (25.8 ) for CT and MR registration,                      Successful MR to X-ray registrations of single vertebra
+respectively. This resulted in 450 registrations per modality and               (Table II) show that root mean squares of TREs vary from
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+1412                                                                           IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+                                                             TABLE II
+       THE RMS AND MAXIMUM TARGET REGISTRATION AND ROTATION COMPONENT ERRORS BEFORE AND AFTER MR/X-RAY REGISTRATION AND THE
+                                               PROPORTION OF SUCCESSFUL REGISTRATIONS
+
+
+
+
+Fig. 5. Scatter diagrams of displacements before versus after registration (top) and the effect of initial displacement on proportion of successful registrations
+(bottom). Results for CT/X-ray registrations are given on the left and for MR/X-ray registrations on the right.
+
+
+1.1 to 1.4 mm. The rms angle errors range from 0.95 to 1.6                          The average registration time on a Pentium III, 733-MHz PC
+and maxima are less than 4.5 . A successful registration was                      was 20 s for X-ray to CT and 32 s for X-ray to MR registration.
+reached in more than 82% of cases if the displacement
+had been between 0 and 3 mm (0 and 8.6 ), except for ver-
+tebra L1 for which only 53% of registrations were successful.                                       V. DISCUSSION AND CONCLUSION
+For the other two intervals of initial displacement, 3–6 mm                          If image-based registration is to be used for guiding a sur-
+(8.6 –17.2 ) and 6–9 mm (17.2 –25.8 ), registration suc-                          geon or surgical robot, accuracy requirements are particularly
+ceeded in 37–59% and 19–36% of cases, respectively.                               stringent. The accuracy with which a surgeon can achieve a
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+TOMAŽEVIČ et al.: 3-D/2-D REGISTRATION OF CT AND MR TO X-RAY IMAGES                                                                                 1413
+
+
+
+preoperatively constructed plan is directly related to the ac-                  more difficult to assess the quality of MR to X-ray registration
+curacy with which registration can be performed. In general,                    than the quality of CT to X-ray registrations. Extra edge points
+the necessary accuracy varies significantly, depending on the                   projected onto the X-ray image make visual verification harder
+type of procedure and the patient’s anatomy. Because we have                    and less precise.
+used a spine phantom and because targets have been chosen                          The value of parameter in the weighting function [see (14)],
+on both pedicles, the accuracy of our method may be best                        affects smoothness of the CF and final accuracy, but the rela-
+judged in the context of spinal pedicle screw placement. Re-                    tions are little more complicated. We have observed that small
+cently, the margin of error for pedicle screw placement was                        (       ,1,2) results in a CF which is smooth near the correct
+defined as the allowable translational and rotational deviation                 registration (closer than 0.5 mm and 0.5 ) but contains more
+of the screw trajectory from an idealized path along the cen-                   local optima further from the correct registration. When small
+tral axis of the pedicle [29]. Rampersaud et al. [29] reported                  values of were used, up to 0.5 mm larger CT/X-ray registra-
+the following maximum permissible translational (rotational)                    tion errors were obtained in comparison to the errors obtained
+errors: 0.65 mm (2.1 ), 0.85 mm (2.7 ), 1.5 mm (4.9 ), 3                        if was set to 4. If is larger than 5, only the points where the
+mm (9.8 ), and 3.8 mm (12 ) for vertebrae L1–L5, respec-                        normal to the surface is almost perpendicular to the ray will add
+tively. The proposed method is quite robust to outliers, i.e.,                  to the CF, which will result in a more ragged CF. After experi-
+edges not corresponding to bony surfaces, because a large                       menting with different values of , we have set to 4. Such a
+number of edge points add to the CF. Registration results in                    choice was a trade off between smoothness of the CF close to
+Table I, given for a variety of X-ray views and starting po-                    and further away from the correct registration.
+sitions, indicate that the registration errors, although defined                   Before an IGT system is put into clinical use, it must undergo
+in a slightly different way as in [29] are within error margins                 rigorous validation, which includes validation of individual
+given above. Registration was successful in more than 91% of                    components, validation of the overall system and a study of how
+trials if registration was performed from a starting position,                  uncertainties propagate through the entire IGT process. Prereq-
+which was the “gold standard” registration position trans-                      uisites for validation of an IGT system component, like 3-D/2-D
+lated or rotated for less than 6 mm or 17 , respectively. This                  registration is standardization of the validation methodology,
+capturing range is wide enough to be reached by a simple                        which should include design of validation data sets, definition
+manual registration technique. In a clinical system using the                   of corresponding “ground truth” and its accuracy, validation
+present registration method, a simple visualization tool, by                    protocol, and design of validation metrics [22]. We have thor-
+which bony edge points in CT or MR are superimposed on                          oughly validated our registration method by using MR, CT,
+X-ray images, may help an operator in the process of initial                    and X-ray images of a cadaveric lumbar spine phantom for
+registration as well as in estimation of registration accuracy.                 which “gold standard” registration was established by means of
+Whenever the proposed 3-D/2-D registration was not suc-                         fiducial markers, and its accuracy assessed by target registra-
+cessful, the pose obtained after registration was far enough                    tion error [23]. However, because other researchers have used
+from the correct pose, so that all these cases could easily be                  different phantoms, validation data sets, validation protocols,
+detected using visual verification.                                             criteria for successful registrations, and error metrics, it is dif-
+   Importantly, the proposed registration method allows regis-                  ficult to place the results of the proposed 3-D/2-D registration
+tration of MR to X-ray images. However, the registration error                  method in the context of previously published work. The lack
+was larger than for CT to X-ray registration, 1.4 mm and 1.6 for                of standardized validation methodology is probably the reason
+registrations that were successful, which is comparable with the                that most authors have made no comparative evaluations of
+accuracy required for vertebrae L3-L5 but not for vertebrae L1                  their methods [7], [8], [19], [20], [32]. To show that it is indeed
+and L2 [29]. Besides, fewer registrations were successful and in                difficult to make quantitative comparisons, we discuss the work
+some cases the registration was unsuccessful even if the starting               of [8], [19], [32] and as far as it is possible make comparisons
+pose was close to the “gold standard.” This was most probably                   with regard to the capturing range and registration accuracy.
+due to the quite porous spine immersed in water and the MRI                     The methods used in [8], [19], [32] are based on DRRs, and
+sequence, which did not produce clear tissue contrast between                   similarly to ours, relies on intraoperative X-ray projections,
+the bone and surrounding tissue of the spine. We found that ap-                 which does not require segmentation. Similar to our method,
+proximately 40% of edge points extracted from the MR image                      methods in [8] and [19] have been validated on lumbar spine.
+did not correspond to boundaries of bony structures. There are                     In their experiment, Brown and Boult [32] used a CT and
+more possible solutions to this problem. One solution is to use a               planar X-ray image of a dry femur bone rigidly attached to a
+different MRI sequence, like the double echo fast gradient echo                 precisely machined calibration object, which contained a grid
+sequence recently proposed by Hoad et al. [30], to obtain good                  of embedded stainless-steel balls. These balls served to establish
+tissue contrast between bone and soft tissue. Another solution                  the “gold standard” 3-D/2-D registration. They performed only
+to this problem would be to reduce the number of edges that do                  five registrations from starting positions obtained by translating
+not correspond to bony structures by some postprocessing of the                 or rotating the “gold standard” position for a random value in the
+MR edge image. As most registration methods, this method also                   range of 2 mm or 2 . To evaluate the error in the registration
+gets trapped in local minima. To limit this behavior, a global                  they computed the mean TRE in 3-D for 100 target points and
+instead a local optimization procedure could be applied [31],                   obtained 2.8 mm for one femur configuration and 0.8 mm for
+however, this requires intraoperative time, which is constrained.               the other. For initial estimates greater than 4 mm or 4 , they
+Using the visual inspection, we have observed that it is much                   did not typically get close to the “gold standard” registration.
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+1414                                                                          IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+We make the following observations. First, registration of a dry                 plane agreed within 0.5 mm, while the deviations of the height
+femur is an easier task than registration of vertebrae with soft                 above the projection plane were up to 5 mm large. If we neglect
+tissue that is submerged in water. Second, it is not possible to                 the 5-mm out-of-plane translation, these values correspond to
+fairly compare the capturing ranges if the origin of the rotation                1 mm in our normalized parametrical space. The smallest error
+is not known and if the parametrical space is not normalized ac-                 values in rigid-body parameters obtained by Penney et al. [8]
+cording to the size of the object on which the targets are defined.              were for the spine phantom with no added structures. If we ne-
+Third, it is important where the target points are placed. In [32],              glect the 4-mm out-of-plane translation error, the error values
+the target points were placed randomly in a 1           cube, while              translate to 0.7 mm in our normalized parametrical space. This
+we have placed the targets around pedicles, which is the struc-                  is higher than the rms (TRE) we have obtained for CT/X-ray
+ture image-guided surgery will be performed on.                                  registrations.
+   Weese et al. [19] and Penney et al. [8] experimented with                        To summarize, a fair comparison of different registration
+a CT and an anterior-posterior (AP) fluoroscopy image of a                       methods is possible only to a limited degree. What is needed to
+phantom that consisted of a lumbar spine and pelvis encased                      conduct a just comparative evaluation are validation data sets,
+in acrylic. Accurate “gold standard” registration was derived                    definition of corresponding “ground truth” and its accuracy,
+from fiducial markers attached to the phantom prior to imaging.                  validation protocol, and design of validation metrics. We have
+Starting estimates in [19] were slightly different than the starting             made a step in this direction and obtained such data, which is
+estimates in [8]. Weese et al. [19] started with the “gold stan-                 publicly available [23].
+dard” registration and obtained 81 different starting estimates                     The proposed 3-D/2-D registration method is neither a pure
+for the rotation parameters and the height above the projection                  intensity based method, such as the timely DRR-based methods
+plane from all the combinations of (                               ;             developed for CT/X-ray registration, nor a feature-based
+            ) and (                        ), where     is the “gold             method, which requires segmentation of both preoperative and
+standard” rotation parameter. If the rotations        , which were               intraoperative images, which is a serious drawback. By actually
+set to 0.1, 0.15, and 0.2 rad, are transformed to our normalized                 combining the two generic approaches to 3-D/2-D registration,
+parametrical space they correspond to displacements of 3.4, 5.2,                 the proposed method inherits their advantages, namely speed,
+and 6.9 mm, respectively. The 64 starting estimates for registra-                accuracy and no need for intraoperative segmentation, and thus
+tion in [8] were the “gold standard” value         , which was 3.4,              gains in generality and applicability. The 3-D/2-D registration
+7.6 and 7.8 for , , and rotation parameters, 3.6 and 2.4 mm                      has been performed for images of a spine phantom and results
+for in-plane, and 50.8 mm for out-of-plane translation param-                    for different vertebrae were given to get an indication of reg-
+eters. If the out-of-plane translation is neglected these values                 istration accuracy. Further experiments should concentrate on
+translate to 6 mm in our normalized parametrical space. The                      questions such as: how the introduction of soft-tissue structures
+starting estimates in [8], [19] and in our experiments are thus                  and surgical instruments and implants into the phantom images
+comparable, but it is difficult to compare the rate of successful                affect registration, which projections and how many X-ray
+registrations and accuracy of our method and the methods in [8],                 images to use in a particular procedure, and how to reduce
+[19]. Weese et al. [19] had classified a registration as successful              the edges in MR which do not correspond to bony structures.
+if the similarity measure after registration was larger than 0.75                However, the proposed method, which matches a large number
+times the similarity measure’s maximum. In [8], a failure was                    (20 000–30 000) of 3-D surface normals and back-projected
+defined as when the final registration position, in any of the                   2-D gradients should be robust to outliers produced by surgical
+six-degrees-of-freedom, was further from “gold standard” than                    instruments and implants.
+     . We believe that both criteria are less rigorous than ours,
+which is that the TRE of each target point is below 2 mm. Using                                                 APPENDIX A
+the criterion in [8], quite some of our misregistrations would be                   Let the X-ray source be at the origin of a coordinate system
+classified as successful. The similarity measure, as in [19], is not             and the detector plane perpendicular to axis. In spherical
+a good criterion because it depends on the behavior of the mea-                  coordinates (        ), the image intensity      and image in-
+sure. Small changes may correspond to large spatial displace-                    tensity gradient grad        at point are given as
+ments from the ”gold standard” position. For the method based
+on DRRs, as well as for our method, to work, it is important                                                                                            (A1)
+that at the start of registration, some corresponding features are
+at least partially overlapping. Weese et al. [19] and Penney et al.              and
+[8] had facilitated registration by determining the shifts parallel
+to the projection plane from manually indicated corresponding
+points in the DRR and X-ray image. In [8] and [19], the reg-
+istration accuracy is given in terms of the differences between
+“gold standard” and final rotation and translation parameters.                                                                                          (A2)
+The parameter accuracy or error is not a useful measure, what
+should be measured is TRE [26]. For different origins and object                 The intensity gradient is thus lying in plane             , the plane that is
+sizes the parameter values may be very similar, but there can be                 perpendicular to projection beam
+significant differences in TRE. In [19], the rotation parameters
+corresponded within 0.5 , the shifts parallel to the projection                                                                                         (A3)
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+TOMAŽEVIČ et al.: 3-D/2-D REGISTRATION OF CT AND MR TO X-RAY IMAGES                                                                                       1415
+
+
+
+
+                                                                                                                                                           (C2)
+
+
+
+Taking into account the relations                                               and the partial derivative of          on is as shown in (C2) at
+                                                                                the top of the page. By assuming that      is a smooth function
+                                                                                and that       is zero for points lying on we obtain
+                                                                      (A4)
+                                                                                                                                                           (C3)
+the image intensity gradient in detector plane
+
+                                                                      (A5)      Similarly, the partial derivative of                   on     is given as
+
+is defined in spherical coordinate system as                                                                                                               (C4)
+
+                                                                                By inserting the partial derivatives                   and            in (A2),
+                                                                                the following expression is obtained:
+                                                                      (A6)
+                                                                                                                                                           (C5)
+or
+
+                                                                      (A7)
+                                                                                                           ACKNOWLEDGMENT
+This relation can be written as
+                                                                                  The authors would like to thank L. Desbat, M. Fleute,
+                                                                                R. Martin, F. Esteve, and U. Vovk for their generous help and
+                                                                      (A8)
+                                                                                support in image acquisitions.
+or
+                                                                                                                REFERENCES
+                                                                      (A9)         [1] R. L. Galloway, “The process and development of image-guided proce-
+                                                                                       dures,” Annu. Rev. Biomed. Eng., vol. 3, pp. 83–108, 2001.
+                                                                                   [2] R. H. Taylor, S. Lavallee, G. C. Burdea, and R. Mosges, Eds.,
+                                                                                       Computer-Integrated Surgery: Technology and Clinical Applica-
+                            APPENDIX B                                                 tions. Cambridge, MA: MIT Press, 1996.
+                                                                                   [3] D. Jones, D. A. Christopherson, J. T. Washington, M. D. Hafermann, J.
+  In the spherical coordinate system, the attenuation coefficient                      W. Rieke, J. J. Travaglini, and S. S. Vermeulen, “A frameless method for
+                                                                                       stereotaxic radiotherapy,” Br. J. Radiol., vol. 66, pp. 1142–1150, 1993.
+gradient            is given as                                                    [4] C. R. Maurer Jr., J. M. Fitzpatrick, M. Y. Wang, R. L. Galloway, R. J.
+                                                                                       Maciunas, and G. S. Allen, “Registration of head volume images using
+                                                                                       implantable fiducial markers,” IEEE Trans. Med. Imag., vol. 16, pp.
+                                                                                       447–462, Aug. 1997.
+                                                                                   [5] R. H. Taylor, B. D. Mittelstadt, H. A. Paul, W. Hanson, P. Kazanzides, J.
+                                                                                       F. Zuhars, B. Williamson, B. L. Musits, E. Glassman, and W. L. Bargar,
+                                                                                       “An image-directed robotic system for precise orthopaedic surgery,”
+                                                                                       IEEE Trans. Robot. Automat., vol. 10, pp. 261–275, June 1994.
+                                                                       (B1)        [6] J. M. Fitzpatrick and J. B. West, “The distribution of target registration
+                                                                                       error in rigid-body point-based registration,” IEEE Trans. Med. Imag.,
+The gradient is composed of two parts,                    in the direc-                vol. 20, pp. 917–927, Sept. 2001.
+                                                                                   [7] A. Gueziec, P. Kazanzides, B. Williamson, and R. H. Taylor,
+tion of projection beam and                        perpendicular to the                “Anatomy-based registration of CT-scan and intraoperative X-ray
+beam.                                                                                  images for guiding a surgical robot,” IEEE Trans. Med. Imag., vol. 17,
+                                                                                       pp. 715–728, Oct 1998.
+                                                                                   [8] G. P. Penney, J. Weese, J. A. Little, P. Desmedt, D. L. G. Hill, and D. J.
+                            APPENDIX C                                                 Hawkes, “A comparison of similarity measures for use in 2-D-3-D med-
+                                                                                       ical image registration,” IEEE Trans. Med. Imag., vol. 17, pp. 586–595,
+   Let be a closed surface surrounding the imaged object and                           Aug. 1998.
+let and be distances from the origin of coordinate system                          [9] J. L. Herring, B. M. Dawant, C. R. Maurer Jr., D. M. Muratore, R. L. Gal-
+to points where a projection beam enters and leaves the closed                         loway, and J. M. Fitzpatrick, “Surface-based registration of CT images
+                                                                                       to physical space for image-guided surgery of the spine: A sensitivity
+volume, respectively. Equation (4) in spherical coordinates is                         study,” IEEE Trans. Med. Imag., vol. 17, pp. 743–752, Oct. 1998.
+given as                                                                          [10] A. C. F. Colchester, J. Zhao, K. S. Holton-Tainter, C. J. Henri, N. Mait-
+                                                                                       land, P. T. E. Roberts, C. G. Harris, and R. J. Evans, “Development and
+                                                                                       preliminary evaluation of VISLAN, a surgical planning and guidance
+                                                                       (C1)            system using intra-operative video imaging,” Med. Image Anal., vol. 1,
+                                                                                       pp. 73–90, 1996.
+           Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+1416                                                                                 IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. 22, NO. 11, NOVEMBER 2003
+
+
+
+ [11] W. E. L. Grimson, G. J. Ettinger, S. J. White, T. Lozano-Perez, W. M.             [22] P. Jannin, J. M. Fitzpatrick, D. J. Hawkes, X. Pennec, R. Sahidi, and
+      Wells III, and R. Kikinis, “An automatic registration method for frame-                M. W. Vannier, “White paper: Validation of medical image processing
+      less stereotaxy, image guided surgery, and enhanced reality visualiza-                 in image-guidedtherapy,” in Proc. Int. Conf. Computer-Assisted Radi-
+      tion,” IEEE Trans. Med. Imag., vol. 15, pp. 129–140, Apr. 1996.                        ology(CARS 2002), H. U. Lemke, M. W. Vannier, K. Inamura, A. G.
+ [12] S. Lavallee, P. Sautot, J. Troccaz, P. Cinquin, and P. Merloz, “Computer               Farman, K. Doi, and J. H. C. Reiber, Eds., 2002, pp. 299–305.
+      assisted spine surgery: A technique for accurate transpedicular screw             [23] D. Tomaževič, B. Likar, and F. Pernuš, ““Gold standard” 2D/3D regis-
+      fixation using CT data and a 3D localizer,” J. Image Guide. Surg., vol.                tration of X-ray to CT and MR images,” in Lecture Notes in Computer
+      1, pp. 65–73, 1995.                                                                    Science, 2002, vol. 2489, pp. 461–468.
+ [13] C. R. Maurer Jr., R. J. Maciunas, and J. M. Fitzpatrick, “Registration            [24] H. Livyatan, Z. Yaniv, and L. Joskowicz, “Robust automatic C-arm cali-
+      of head CT images to physical space using a weighted combination of                    bration for fluoroscopy-based navigation: A practical approach,” Lecture
+      points and surfaces,” IEEE Trans. Med. Imag., vol. 17, pp. 753–761, Oct.               Notes in Computer Science, vol. 2489, pp. 60–68, 2002.
+      1998.                                                                             [25] B. Likar, M. A. Viergever, and F. Pernuš, “Retrospective correction
+ [14] D. A. Simon, M. Hebert, and T. Kanade, “Techniques for fast and accu-                  of MR intensity inhomogeneity by information minimization,” IEEE
+      rate intra-surgical registration,” J. Image Guide. Surg., vol. 1, pp. 17–29,           Trans. Med. Imag., vol. 20, pp. 1398–1410, Dec. 2001.
+      1995.                                                                             [26] J. M. Fitzpatrick, J. B. West, and C. R. Maurer Jr., “Predicting error in
+ [15] P. J. Besl and N. D. McKay, “A method for registration of 3-D shapes,”                 rigid-body point-based registration,” IEEE Trans. Med. Imag., vol. 17,
+      IEEE Trans. Pattern Anal. Machine Intell., vol. 14, pp. 239–256, Feb.                  pp. 694–702, Oct. 1998.
+      1992.                                                                             [27] W. H. Press, B. P. Flannery, S. A. Teukolosky, and W. T. Vetterling, Nu-
+ [16] S. Lavallee and R. Szeliski, “Recovering the position and orientation of               merical Recipes in C, 2 ed. Cambridge, U.K.: Cambridge Univ. Press,
+      free-form objects from image contours using 3-D distance maps,” IEEE                   1992.
+      Trans. Pattern Anal. Machine Intell., vol. 17, pp. 378–390, Apr. 1995.            [28] J. B. West et al., “Comparison and evaluation of retrospective inter-
+ [17] M. Goitein, M. Abrams, D. Rowell, H. Pollari, and J. Wiles, “Multidi-                  modality brain image registration techniques,” J. Comput. Assist. To-
+      mensional treatment planning. 2. Beam eye-view, back projection, and                   mogr., vol. 21, pp. 554–566, 1997.
+      projection through CT sections,” Int. J. Radiat. Oncol. Biol. Phys., vol.         [29] Y. R. Rampersaud, D. A. Simon, and K. T. Foley, “Accuracy require-
+      9, pp. 789–797, 1983.                                                                  ments for image-guided spinal pedicle screw placement,” Spine, vol. 26,
+ [18] L. Lemieux, R. Jagoe, D. R. Fish, N. D. Kitchen, and D. G. T. Thomas,                  pp. 352–359, 2001.
+      “A patient-to-computed-tomography image registration method based                 [30] C. L. Hoad, A. L. Martel, R. Kerslake, and M. Grevitt, “A 3D MRI
+      on digitally reconstructed radiographs,” Med. Phys., vol. 21, pp.                      sequence for computer-assisted surgery of the lumbar spine,” Phys. Med.
+      1749–1760, 1994.                                                                       Biol., vol. 46, pp. N213–N220, 2001.
+ [19] J. Weese, G. P. Penny, P. Desmedt, T. M. Buzug, D. L. G. Hill, and                [31] A. Gueziec, K. W. Wu, A. Kalvin, B. Williamson, P. Kazanzides, and R.
+      D. J. Hawkes, “Voxel-based 2-D/3-D registration of fluoroscopy images                  Van Vorhis, “Providing visual information to validate 2-D to 3-D regis-
+      and CT scans for image-guided surgery,” IEEE Trans. Inform. Technol.                   tration,” Med. Image Anal., vol. 4, pp. 357–374, 2000.
+      Biomed., vol. 1, pp. 284–293, Dec. 1997.                                          [32] L. M. G. Brown and T. E. Boult, “Registration of planar radiographs with
+ [20] D. LaRose, J. Bayouth, and T. Kanade, “Transgraph: Interactive inten-                  computed tomography,” Proc. IEEE Workshop Mathematical Methods
+      sity-based 2D/3D registration of X-ray and CT data,” Proc. SPIE, vol.                  Biomedical Imaging Analysis (MMBIA’96), pp. 42–51.
+      3979, Med. Imag. 2000, pp. 385–396.
+ [21] J. Weese, R. Göcke, G. P. Penny, P. Desmedt, T. M. Buzug, and H. Schu-
+      mann, “Fast voxel-based 2D/3D registration algorithm using a volume
+      rendering method based on the shear-warp factorization,” Proc. SPIE,
+      vol. 3661, Medical Imaging 1999, pp. 802–810.
+
+
+
+
+            Authorized licensed use limited to: Ningbo University. Downloaded on April 07,2026 at 07:26:25 UTC from IEEE Xplore. Restrictions apply.
+
