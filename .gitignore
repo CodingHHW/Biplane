@@ -27,6 +27,19 @@ Makefile
 
 # Testing/build dirs
 Testing/build/
+tmp/
+
+# LaTeX intermediate files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.xdv
 
 # Data / binary files used in project
 *.nrrd
