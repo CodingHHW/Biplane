@@ -1007,6 +1007,104 @@ QCheckBox { color: #2b2b2b; }</string>
       </item>
      </layout>
     </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_controlledPerturbation">
+      <property name="title">
+       <string>Controlled Perturbation</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_controlledPerturbation">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_controlledPerturbationNoiseType">
+         <item>
+          <widget class="QLabel" name="labelControlledPerturbationNoiseType">
+           <property name="text">
+            <string>Noise Type:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="controlledPerturbationNoiseTypeComboBox">
+           <property name="toolTip">
+            <string>Select whether perturbation is injected into marker points only or target points only.</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>marker-only</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>target-only</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_controlledPerturbationNoiseSigma">
+         <item>
+          <widget class="QLabel" name="labelControlledPerturbationNoiseSigma">
+           <property name="text">
+            <string>Noise Sigma:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="controlledPerturbationNoiseSigmaComboBox">
+           <property name="toolTip">
+            <string>Select one of the four planned perturbation levels for the study.</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>0 px</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.5 px</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1 px</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2 px</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+       <widget class="QPushButton" name="runControlledPerturbationButton">
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #2b8a3e; color: white; border-radius: 6px; padding: 5px 10px; font-weight: bold; } QPushButton:hover { background-color: #237032; }</string>
+         </property>
+         <property name="toolTip">
+          <string>Enable or disable the controlled perturbation workflow with the selected noise type and sigma level.</string>
+         </property>
+         <property name="text">
+          <string>Enable Controlled Perturbation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="controlledPerturbationStatusLabel">
+         <property name="text">
+          <string>Status: Disabled | Noise Type: marker-only | Sigma: 0 px</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
   </layout>
      </widget>
     </widget>

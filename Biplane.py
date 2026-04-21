@@ -97,6 +97,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.importedExperimentFieldNames = []
         self.importedExperimentRowIndex = -1
         self.importedExperimentRestoreStatus = "Transforms: n/a"
+        self.controlledPerturbationEnabled = False
+        self.controlledPerturbationNoiseType = "marker-only"
+        self.controlledPerturbationNoiseSigmaPx = 0.0
         self.markerSortMetrics = {}
         self.stepTimingsMs = {}
 
@@ -486,6 +489,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.ui.calculateTREButton.connect("clicked(bool)", self.onCalculateTRE)
         self.ui.calculateReprojectionButton.connect("clicked(bool)", self.onCalculateReprojectionError)
+        self.ui.controlledPerturbationNoiseTypeComboBox.connect(
+            "currentIndexChanged(int)", self.onControlledPerturbationOptionsChanged
+        )
+        self.ui.controlledPerturbationNoiseSigmaComboBox.connect(
+            "currentIndexChanged(int)", self.onControlledPerturbationOptionsChanged
+        )
+        self.ui.runControlledPerturbationButton.connect("clicked(bool)", self.onRunControlledPerturbation)
         self.ui.browseCsvPathButton.connect("clicked(bool)", self.onBrowseCsvPath)
         self.ui.saveResultsCsvButton.connect("clicked(bool)", self.onSaveResultsCsv)
         self.ui.browseImportCsvPathButton.connect("clicked(bool)", self.onBrowseImportCsvPath)
@@ -513,6 +523,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.csvSavePathLineEdit.setText(self.csvFilePath)
         if hasattr(self.ui, "importCsvPathLineEdit") and self.ui.importCsvPathLineEdit is not None:
             self.ui.importCsvPathLineEdit.setText(self.importCsvFilePath)
+        self._initialize_controlled_perturbation_ui()
         self._update_import_csv_status()
 
         self.ui.orthographicProjectionButton.setChecked(False)
@@ -3190,6 +3201,71 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if value is None:
             return ""
         return str(value).strip()
+
+    def _initialize_controlled_perturbation_ui(self) -> None:
+        """Apply default controlled perturbation UI values and refresh summary text."""
+        if hasattr(self.ui, "controlledPerturbationNoiseTypeComboBox") and self.ui.controlledPerturbationNoiseTypeComboBox is not None:
+            self.ui.controlledPerturbationNoiseTypeComboBox.setCurrentIndex(0)
+        if hasattr(self.ui, "controlledPerturbationNoiseSigmaComboBox") and self.ui.controlledPerturbationNoiseSigmaComboBox is not None:
+            self.ui.controlledPerturbationNoiseSigmaComboBox.setCurrentIndex(0)
+        if hasattr(self.ui, "runControlledPerturbationButton") and self.ui.runControlledPerturbationButton is not None:
+            self.ui.runControlledPerturbationButton.setChecked(False)
+        self._update_controlled_perturbation_status()
+
+    def _get_controlled_perturbation_noise_type(self) -> str:
+        """Return the currently selected controlled perturbation noise type."""
+        return self._widget_text("controlledPerturbationNoiseTypeComboBox") or "marker-only"
+
+    def _get_controlled_perturbation_noise_sigma_px(self) -> float:
+        """Return the currently selected controlled perturbation sigma in pixels."""
+        sigma_text = self._widget_text("controlledPerturbationNoiseSigmaComboBox")
+        sigma_value = self._extract_first_float(sigma_text)
+        try:
+            return float(sigma_value) if sigma_value != "" else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _update_controlled_perturbation_status(self) -> None:
+        """Refresh cached perturbation option values and their UI summary."""
+        self.controlledPerturbationNoiseType = self._get_controlled_perturbation_noise_type()
+        self.controlledPerturbationNoiseSigmaPx = self._get_controlled_perturbation_noise_sigma_px()
+        if hasattr(self.ui, "runControlledPerturbationButton") and self.ui.runControlledPerturbationButton is not None:
+            self.controlledPerturbationEnabled = bool(self.ui.runControlledPerturbationButton.isChecked())
+            button_text = (
+                "Disable Controlled Perturbation"
+                if self.controlledPerturbationEnabled
+                else "Enable Controlled Perturbation"
+            )
+            self.ui.runControlledPerturbationButton.setText(button_text)
+        sigma_label = self._widget_text("controlledPerturbationNoiseSigmaComboBox") or "0 px"
+        state_text = "Enabled" if self.controlledPerturbationEnabled else "Disabled"
+        status_text = (
+            f"Status: {state_text} | "
+            f"Noise Type: {self.controlledPerturbationNoiseType} | "
+            f"Sigma: {sigma_label}"
+        )
+        if hasattr(self.ui, "controlledPerturbationStatusLabel") and self.ui.controlledPerturbationStatusLabel is not None:
+            self.ui.controlledPerturbationStatusLabel.setText(status_text)
+            self.ui.controlledPerturbationStatusLabel.setStyleSheet(
+                "color: #2b8a3e; font-weight: bold;" if self.controlledPerturbationEnabled else "color: #c92a2a;"
+            )
+
+    def onControlledPerturbationOptionsChanged(self, *args) -> None:
+        """Handle controlled perturbation UI option updates."""
+        self._update_controlled_perturbation_status()
+
+    def onRunControlledPerturbation(self, checked=False) -> None:
+        """Toggle the controlled perturbation experiment workflow state."""
+        self.controlledPerturbationEnabled = bool(checked)
+        if hasattr(self.ui, "runControlledPerturbationButton") and self.ui.runControlledPerturbationButton is not None:
+            self.ui.runControlledPerturbationButton.setChecked(self.controlledPerturbationEnabled)
+        self._update_controlled_perturbation_status()
+        logging.info(
+            "Controlled perturbation toggled | enabled=%s | noise_type=%s | noise_sigma_px=%s",
+            self.controlledPerturbationEnabled,
+            self.controlledPerturbationNoiseType,
+            self.controlledPerturbationNoiseSigmaPx,
+        )
 
     def _selector_current_node_name(self, selector_name: str) -> str:
         """Return current node name from a qMRMLNodeComboBox-like widget."""
