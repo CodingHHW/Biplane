@@ -502,6 +502,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             "currentIndexChanged(int)", self.onControlledPerturbationOptionsChanged
         )
         self.ui.runControlledPerturbationButton.connect("clicked(bool)", self.onRunControlledPerturbation)
+        self.ui.runControlledPerturbationWorkflowButton.connect(
+            "clicked(bool)", self.onRunControlledPerturbationWorkflow
+        )
         self.ui.browseCsvPathButton.connect("clicked(bool)", self.onBrowseCsvPath)
         self.ui.saveResultsCsvButton.connect("clicked(bool)", self.onSaveResultsCsv)
         self.ui.browseImportCsvPathButton.connect("clicked(bool)", self.onBrowseImportCsvPath)
@@ -2534,7 +2537,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             run_state = self._prepare_controlled_perturbation_run_for_red(clean_p2d)
         except Exception as exc:
             self._reset_controlled_perturbation_run_state(clear_summary=False)
-            self.controlledPerturbationLastAppliedSummary = "Last Run: preparation failed"
+            self.controlledPerturbationLastAppliedSummary = "Run preparation failed"
             self._update_controlled_perturbation_status()
             self._error("Failed to prepare controlled perturbation run", detailedText=str(exc))
             return
@@ -3078,7 +3081,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         if isinstance(run_state, dict):
             run_state["stage"] = "completed"
-            self.controlledPerturbationLastAppliedSummary = f"Last Run: #{run_state['run_id']} completed"
+            self.controlledPerturbationLastAppliedSummary = f"Run #{run_state['run_id']} completed"
             self._update_controlled_perturbation_status()
             self.onCalculateTRE()
             self.onCalculateReprojectionError()
@@ -3374,21 +3377,20 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if hasattr(self.ui, "runControlledPerturbationButton") and self.ui.runControlledPerturbationButton is not None:
             self.controlledPerturbationEnabled = bool(self.ui.runControlledPerturbationButton.isChecked())
             button_text = (
-                "Disable Controlled Perturbation"
+                "Disable Perturbation"
                 if self.controlledPerturbationEnabled
-                else "Enable Controlled Perturbation"
+                else "Enable Perturbation"
             )
             self.ui.runControlledPerturbationButton.setText(button_text)
         sigma_label = self._widget_text("controlledPerturbationNoiseSigmaComboBox") or "0 px"
         state_text = "Enabled" if self.controlledPerturbationEnabled else "Disabled"
-        summary_parts = [
+        status_text = (
             f"Status: {state_text} | "
-            f"Noise Type: {self.controlledPerturbationNoiseType} | "
+            f"Type: {self.controlledPerturbationNoiseType} | "
             f"Sigma: {sigma_label}"
-        ]
+        )
         if self.controlledPerturbationLastAppliedSummary:
-            summary_parts.append(self.controlledPerturbationLastAppliedSummary)
-        status_text = " | ".join(summary_parts)
+            status_text = f"{status_text}\n{self.controlledPerturbationLastAppliedSummary}"
         if hasattr(self.ui, "controlledPerturbationStatusLabel") and self.ui.controlledPerturbationStatusLabel is not None:
             self.ui.controlledPerturbationStatusLabel.setText(status_text)
             self.ui.controlledPerturbationStatusLabel.setStyleSheet(
@@ -3523,7 +3525,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             )
 
         self.controlledPerturbationRunState = run_state
-        self.controlledPerturbationLastAppliedSummary = f"Last Run: #{run_id} prepared"
+        self.controlledPerturbationLastAppliedSummary = f"Run #{run_id} prepared"
         self._update_controlled_perturbation_status()
         return run_state
 
@@ -3558,6 +3560,67 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.controlledPerturbationNoiseType,
             self.controlledPerturbationNoiseSigmaPx,
         )
+
+    def onRunControlledPerturbationWorkflow(self, checked=False) -> None:
+        """Run the repeated CopyBlackCenter/redPush/greenPush workflow in one click."""
+        if not self._require_markers_sorted():
+            return
+
+        for source_name in ("blackCenter1", "blackCenter2"):
+            source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
+            if source_node is None or source_node.GetNumberOfControlPoints() < 1:
+                self._error(f"Please click blackCenter first so {source_name} is available")
+                return
+
+        self.controlledPerturbationLastAppliedSummary = "Auto workflow running"
+        self._update_controlled_perturbation_status()
+
+        for stale_node_name in ("GreenLine2D", "TargetP3D", "TargetP2DYellow"):
+            stale_node = slicer.mrmlScene.GetFirstNodeByName(stale_node_name)
+            if stale_node is not None:
+                try:
+                    slicer.mrmlScene.RemoveNode(stale_node)
+                except Exception:
+                    logging.warning("Failed to remove stale %s before auto workflow", stale_node_name, exc_info=True)
+
+        try:
+            self.onCopyBlackCenter1()
+            point_red = slicer.mrmlScene.GetFirstNodeByName("PointRed")
+            if point_red is None or point_red.GetNumberOfControlPoints() < 1:
+                raise RuntimeError("PointRed was not created from blackCenter1")
+            self._set_selector_current_node(self.ui.Red2DPSelector, point_red)
+
+            self.onTwoD2ThreeDRed()
+
+            point_green_line = slicer.mrmlScene.GetFirstNodeByName("GreenLine2D")
+            if point_green_line is None:
+                raise RuntimeError("redPush did not generate GreenLine2D")
+
+            self.onCopyBlackCenter2()
+            point_green = slicer.mrmlScene.GetFirstNodeByName("PointGreen")
+            if point_green is None or point_green.GetNumberOfControlPoints() < 1:
+                raise RuntimeError("PointGreen was not created from blackCenter2")
+            self._set_selector_current_node(self.ui.Green2DPSelector, point_green)
+
+            self.onTwoD2ThreeDGreen()
+            target_p3d = slicer.mrmlScene.GetFirstNodeByName("TargetP3D")
+            target_p2d_yellow = slicer.mrmlScene.GetFirstNodeByName("TargetP2DYellow")
+            if target_p3d is None or target_p2d_yellow is None:
+                raise RuntimeError("greenPush did not generate the expected TargetP3D / TargetP2DYellow results")
+            self.onCalculateTRE()
+            self.onCalculateReprojectionError()
+        except Exception as exc:
+            self.controlledPerturbationLastAppliedSummary = "Auto workflow failed"
+            self._update_controlled_perturbation_status()
+            self._error("Run Full Copy+Push Workflow failed", detailedText=str(exc))
+            return
+
+        run_state = self.controlledPerturbationRunState if isinstance(self.controlledPerturbationRunState, dict) else None
+        if run_state is not None and run_state.get("stage") == "completed":
+            self.controlledPerturbationLastAppliedSummary = f"Run #{run_state['run_id']} completed | Auto workflow"
+        else:
+            self.controlledPerturbationLastAppliedSummary = "Auto workflow completed"
+        self._update_controlled_perturbation_status()
 
     def _selector_current_node_name(self, selector_name: str) -> str:
         """Return current node name from a qMRMLNodeComboBox-like widget."""

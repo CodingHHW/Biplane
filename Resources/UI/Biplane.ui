@@ -1091,12 +1091,34 @@ QCheckBox { color: #2b2b2b; }</string>
           <string>Enable or disable the controlled perturbation workflow with the selected noise type and sigma level.</string>
          </property>
          <property name="text">
-          <string>Enable Controlled Perturbation</string>
+         <string>Enable Perturbation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="runControlledPerturbationWorkflowButton">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #1d6f8b; color: white; border-radius: 6px; padding: 5px 10px; font-weight: bold; } QPushButton:hover { background-color: #17596f; }</string>
+         </property>
+         <property name="toolTip">
+          <string>Run the repeated workflow in one click: CopyBlackCenter1, redPush, CopyBlackCenter2, greenPush.</string>
+         </property>
+         <property name="text">
+          <string>Run Auto Copy+Push</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QLabel" name="controlledPerturbationStatusLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
          <property name="text">
           <string>Status: Disabled | Noise Type: marker-only | Sigma: 0 px</string>
          </property>
