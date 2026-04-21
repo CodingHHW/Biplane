@@ -99,7 +99,7 @@ Biplane/
 9. 查看 Yellow 视图中的验证点 `TargetP2DYellow`
 10. 可选：使用 `showKnife` + `tracing`
 11. 可选：计算 TRE / Reprojection Error
-12. 点击 `Save Current Results to CSV`
+12. 点击 `Export Current Results to CSV`
 
 ### 默认输出
 
@@ -121,8 +121,8 @@ Biplane/
 说明：
 
 - 截图与 `shot*.nii.gz` 默认仍写入 `<Slicer temporaryPath>/Biplane/`
-- `Save Current Results to CSV` 默认写入仓库目录下的 `experiment/experiment_results.csv`
-- 如有需要，也可以在 UI 里手动改写 CSV 保存路径
+- `Export Current Results to CSV` 默认写入仓库目录下的 `experiment/experiment_results.csv`
+- 导入 CSV 与导出 CSV 路径彼此独立，如有需要可在 UI 里分别指定
 
 ### CSV 记录内容
 

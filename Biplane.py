@@ -90,8 +90,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.projectPath = os.path.dirname(os.path.abspath(__file__))
         self.experimentPath = os.path.join(self.projectPath, "experiment")
         os.makedirs(self.experimentPath, exist_ok=True)
-        self.csvFilePath = os.path.join(self.experimentPath, "experiment_results.csv")
-        self.importCsvFilePath = self.csvFilePath
+        default_csv_path = os.path.join(self.experimentPath, "experiment_results.csv")
+        self.csvFilePath = default_csv_path
+        self.importCsvFilePath = default_csv_path
         self.importedExperimentRows = []
         self.importedExperimentFieldNames = []
         self.importedExperimentRowIndex = -1
@@ -3424,8 +3425,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """Check whether per-view calibration dict contains 3 views."""
         return isinstance(calibs, dict) and all(view_idx in calibs for view_idx in (1, 2, 3))
 
+    def _default_experiment_csv_path(self) -> str:
+        """Return the default CSV path used for experiment import/export workflows."""
+        return os.path.join(getattr(self, "experimentPath", self.savePath), "experiment_results.csv")
+
     def _set_csv_file_path(self, path_text: str) -> None:
-        """Normalize and apply CSV output path from UI or file dialog."""
+        """Normalize and apply export CSV path from UI or file dialog."""
         if not path_text:
             return
         normalized = os.path.normpath(str(path_text).strip())
@@ -3569,7 +3574,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onBrowseImportCsvPath(self):
         """Open file dialog to choose an experiment CSV for import."""
-        current_path = getattr(self, "importCsvFilePath", self.csvFilePath)
+        current_path = getattr(self, "importCsvFilePath", "") or self._default_experiment_csv_path()
         selected_path = qt.QFileDialog.getOpenFileName(
             slicer.util.mainWindow(),
             "Select Experiment CSV to Import",
@@ -3628,15 +3633,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._select_imported_experiment_row(self.importedExperimentRowIndex + 1)
 
     def onBrowseCsvPath(self):
-        """Open file dialog to choose CSV output path."""
-        current_path = getattr(
-            self,
-            "csvFilePath",
-            os.path.join(getattr(self, "experimentPath", self.savePath), "experiment_results.csv"),
-        )
+        """Open file dialog to choose export CSV output path."""
+        current_path = getattr(self, "csvFilePath", "") or self._default_experiment_csv_path()
         selected_path = qt.QFileDialog.getSaveFileName(
             slicer.util.mainWindow(),
-            "Select CSV Save Path",
+            "Select Export CSV Path",
             current_path,
             "CSV Files (*.csv)",
         )
@@ -3645,7 +3646,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_csv_file_path(selected_path)
 
     def onSaveResultsCsv(self):
-        """Append current test outputs and key runtime status fields into CSV."""
+        """Append current test outputs and key runtime status fields into the export CSV."""
         try:
             if self._markersSorted:
                 self._update_shot2_angle_display()
@@ -3654,11 +3655,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             manual_csv_path = self._widget_text("csvSavePathLineEdit")
             if manual_csv_path:
                 self._set_csv_file_path(manual_csv_path)
-            csv_path = getattr(
-                self,
-                "csvFilePath",
-                os.path.join(getattr(self, "experimentPath", self.savePath), "experiment_results.csv"),
-            )
+            csv_path = getattr(self, "csvFilePath", "") or self._default_experiment_csv_path()
             csv_dir = os.path.dirname(csv_path)
             if csv_dir:
                 os.makedirs(csv_dir, exist_ok=True)
@@ -3816,13 +3813,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
             self._append_csv_row_with_schema_upgrade(csv_path, row)
 
-            logging.info(f"Current test/status row appended to CSV: {csv_path}")
+            logging.info(f"Current results exported to CSV: {csv_path}")
             try:
-                slicer.util.infoDisplay(f"Results appended to CSV:\n{csv_path}")
+                slicer.util.infoDisplay(f"Current results exported to CSV:\n{csv_path}")
             except Exception:
                 pass
         except Exception as e:
-            self._error(f"Error saving current results to CSV: {str(e)}", detailedText=f"{e}")
+            self._error(f"Error exporting current results to CSV: {str(e)}", detailedText=f"{e}")
 
     def onDebugVisToggle(self, enabled):
         """界面回调：执行 `onDebugVisToggle` 对应的交互处理流程。"""

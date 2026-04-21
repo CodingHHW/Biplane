@@ -1016,14 +1016,17 @@ QCheckBox { color: #2b2b2b; }</string>
      <item>
       <widget class="QLabel" name="labelCsvSavePath">
        <property name="text">
-        <string>CSV Path:</string>
+        <string>Export CSV:</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QLineEdit" name="csvSavePathLineEdit">
+       <property name="toolTip">
+        <string>Choose the CSV file used to export current results. This can be different from the import CSV below.</string>
+       </property>
        <property name="placeholderText">
-        <string>Select CSV output path...</string>
+        <string>Select export CSV path for current results...</string>
        </property>
       </widget>
      </item>
@@ -1045,10 +1048,10 @@ QCheckBox { color: #2b2b2b; }</string>
       <string>QPushButton { background-color: #0b7285; color: white; border-radius: 6px; padding: 5px 10px; font-weight: bold; } QPushButton:hover { background-color: #095c6b; }</string>
      </property>
      <property name="toolTip">
-      <string>Append current test and status values to CSV file</string>
+      <string>Append current test and status values to the export CSV file above</string>
      </property>
      <property name="text">
-     <string>Save Current Results to CSV</string>
+     <string>Export Current Results to CSV</string>
      </property>
     </widget>
    </item>
@@ -1063,8 +1066,11 @@ QCheckBox { color: #2b2b2b; }</string>
      </item>
      <item>
       <widget class="QLineEdit" name="importCsvPathLineEdit">
+       <property name="toolTip">
+        <string>Choose the CSV file used only for importing experiment rows. It does not have to match the export CSV path above.</string>
+       </property>
        <property name="placeholderText">
-        <string>Select experiment_results.csv to import...</string>
+        <string>Select CSV file to import...</string>
        </property>
       </widget>
      </item>
