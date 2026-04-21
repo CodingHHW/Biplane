@@ -100,6 +100,12 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.controlledPerturbationEnabled = False
         self.controlledPerturbationNoiseType = "marker-only"
         self.controlledPerturbationNoiseSigmaPx = 0.0
+        self.controlledPerturbationRunCounter = 0
+        self.controlledPerturbationRunState = None
+        self.controlledPerturbationLastAppliedSummary = ""
+        self.lastTreMmRaw = None
+        self.lastReprojectionErrorPxRaw = None
+        self.lastRayGapMmRaw = None
         self.markerSortMetrics = {}
         self.stepTimingsMs = {}
 
@@ -577,6 +583,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """设置 `_setProjectionMode` 相关状态或界面显示。"""
         if mode not in ("orthographic", "perspective"):
             return
+        self._reset_controlled_perturbation_run_state(clear_summary=True)
         self.projectionMode = mode
         self.ui.orthographicProjectionButton.setChecked(mode == "orthographic")
         self.ui.perspectiveProjectionButton.setChecked(mode == "perspective")
@@ -627,10 +634,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return 30.0
         return float(camera.GetViewAngle())
 
-    def _get_view_marker_pairs(self, view_index: int, swap_big_23: bool = False, swap_small_23: bool = False):
+    def _get_view_marker_pairs(
+        self,
+        view_index: int,
+        swap_big_23: bool = False,
+        swap_small_23: bool = False,
+        marker_views: Optional[dict] = None,
+    ):
         """获取 `_get_view_marker_pairs` 相关对象或计算结果。"""
-        big_2d = getattr(self, f"bigMarkersSort{view_index}")
-        small_2d = getattr(self, f"smallMarkersSort{view_index}")
+        if marker_views is not None and view_index in marker_views:
+            view_marker_data = marker_views[view_index]
+            big_2d = view_marker_data["big"]
+            small_2d = view_marker_data["small"]
+        else:
+            big_2d = getattr(self, f"bigMarkersSort{view_index}")
+            small_2d = getattr(self, f"smallMarkersSort{view_index}")
         big_3d = getattr(self, f"bigMarker3DDic{view_index}")
         small_3d = getattr(self, f"smallMarker3DDic{view_index}")
 
@@ -656,6 +674,173 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             object_points.append(small_3d[object_label])
 
         return np.array(object_points, dtype=np.float64), np.array(image_points, dtype=np.float64)
+
+    def _solve_perspective_calibrations(self, marker_views: Optional[dict] = None) -> dict:
+        """Solve perspective calibrations from the provided clean or perturbed marker correspondences."""
+        view_angle = self._get_current_3d_camera_view_angle()
+        max_rms_px = 5.0
+        calibs = {}
+        for idx in (1, 2, 3):
+            image_size = self._get_shot_image_size(idx)
+            if not image_size:
+                raise ValueError(f"shot{idx} image size unavailable")
+            image_width, image_height = image_size
+            camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
+
+            best = None
+            for swap_big_23 in (False, True):
+                for swap_small_23 in (False, True):
+                    object_points, image_points = self._get_view_marker_pairs(
+                        idx,
+                        swap_big_23=swap_big_23,
+                        swap_small_23=swap_small_23,
+                        marker_views=marker_views,
+                    )
+                    for flip_x in (False, True):
+                        for flip_y in (False, True):
+                            img_pts_px = np.vstack([
+                                self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                                for p in image_points
+                            ])
+                            rvec, tvec = self.logic.estimateCameraPosePnP(
+                                object_points,
+                                img_pts_px,
+                                camera_matrix,
+                                dist_coeffs,
+                            )
+                            proj, _ = cv2.projectPoints(
+                                object_points.reshape(-1, 1, 3),
+                                np.array(rvec, dtype=np.float64),
+                                np.array(tvec, dtype=np.float64),
+                                np.array(camera_matrix, dtype=np.float64),
+                                np.array(dist_coeffs, dtype=np.float64),
+                            )
+                            proj = proj.reshape(-1, 2)
+                            rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                            if best is None or rms < best[0]:
+                                best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec)
+
+            if best is None:
+                raise ValueError(f"view{idx} solvePnP calibration failed")
+            rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec = best
+            if rms > max_rms_px:
+                raise ValueError(
+                    f"view{idx} PnP reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
+                    "check marker ordering/transforms and rerun markersSort"
+                )
+
+            logging.info(
+                "PnP calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, "
+                "swap_small_23=%s, fov=%.2fdeg",
+                idx,
+                rms,
+                flip_x,
+                flip_y,
+                swap_big_23,
+                swap_small_23,
+                view_angle,
+            )
+
+            calibs[idx] = {
+                "K": camera_matrix,
+                "dist": dist_coeffs,
+                "rvec": rvec,
+                "tvec": tvec,
+                "w": int(image_width),
+                "h": int(image_height),
+                "flip_x": bool(flip_x),
+                "flip_y": bool(flip_y),
+                "swap_big_23": bool(swap_big_23),
+                "swap_small_23": bool(swap_small_23),
+                "reproj_rms_px": float(rms),
+                "view_angle_deg": float(view_angle),
+            }
+
+        return calibs
+
+    def _solve_orthographic_calibrations(self, marker_views: Optional[dict] = None) -> dict:
+        """Solve orthographic calibrations from the provided clean or perturbed marker correspondences."""
+        max_rms_px = 5.0
+        view_angle = self._get_current_3d_camera_view_angle()
+        calibs = {}
+        for idx in (1, 2, 3):
+            image_size = self._get_shot_image_size(idx)
+            if not image_size:
+                raise ValueError(f"shot{idx} image size unavailable")
+            image_width, image_height = image_size
+
+            best = None
+            for swap_big_23 in (False, True):
+                for swap_small_23 in (False, True):
+                    object_points, image_points = self._get_view_marker_pairs(
+                        idx,
+                        swap_big_23=swap_big_23,
+                        swap_small_23=swap_small_23,
+                        marker_views=marker_views,
+                    )
+                    X = np.hstack([object_points, np.ones((object_points.shape[0], 1), dtype=np.float64)])
+
+                    for flip_x in (False, True):
+                        for flip_y in (False, True):
+                            img_pts_px = np.vstack([
+                                self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
+                                for p in image_points
+                            ])
+                            u = img_pts_px[:, 0]
+                            v = img_pts_px[:, 1]
+
+                            pu, _, _, _ = np.linalg.lstsq(X, u, rcond=None)
+                            pv, _, _, _ = np.linalg.lstsq(X, v, rcond=None)
+                            P = np.vstack([pu, pv])
+
+                            proj = X @ P.T
+                            rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
+                            if best is None or rms < best[0]:
+                                best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, P)
+
+            if best is None:
+                raise ValueError(f"view{idx} orthographic calib failed")
+            rms, flip_x, flip_y, swap_big_23, swap_small_23, P = best
+            if rms > max_rms_px:
+                raise ValueError(
+                    f"view{idx} orthographic reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
+                    "check marker ordering/transforms and rerun markersSort"
+                )
+
+            A = np.array(P[:, :3], dtype=np.float64)
+            t = np.array(P[:, 3], dtype=np.float64)
+            d = np.cross(A[0, :], A[1, :])
+            dn = np.linalg.norm(d)
+            if np.isclose(dn, 0.0):
+                raise ValueError(f"view{idx} orthographic direction is degenerate")
+            d = d / dn
+
+            logging.info(
+                "Ortho calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, swap_small_23=%s",
+                idx,
+                rms,
+                flip_x,
+                flip_y,
+                swap_big_23,
+                swap_small_23,
+            )
+
+            calibs[idx] = {
+                "P": P,
+                "A": A,
+                "t": t,
+                "d": d,
+                "w": int(image_width),
+                "h": int(image_height),
+                "flip_x": bool(flip_x),
+                "flip_y": bool(flip_y),
+                "swap_big_23": bool(swap_big_23),
+                "swap_small_23": bool(swap_small_23),
+                "reproj_rms_px": float(rms),
+                "view_angle_deg": float(view_angle),
+            }
+
+        return calibs
 
     def _slicer2d_to_pixel_raw(self, point2d_slicer: np.array, image_width: int, image_height: int, flip_x: bool, flip_y: bool):
         """执行 `_slicer2d_to_pixel_raw` 所对应的坐标系转换或投影运算。"""
@@ -869,85 +1054,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """计算三个视角的透视标定参数（K/dist/rvec/tvec 及翻转、编号交换状态）。"""
         start_time = time.perf_counter()
         try:
-            view_angle = self._get_current_3d_camera_view_angle()
-            max_rms_px = 5.0
-            calibs = {}
-            for idx in (1, 2, 3):
-                image_size = self._get_shot_image_size(idx)
-                if not image_size:
-                    raise ValueError(f"shot{idx} image size unavailable")
-                image_width, image_height = image_size
-                camera_matrix, dist_coeffs = self.logic.buildCameraIntrinsics(image_width, image_height, view_angle)
-
-                best = None
-                for swap_big_23 in (False, True):
-                    for swap_small_23 in (False, True):
-                        object_points, image_points = self._get_view_marker_pairs(
-                            idx,
-                            swap_big_23=swap_big_23,
-                            swap_small_23=swap_small_23,
-                        )
-                        for flip_x in (False, True):
-                            for flip_y in (False, True):
-                                img_pts_px = np.vstack([
-                                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
-                                    for p in image_points
-                                ])
-                                rvec, tvec = self.logic.estimateCameraPosePnP(
-                                    object_points,
-                                    img_pts_px,
-                                    camera_matrix,
-                                    dist_coeffs,
-                                )
-                                proj, _ = cv2.projectPoints(
-                                    object_points.reshape(-1, 1, 3),
-                                    np.array(rvec, dtype=np.float64),
-                                    np.array(tvec, dtype=np.float64),
-                                    np.array(camera_matrix, dtype=np.float64),
-                                    np.array(dist_coeffs, dtype=np.float64),
-                                )
-                                proj = proj.reshape(-1, 2)
-                                rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
-                                if best is None or rms < best[0]:
-                                    best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec)
-
-                if best is None:
-                    raise ValueError(f"view{idx} solvePnP calibration failed")
-                rms, flip_x, flip_y, swap_big_23, swap_small_23, rvec, tvec = best
-                if rms > max_rms_px:
-                    raise ValueError(
-                        f"view{idx} PnP reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
-                        "check marker ordering/transforms and rerun markersSort"
-                    )
-
-                logging.info(
-                    "PnP calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, "
-                    "swap_small_23=%s, fov=%.2fdeg",
-                    idx,
-                    rms,
-                    flip_x,
-                    flip_y,
-                    swap_big_23,
-                    swap_small_23,
-                    view_angle,
-                )
-
-                calibs[idx] = {
-                    "K": camera_matrix,
-                    "dist": dist_coeffs,
-                    "rvec": rvec,
-                    "tvec": tvec,
-                    "w": int(image_width),
-                    "h": int(image_height),
-                    "flip_x": bool(flip_x),
-                    "flip_y": bool(flip_y),
-                    "swap_big_23": bool(swap_big_23),
-                    "swap_small_23": bool(swap_small_23),
-                    "reproj_rms_px": float(rms),
-                    "view_angle_deg": float(view_angle),
-                }
-
-            self.perspectiveViewCalibs = calibs
+            self.perspectiveViewCalibs = self._solve_perspective_calibrations()
             return True
         except Exception as e:
             self.perspectiveViewCalibs = {}
@@ -963,86 +1070,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """计算三个视角的正交标定参数（2x4 投影模型、平面方向向量与异常阈值校验）。"""
         start_time = time.perf_counter()
         try:
-            max_rms_px = 5.0
-            view_angle = self._get_current_3d_camera_view_angle()
-            calibs = {}
-            for idx in (1, 2, 3):
-                image_size = self._get_shot_image_size(idx)
-                if not image_size:
-                    raise ValueError(f"shot{idx} image size unavailable")
-                image_width, image_height = image_size
-
-                best = None
-                for swap_big_23 in (False, True):
-                    for swap_small_23 in (False, True):
-                        object_points, image_points = self._get_view_marker_pairs(
-                            idx,
-                            swap_big_23=swap_big_23,
-                            swap_small_23=swap_small_23,
-                        )
-                        X = np.hstack([object_points, np.ones((object_points.shape[0], 1), dtype=np.float64)])  # Nx4
-
-                        for flip_x in (False, True):
-                            for flip_y in (False, True):
-                                img_pts_px = np.vstack([
-                                    self._slicer2d_to_pixel_raw(p, image_width, image_height, flip_x, flip_y)
-                                    for p in image_points
-                                ])
-                                u = img_pts_px[:, 0]
-                                v = img_pts_px[:, 1]
-
-                                pu, _, _, _ = np.linalg.lstsq(X, u, rcond=None)
-                                pv, _, _, _ = np.linalg.lstsq(X, v, rcond=None)
-                                P = np.vstack([pu, pv])  # 2x4
-
-                                proj = X @ P.T
-                                rms = float(np.sqrt(np.mean(np.sum((proj - img_pts_px) ** 2, axis=1))))
-                                if best is None or rms < best[0]:
-                                    best = (rms, flip_x, flip_y, swap_big_23, swap_small_23, P)
-
-                if best is None:
-                    raise ValueError(f"view{idx} orthographic calib failed")
-                rms, flip_x, flip_y, swap_big_23, swap_small_23, P = best
-                if rms > max_rms_px:
-                    raise ValueError(
-                        f"view{idx} orthographic reproj RMS too high ({rms:.3f}px > {max_rms_px:.1f}px); "
-                        "check marker ordering/transforms and rerun markersSort"
-                    )
-
-                A = np.array(P[:, :3], dtype=np.float64)
-                t = np.array(P[:, 3], dtype=np.float64)
-                d = np.cross(A[0, :], A[1, :])
-                dn = np.linalg.norm(d)
-                if np.isclose(dn, 0.0):
-                    raise ValueError(f"view{idx} orthographic direction is degenerate")
-                d = d / dn
-
-                logging.info(
-                    "Ortho calib view%d: reproj RMS=%.3fpx, flip_x=%s, flip_y=%s, swap_big_23=%s, swap_small_23=%s",
-                    idx,
-                    rms,
-                    flip_x,
-                    flip_y,
-                    swap_big_23,
-                    swap_small_23,
-                )
-
-                calibs[idx] = {
-                    "P": P,
-                    "A": A,
-                    "t": t,
-                    "d": d,
-                    "w": int(image_width),
-                    "h": int(image_height),
-                    "flip_x": bool(flip_x),
-                    "flip_y": bool(flip_y),
-                    "swap_big_23": bool(swap_big_23),
-                    "swap_small_23": bool(swap_small_23),
-                    "reproj_rms_px": float(rms),
-                    "view_angle_deg": float(view_angle),
-                }
-
-            self.orthographicViewCalibs = calibs
+            self.orthographicViewCalibs = self._solve_orthographic_calibrations()
             return True
         except Exception as e:
             self.orthographicViewCalibs = {}
@@ -1056,7 +1084,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _ortho_pixel_to_world_ray(self, view_index: int, point2d_slicer: np.array):
         """执行 `_ortho_pixel_to_world_ray` 所对应的坐标系转换或投影运算。"""
-        calib = self.orthographicViewCalibs.get(view_index)
+        calib = self._get_active_orthographic_calibrations().get(view_index)
         if calib is None:
             raise ValueError(f"Missing orthographic calibration for view{view_index}")
 
@@ -1080,7 +1108,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _ortho_project_world_point_to_view(self, view_index: int, point_3d: np.array):
         """执行 `_ortho_project_world_point_to_view` 所对应的坐标系转换或投影运算。"""
-        calib = self.orthographicViewCalibs.get(view_index)
+        calib = self._get_active_orthographic_calibrations().get(view_index)
         if calib is None:
             raise ValueError(f"Missing orthographic calibration for view{view_index}")
         P = calib["P"]
@@ -1096,7 +1124,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _pixel_to_world_ray(self, view_index: int, pixel_2d: np.array):
         """执行 `_pixel_to_world_ray` 所对应的坐标系转换或投影运算。"""
-        calib = self.perspectiveViewCalibs.get(view_index)
+        calib = self._get_active_perspective_calibrations().get(view_index)
         if calib is None:
             raise ValueError(f"缺少 view{view_index} 的透视标定参数")
 
@@ -1116,7 +1144,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _project_world_point_to_view(self, view_index: int, point_3d: np.array):
         """在透视模式下，使用视角标定参数将 3D 世界点投影为对应 2D 点。"""
-        calib = self.perspectiveViewCalibs.get(view_index)
+        calib = self._get_active_perspective_calibrations().get(view_index)
         if calib is None:
             raise ValueError(f"缺少 view{view_index} 的透视标定参数")
         p_px = self.logic.projectPointToImage(
@@ -1156,6 +1184,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
         self._markersSorted = False
+        self._reset_controlled_perturbation_run_state(clear_summary=True)
+        self._update_controlled_perturbation_status()
         for node in self._angleObservedTransformNodes:
             try:
                 self.removeObserver(node, vtk.vtkCommand.ModifiedEvent, self._on_marker_transform_modified)
@@ -1960,6 +1990,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _onMarkersSortButton_impl(self):
         """对 shot1/2/3 执行 marker 提取与编号排序，同步生成显示节点并触发标定初始化。"""
+        self._reset_controlled_perturbation_run_state(clear_summary=True)
+        self._update_controlled_perturbation_status()
         self.markerSortMetrics = {}
         volumeShot1Node = slicer.mrmlScene.GetFirstNodeByName("shot1")
         volumeShot2Node = slicer.mrmlScene.GetFirstNodeByName("shot2")
@@ -2497,7 +2529,19 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # displayNode.SetGlyphScale(0.6)
         displayNode.SetSelectedColor([0.941, 0.902, 0.549])
 
-        p2D = np.array(markupNode.GetNthControlPointPosition(0)[0:2])
+        clean_p2d = np.array(markupNode.GetNthControlPointPosition(0)[0:2], dtype=np.float64)
+        try:
+            run_state = self._prepare_controlled_perturbation_run_for_red(clean_p2d)
+        except Exception as exc:
+            self._reset_controlled_perturbation_run_state(clear_summary=False)
+            self.controlledPerturbationLastAppliedSummary = "Last Run: preparation failed"
+            self._update_controlled_perturbation_status()
+            self._error("Failed to prepare controlled perturbation run", detailedText=str(exc))
+            return
+        if isinstance(run_state, dict) and run_state.get("noise_type") == "target-only":
+            p2D = np.array(run_state["red_point_slicer"], dtype=np.float64)
+        else:
+            p2D = clean_p2d
         if self.projectionMode in ("perspective", "orthographic"):
             if self.projectionMode == "perspective":
                 ray_origin, ray_dir = self._pixel_to_world_ray(1, p2D)
@@ -2687,6 +2731,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _onTwoD2ThreeDGreen_impl(self):
         """处理 Green 视图 2D 点位：合并约束线与平面求交，重建目标 3D 点并投影到 Yellow 视图。"""
+        self.lastRayGapMmRaw = None
         markupNode = self.ui.Green2DPSelector.currentNode()
         if not markupNode or markupNode.GetNumberOfControlPoints() < 1:
             self._error("Please add a 2D point in Green view first")
@@ -2699,7 +2744,22 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # displayNode.SetGlyphScale(0.6)
         displayNode.SetSelectedColor([0.392, 0.584, 0.929])
 
-        p3D = np.array(markupNode.GetNthControlPointPosition(0))   #手动添加的点
+        run_state = self._require_controlled_perturbation_run_for_green()
+        if self.controlledPerturbationEnabled and run_state is None:
+            return
+        clean_green_point = np.array(markupNode.GetNthControlPointPosition(0), dtype=np.float64)
+        p3D = clean_green_point.copy()
+        using_target_noise = bool(
+            isinstance(run_state, dict) and run_state.get("noise_type") == "target-only"
+        )
+        if using_target_noise:
+            perturbed_green_xy, green_delta = self._perturb_slicer_2d_point(
+                clean_green_point[0:2],
+                run_state.get("sigma_px", 0.0),
+            )
+            p3D[0] = float(perturbed_green_xy[0])
+            p3D[1] = float(perturbed_green_xy[1])
+            run_state["green_delta_slicer"] = green_delta
         lineNodeGreen = slicer.mrmlScene.GetFirstNodeByName("GreenLine2D")
         lineP1 = np.array([0.0, 0.0, 0.0])
         lineP2 = np.array([0.0, 0.0, 0.0])
@@ -2739,8 +2799,30 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # 计算手动添加的点到直线的最近点，将点自动移动到直线�?
         p3DNearest2Line = self.logic.pointNearest2Line(p3D, lineP1, lineP2)
         # 替换手动添加�?markupNode
-        markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
-        p2DNearest2Line = p3DNearest2Line[0:2]
+        if self.controlledPerturbationEnabled and using_target_noise:
+            run_state["green_point_slicer"] = np.array(p3D[0:2], dtype=np.float64)
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationGreen2D",
+                "vtkMRMLSliceNodeGreen",
+                p3D[0:2],
+                (0.1, 0.55, 0.85),
+            )
+        elif self.controlledPerturbationEnabled:
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationGreen2D",
+                "vtkMRMLSliceNodeGreen",
+                None,
+                (0.1, 0.55, 0.85),
+            )
+        else:
+            markupNode.SetNthControlPointPosition(0, p3DNearest2Line)
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationGreen2D",
+                "vtkMRMLSliceNodeGreen",
+                None,
+                (0.1, 0.55, 0.85),
+            )
+        p2DNearest2Line = np.array(p3D[0:2], dtype=np.float64) if self.controlledPerturbationEnabled else p3DNearest2Line[0:2]
         if self.projectionMode in ("perspective", "orthographic"):
             if self.projectionMode == "perspective":
                 ray_origin, ray_dir = self._pixel_to_world_ray(2, p2DNearest2Line)
@@ -2835,8 +2917,10 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._error("Two 3D rays are nearly parallel; cannot stably compute TargetP3D")
             return
         self.p3DTarget = p3D
+        self.lastRayGapMmRaw = float(line_gap) if line_gap is not None else None
         if line_gap is not None:
-            self.ui.lineGapDisplay.setText(f"{line_gap:.2f} mm")
+            line_gap_text = f"{line_gap:.4f} mm" if self.controlledPerturbationEnabled else f"{line_gap:.2f} mm"
+            self.ui.lineGapDisplay.setText(line_gap_text)
             logging.info(f"Ray gap (closest distance): {line_gap:.4f} mm")
         
         # Debug visualization: TargetP3D calculation steps
@@ -2992,6 +3076,13 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_selector_current_node(self.ui.reprojectionPoint1Selector, re_point1)
         self._set_selector_current_node(self.ui.reprojectionPoint2Selector, re_point2)
 
+        if isinstance(run_state, dict):
+            run_state["stage"] = "completed"
+            self.controlledPerturbationLastAppliedSummary = f"Last Run: #{run_state['run_id']} completed"
+            self._update_controlled_perturbation_status()
+            self.onCalculateTRE()
+            self.onCalculateReprojectionError()
+
 
     def onTracing(self):
         """启动刀尖跟踪：注册控制点修改事件，让 3D 点在三个 2D 视图同步刷新。"""
@@ -3108,6 +3199,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _onCalculateTRE_impl(self):
         """计算两个选中点之间的 TRE（三维欧式距离），并写入 UI 与日志。"""
+        self.lastTreMmRaw = None
         try:
             # Get the selected nodes
             point1Node = self.ui.point1Selector.currentNode()
@@ -3135,6 +3227,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             
             # Calculate the Euclidean distance (TRE)
             tre = np.linalg.norm(pos2 - pos1)
+            self.lastTreMmRaw = float(tre)
             
             # Display the result in the UI (formatted to 2 decimal places)
             self.ui.treValueDisplay.setText(f"{tre:.2f} mm")
@@ -3153,6 +3246,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def _onCalculateReprojectionError_impl(self):
         """计算两个选中 2D 点的重投影误差（像素距离），并写入 UI 与日志。"""
+        self.lastReprojectionErrorPxRaw = None
         try:
             point1Node = self.ui.reprojectionPoint1Selector.currentNode()
             point2Node = self.ui.reprojectionPoint2Selector.currentNode()
@@ -3175,6 +3269,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             pos2 = np.array(point2Node.GetNthControlPointPosition(0))
 
             reproj_err = np.linalg.norm(pos2[:2] - pos1[:2])
+            self.lastReprojectionErrorPxRaw = float(reproj_err)
             self.ui.reprojectionValueDisplay.setText(f"{reproj_err:.2f} px")
 
             logging.info(f"Reprojection error calculated: {reproj_err:.4f} px")
@@ -3212,6 +3307,53 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.runControlledPerturbationButton.setChecked(False)
         self._update_controlled_perturbation_status()
 
+    def _set_controlled_perturbation_preview_point(self, node_name: str, view_node_id: str, point2d, color) -> None:
+        """Create/update a 2D preview point showing the perturbed target input used by the experiment."""
+        node = slicer.mrmlScene.GetFirstNodeByName(node_name)
+        if point2d is None:
+            if node is not None and node.GetDisplayNode() is not None:
+                node.GetDisplayNode().SetVisibility(False)
+            return
+
+        if node is None:
+            node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", node_name)
+            node.CreateDefaultDisplayNodes()
+
+        display_node = node.GetDisplayNode()
+        if display_node is not None:
+            display_node.SetVisibility(True)
+            display_node.SetVisibility3D(False)
+            display_node.SetViewNodeIDs([view_node_id])
+            display_node.SetPointLabelsVisibility(False)
+            display_node.SetGlyphScale(0.8)
+            display_node.SetSelectedColor(color)
+            display_node.SetColor(color)
+
+        point = np.array(point2d, dtype=float).flatten()
+        point3d = [float(point[0]), float(point[1]), 0.0]
+        if node.GetNumberOfControlPoints() < 1:
+            node.AddControlPoint(point3d)
+        else:
+            node.SetNthControlPointPosition(0, point3d)
+
+    def _reset_controlled_perturbation_run_state(self, clear_summary: bool = True) -> None:
+        """Drop any prepared perturbation run context and hide preview points."""
+        self.controlledPerturbationRunState = None
+        if clear_summary:
+            self.controlledPerturbationLastAppliedSummary = ""
+        self._set_controlled_perturbation_preview_point(
+            "ControlledPerturbationRed2D",
+            "vtkMRMLSliceNodeRed",
+            None,
+            (0.85, 0.35, 0.1),
+        )
+        self._set_controlled_perturbation_preview_point(
+            "ControlledPerturbationGreen2D",
+            "vtkMRMLSliceNodeGreen",
+            None,
+            (0.1, 0.55, 0.85),
+        )
+
     def _get_controlled_perturbation_noise_type(self) -> str:
         """Return the currently selected controlled perturbation noise type."""
         return self._widget_text("controlledPerturbationNoiseTypeComboBox") or "marker-only"
@@ -3239,19 +3381,168 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.runControlledPerturbationButton.setText(button_text)
         sigma_label = self._widget_text("controlledPerturbationNoiseSigmaComboBox") or "0 px"
         state_text = "Enabled" if self.controlledPerturbationEnabled else "Disabled"
-        status_text = (
+        summary_parts = [
             f"Status: {state_text} | "
             f"Noise Type: {self.controlledPerturbationNoiseType} | "
             f"Sigma: {sigma_label}"
-        )
+        ]
+        if self.controlledPerturbationLastAppliedSummary:
+            summary_parts.append(self.controlledPerturbationLastAppliedSummary)
+        status_text = " | ".join(summary_parts)
         if hasattr(self.ui, "controlledPerturbationStatusLabel") and self.ui.controlledPerturbationStatusLabel is not None:
             self.ui.controlledPerturbationStatusLabel.setText(status_text)
             self.ui.controlledPerturbationStatusLabel.setStyleSheet(
                 "color: #2b8a3e; font-weight: bold;" if self.controlledPerturbationEnabled else "color: #c92a2a;"
             )
 
+    def _perturb_slicer_2d_point(self, point2d, sigma_px: float):
+        """Apply isotropic Gaussian noise in slicer-2D coordinates and return (perturbed_point, delta)."""
+        point = np.array(point2d, dtype=np.float64).flatten()[0:2]
+        if float(sigma_px) <= 0.0:
+            return point.copy(), np.zeros(2, dtype=np.float64)
+        delta = np.random.normal(loc=0.0, scale=float(sigma_px), size=2)
+        return point + delta, delta
+
+    def _copy_marker_label_dict(self, marker_dict: dict) -> dict:
+        """Copy a marker-label dictionary while normalizing point tuples to floats."""
+        copied = {}
+        for point, label in marker_dict.items():
+            point_arr = np.array(point, dtype=np.float64).flatten()
+            z_value = float(point_arr[2]) if point_arr.size > 2 else 0.0
+            copied[(float(point_arr[0]), float(point_arr[1]), z_value)] = int(label)
+        return copied
+
+    def _snapshot_sorted_marker_views(self) -> dict:
+        """Capture the current clean marker correspondences for all 3 views."""
+        marker_views = {}
+        for view_index in (1, 2, 3):
+            big_markers = getattr(self, f"bigMarkersSort{view_index}", None)
+            small_markers = getattr(self, f"smallMarkersSort{view_index}", None)
+            if not isinstance(big_markers, dict) or not isinstance(small_markers, dict):
+                raise ValueError(f"view{view_index} sorted marker correspondences are unavailable")
+            marker_views[view_index] = {
+                "big": self._copy_marker_label_dict(big_markers),
+                "small": self._copy_marker_label_dict(small_markers),
+            }
+        return marker_views
+
+    def _perturb_marker_label_dict(self, marker_dict: dict, sigma_px: float) -> dict:
+        """Return a marker-label dictionary whose 2D points are perturbed but labels are preserved."""
+        perturbed = {}
+        for point, label in marker_dict.items():
+            point_arr = np.array(point, dtype=np.float64).flatten()
+            perturbed_xy, _ = self._perturb_slicer_2d_point(point_arr[0:2], sigma_px)
+            z_value = float(point_arr[2]) if point_arr.size > 2 else 0.0
+            perturbed[(float(perturbed_xy[0]), float(perturbed_xy[1]), z_value)] = int(label)
+        return perturbed
+
+    def _build_perturbed_marker_views(self, sigma_px: float) -> dict:
+        """Return clean or perturbed marker 2D correspondences for each view."""
+        marker_views = self._snapshot_sorted_marker_views()
+        if float(sigma_px) <= 0.0:
+            return marker_views
+        perturbed_views = {}
+        for view_index, view_data in marker_views.items():
+            perturbed_views[view_index] = {
+                "big": self._perturb_marker_label_dict(view_data["big"], sigma_px),
+                "small": self._perturb_marker_label_dict(view_data["small"], sigma_px),
+            }
+        return perturbed_views
+
+    def _get_active_perspective_calibrations(self):
+        """Return the perturbation-adjusted perspective calibrations if a run is active."""
+        if not self.controlledPerturbationEnabled:
+            return self.perspectiveViewCalibs
+        state = getattr(self, "controlledPerturbationRunState", None)
+        if isinstance(state, dict) and isinstance(state.get("perspective_calibs"), dict):
+            return state["perspective_calibs"]
+        return self.perspectiveViewCalibs
+
+    def _get_active_orthographic_calibrations(self):
+        """Return the perturbation-adjusted orthographic calibrations if a run is active."""
+        if not self.controlledPerturbationEnabled:
+            return self.orthographicViewCalibs
+        state = getattr(self, "controlledPerturbationRunState", None)
+        if isinstance(state, dict) and isinstance(state.get("orthographic_calibs"), dict):
+            return state["orthographic_calibs"]
+        return self.orthographicViewCalibs
+
+    def _prepare_controlled_perturbation_run_for_red(self, original_red_point2d: np.array):
+        """Prepare one perturbation run context for the current redPush/greenPush sequence."""
+        if not self.controlledPerturbationEnabled:
+            self._reset_controlled_perturbation_run_state(clear_summary=True)
+            self._update_controlled_perturbation_status()
+            return None
+
+        sigma_px = float(self.controlledPerturbationNoiseSigmaPx)
+        noise_type = self.controlledPerturbationNoiseType
+        self.controlledPerturbationRunCounter += 1
+        run_id = self.controlledPerturbationRunCounter
+        run_state = {
+            "run_id": run_id,
+            "noise_type": noise_type,
+            "sigma_px": sigma_px,
+            "stage": "prepared",
+        }
+
+        if noise_type == "marker-only":
+            marker_views = self._build_perturbed_marker_views(sigma_px)
+            if self.projectionMode == "perspective":
+                run_state["perspective_calibs"] = self._solve_perspective_calibrations(marker_views)
+            elif self.projectionMode == "orthographic":
+                run_state["orthographic_calibs"] = self._solve_orthographic_calibrations(marker_views)
+        else:
+            perturbed_red_point, red_delta = self._perturb_slicer_2d_point(original_red_point2d, sigma_px)
+            run_state["red_point_slicer"] = perturbed_red_point
+            run_state["red_delta_slicer"] = red_delta
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationRed2D",
+                "vtkMRMLSliceNodeRed",
+                perturbed_red_point,
+                (0.85, 0.35, 0.1),
+            )
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationGreen2D",
+                "vtkMRMLSliceNodeGreen",
+                None,
+                (0.1, 0.55, 0.85),
+            )
+
+        if noise_type != "target-only":
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationRed2D",
+                "vtkMRMLSliceNodeRed",
+                None,
+                (0.85, 0.35, 0.1),
+            )
+            self._set_controlled_perturbation_preview_point(
+                "ControlledPerturbationGreen2D",
+                "vtkMRMLSliceNodeGreen",
+                None,
+                (0.1, 0.55, 0.85),
+            )
+
+        self.controlledPerturbationRunState = run_state
+        self.controlledPerturbationLastAppliedSummary = f"Last Run: #{run_id} prepared"
+        self._update_controlled_perturbation_status()
+        return run_state
+
+    def _require_controlled_perturbation_run_for_green(self):
+        """Return the prepared perturbation run state required by greenPush, or report why it is unavailable."""
+        if not self.controlledPerturbationEnabled:
+            return None
+        run_state = getattr(self, "controlledPerturbationRunState", None)
+        if not isinstance(run_state, dict):
+            self._error("Controlled perturbation is enabled. Please click redPush again to prepare a fresh perturbation run")
+            return None
+        if run_state.get("stage") == "completed":
+            self._error("Please click redPush again to start a new controlled perturbation realization")
+            return None
+        return run_state
+
     def onControlledPerturbationOptionsChanged(self, *args) -> None:
         """Handle controlled perturbation UI option updates."""
+        self._reset_controlled_perturbation_run_state(clear_summary=True)
         self._update_controlled_perturbation_status()
 
     def onRunControlledPerturbation(self, checked=False) -> None:
@@ -3259,6 +3550,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.controlledPerturbationEnabled = bool(checked)
         if hasattr(self.ui, "runControlledPerturbationButton") and self.ui.runControlledPerturbationButton is not None:
             self.ui.runControlledPerturbationButton.setChecked(self.controlledPerturbationEnabled)
+        self._reset_controlled_perturbation_run_state(clear_summary=True)
         self._update_controlled_perturbation_status()
         logging.info(
             "Controlled perturbation toggled | enabled=%s | noise_type=%s | noise_sigma_px=%s",
@@ -3757,6 +4049,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             camera_view_angle_deg = self._get_current_3d_camera_view_angle()
             red_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Red2DPSelector", "blackCenter1"))
             green_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Green2DPSelector", "blackCenter2"))
+            perturbation_state = (
+                self.controlledPerturbationRunState
+                if isinstance(self.controlledPerturbationRunState, dict)
+                else {}
+            )
             row = {
                 "timestamp": capture_time.isoformat(timespec="seconds"),
                 "experiment_record_id": record_id,
@@ -3765,24 +4062,31 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "projection_mode": self.projectionMode,
                 "projection_mode_status": self._widget_text("projectionModeStatusLabel"),
                 "markers_sorted": int(bool(self._markersSorted)),
-                "perspective_calibration_ready": int(
-                    self._is_calibration_ready(getattr(self, "perspectiveViewCalibs", None))
-                ),
-                "orthographic_calibration_ready": int(
-                    self._is_calibration_ready(getattr(self, "orthographicViewCalibs", None))
-                ),
+                "perspective_calibration_ready": int(self._is_calibration_ready(self._get_active_perspective_calibrations())),
+                "orthographic_calibration_ready": int(self._is_calibration_ready(self._get_active_orthographic_calibrations())),
                 "shot1_available": int(self._get_shot_node_by_index(1) is not None),
                 "shot2_available": int(self._get_shot_node_by_index(2) is not None),
                 "shot3_available": int(self._get_shot_node_by_index(3) is not None),
                 "shot2_angle_deg": self._extract_first_float(shot2_angle_display),
                 "shot3_angle_m3_m1_deg": self._extract_first_float(shot3_angle1_display),
                 "shot3_angle_m3_m2_deg": self._extract_first_float(shot3_angle2_display),
-                "tre_value_mm": self._extract_first_float(tre_display),
-                "reprojection_error_px": self._extract_first_float(reproj_display),
-                "ray_gap_mm": self._extract_first_float(line_gap_display),
+                "tre_value_mm": self.lastTreMmRaw if self.lastTreMmRaw is not None else self._extract_first_float(tre_display),
+                "reprojection_error_px": (
+                    self.lastReprojectionErrorPxRaw
+                    if self.lastReprojectionErrorPxRaw is not None
+                    else self._extract_first_float(reproj_display)
+                ),
+                "ray_gap_mm": self.lastRayGapMmRaw if self.lastRayGapMmRaw is not None else self._extract_first_float(line_gap_display),
                 "tre_display": tre_display,
                 "reprojection_display": reproj_display,
                 "ray_gap_display": line_gap_display,
+                "controlled_perturbation_enabled": int(bool(self.controlledPerturbationEnabled)),
+                "controlled_perturbation_noise_type": self.controlledPerturbationNoiseType if self.controlledPerturbationEnabled else "",
+                "controlled_perturbation_noise_sigma_px": (
+                    float(self.controlledPerturbationNoiseSigmaPx) if self.controlledPerturbationEnabled else ""
+                ),
+                "controlled_perturbation_run_id": perturbation_state.get("run_id", ""),
+                "controlled_perturbation_run_stage": perturbation_state.get("stage", ""),
                 "point1_selector": self._selector_current_node_name("point1Selector"),
                 "point2_selector": self._selector_current_node_name("point2Selector"),
                 "reprojection_point1_selector": self._selector_current_node_name("reprojectionPoint1Selector"),
@@ -3818,8 +4122,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 row[f"marker_sort_view{view_idx}_flip_y"] = self._marker_sort_metric(view_idx, "flip_y")
 
             calibration_sets = {
-                "perspective": getattr(self, "perspectiveViewCalibs", {}),
-                "orthographic": getattr(self, "orthographicViewCalibs", {}),
+                "perspective": self._get_active_perspective_calibrations(),
+                "orthographic": self._get_active_orthographic_calibrations(),
             }
             for mode_name, calibs in calibration_sets.items():
                 calibs = calibs if isinstance(calibs, dict) else {}
@@ -3867,6 +4171,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "tre_display",
                 "reprojection_display",
                 "ray_gap_display",
+                "controlled_perturbation_noise_type",
+                "controlled_perturbation_run_stage",
                 "point1_selector",
                 "point2_selector",
                 "reprojection_point1_selector",
