@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software in academic work, please cite this repository and the associated paper when available."
+title: "Biplane: 2D-3D reconstruction and simulation analysis for 3D Slicer"
+authors:
+  - family-names: "CodingHHW"
+repository-code: "https://github.com/CodingHHW/Biplane"
+url: "https://github.com/CodingHHW/Biplane"
+license: "MIT"
+year: 2026

@@ -2975,8 +2975,8 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._set_selector_current_node(self.ui.point1Selector, tre_point1)
         self._set_selector_current_node(self.ui.point2Selector, tre_point2)
 
-        re_point1 = slicer.mrmlScene.GetFirstNodeByName("blackCenter2")
-        re_point2 = slicer.mrmlScene.GetFirstNodeByName("PointGreen")
+        re_point1 = slicer.mrmlScene.GetFirstNodeByName("blackCenter3")
+        re_point2 = slicer.mrmlScene.GetFirstNodeByName("TargetP2DYellow")
         self._set_selector_current_node(self.ui.reprojectionPoint1Selector, re_point1)
         self._set_selector_current_node(self.ui.reprojectionPoint2Selector, re_point2)
 

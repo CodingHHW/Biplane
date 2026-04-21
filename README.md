@@ -82,10 +82,8 @@ Biplane/
 `-- Analysis/
     |-- experiment_results_analysis.ipynb
     |-- projection_workflow_analysis.py
-    `-- Analysis/
-        |-- experiment_results_cleaned.csv
-        |-- analysis_summary.csv
-        `-- figures/
+    `-- figures/
+        `-- experiment_results_analysis/
 ```
 
 ### UI 快速流程
@@ -184,9 +182,7 @@ Figure 4 的核心逻辑已经抽到独立模块：
 
 Notebook 会清洗 CSV 并输出：
 
-- `experiment_results_cleaned.csv`
-- `analysis_summary.csv`
-- 多张图像到 `Analysis/Analysis/figures/`
+- Figures: `Analysis/figures/experiment_results_analysis/`
 
 Notebook 现在还会额外汇总这些诊断日志字段的覆盖率与描述统计：
 
@@ -357,6 +353,14 @@ projection_equivalence_margins = {
 3. 当前数据到底支持了什么结论，不支持什么结论
 4. 以后如果重新跑实验，应该优先关注哪些图和统计表
 
+### 引用
+
+如果你在学术工作中使用本仓库，请引用对应论文；论文正式发表前，也可以通过 [CITATION.cff](CITATION.cff) 引用本软件仓库。
+
+### 许可证
+
+本项目代码以 [MIT License](LICENSE) 开源。该许可证适用于本仓库中的源代码；如果后续加入数据集、模型权重或第三方资源，建议在对应位置单独声明其来源和许可证。
+
 ---
 
 ## English
@@ -410,7 +414,7 @@ Besides the main error metrics, the CSV now also stores:
 - step timings such as `timing_markers_sort_ms`, `timing_red_push_ms`, and calibration timings
 - any metric-style field from a step that was not run is written as `NA` instead of an empty cell
 
-The analysis notebook now summarizes the coverage and descriptive statistics of these diagnostic fields and writes cleaned outputs to `Analysis/Analysis/`.
+The analysis notebook now summarizes the coverage and descriptive statistics of these diagnostic fields and writes figures to `Analysis/figures/experiment_results_analysis/`.
 
 ### Updated Perspective vs Orthographic Analysis
 
@@ -456,6 +460,10 @@ Based on the current `experiment/experiment_results.csv` and the analysis state 
 - `Perspective` shows slightly lower `RE` on both tested volumes
 - the overall interpretation is that the method is relatively robust to the projection-model change, but this remains a workflow-level result rather than a pure isolated mode effect
 
----
+### Citation
 
-If this module is used in academic work, please cite your paper or project accordingly.
+If you use this repository in academic work, please cite the associated paper when it is available. Before the paper is published, GitHub can generate a software citation from [CITATION.cff](CITATION.cff).
+
+### License
+
+This project is released under the [MIT License](LICENSE). The license applies to the source code in this repository. Datasets, model weights, and third-party assets should be documented and licensed separately if they are added later.
