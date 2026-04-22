@@ -1,0 +1,10 @@
+distance_group,angle_group,base_condition_id,n
+Near,Low,CTChest__perspective__tp_-13.70_90.66_-182.12__shot2_16.17__shot3m3m1_0.40__shot3m3m2_15.89,5
+Near,Medium,CTChest__perspective__tp_-13.70_90.66_-182.12__shot2_46.99__shot3m3m1_43.10__shot3m3m2_67.87,5
+Near,High,CTChest__perspective__tp_-13.70_90.66_-182.12__shot2_79.61__shot3m3m1_73.60__shot3m3m2_85.47,5
+Mid,Low,CTChest__perspective__tp_-85.52_58.91_-96.65__shot2_16.17__shot3m3m1_0.40__shot3m3m2_15.89,6
+Mid,Medium,CTChest__perspective__tp_-85.52_58.91_-96.65__shot2_46.99__shot3m3m1_43.10__shot3m3m2_67.87,6
+Mid,High,CTChest__perspective__tp_-85.52_58.91_-96.65__shot2_79.61__shot3m3m1_73.60__shot3m3m2_85.47,6
+Far,Low,CTChest__perspective__tp_-141.15_-53.01_-92.41__shot2_16.17__shot3m3m1_0.40__shot3m3m2_15.89,7
+Far,Medium,CTChest__perspective__tp_-141.15_-53.01_-92.41__shot2_46.99__shot3m3m1_43.10__shot3m3m2_67.87,6
+Far,High,CTChest__perspective__tp_-141.15_-53.01_-92.41__shot2_79.61__shot3m3m1_73.60__shot3m3m2_85.47,8

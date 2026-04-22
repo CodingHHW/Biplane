@@ -100,6 +100,8 @@ Biplane/
 10. 可选：使用 `showKnife` + `tracing`
 11. 可选：计算 TRE / Reprojection Error
 12. 点击 `Export Current Results to CSV`
+13. 如果要在同一组设置下重复多次扰动实验，可在 `Controlled Perturbation` 区域设置 `Success Count`，然后点击 `Run Auto+Export Batch`
+14. 批量模式会自动跳过失败样本，并持续重试，直到收集满目标成功条数；若连续失败过多，会因安全上限而停止
 
 ### 默认输出
 
@@ -133,6 +135,9 @@ CSV 会追加记录以下信息：
 - shot 可用性：`shot1_available`、`shot2_available`、`shot3_available`
 - 角度信息：`shot2_angle_deg`、`shot3_angle_m3_m1_deg`、`shot3_angle_m3_m2_deg`
 - 指标：`tre_value_mm`、`reprojection_error_px`、`ray_gap_mm`
+- 正式实验识别字段：`experiment_family`、`base_condition_id`、`dataset`、`point_id`
+- 噪声与原始指标字段：`noise_type`、`noise_sigma_px`、`tre_mm_raw`、`re_px_raw`、`ray_gap_mm_raw`
+- 实验状态字段：`repeat_index`、`success_flag`、`failure_reason`、`is_clean_baseline`
 - 选点器状态：多个 2D / 3D selector 与 knife selector
 - `testpoint` 三维坐标与 marker 距离
 - 调试参数：`debug_visualization`、`debug_plane_scale`、`debug_ray_scale`
@@ -141,10 +146,9 @@ CSV 会追加记录以下信息：
   - `marker_sort_view{1..3}_second_rms_px`
   - `marker_sort_view{1..3}_rms_gap_px`
   - `marker_sort_view{1..3}_flip_x`、`marker_sort_view{1..3}_flip_y`
-- 标定诊断：
-  - `perspective_calibration_view{1..3}_reproj_rms_px`
-  - `orthographic_calibration_view{1..3}_reproj_rms_px`
-  - 每个 mode / view 对应的 `flip_x`、`flip_y`、`swap_big_23`、`swap_small_23`
+- 标定诊断：`perspective_calibration_view{1..3}_reproj_rms_px`、`orthographic_calibration_view{1..3}_reproj_rms_px`
+- 标定诊断补充字段：每个 mode / view 对应的 `flip_x`、`flip_y`、`swap_big_23`、`swap_small_23`
+- 聚合诊断列：`marker_sort_rms`、`calibration_reproj_rms`
 - 视图与自动点状态：
   - `camera_view_angle_deg`
   - `view_orthographic_enabled`

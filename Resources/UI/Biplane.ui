@@ -1109,6 +1109,46 @@ QCheckBox { color: #2b2b2b; }</string>
         </widget>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_controlledPerturbationBatch">
+         <item>
+          <widget class="QLabel" name="labelControlledPerturbationBatchCount">
+           <property name="text">
+            <string>Success Count:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="controlledPerturbationBatchCountSpinBox">
+           <property name="toolTip">
+            <string>Target number of successful CSV records to collect. Failed perturbation samples are skipped automatically.</string>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>999</number>
+           </property>
+           <property name="value">
+             <number>50</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="runControlledPerturbationBatchWorkflowButton">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #a4511f; color: white; border-radius: 6px; padding: 5px 10px; font-weight: bold; } QPushButton:hover { background-color: #8a4218; }</string>
+         </property>
+         <property name="toolTip">
+          <string>Keep running Auto Copy+Push and exporting CSV until the selected number of successful records has been collected. Failed perturbation samples are skipped automatically.</string>
+         </property>
+         <property name="text">
+          <string>Run Auto+Export Batch</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="controlledPerturbationStatusLabel">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
@@ -1244,6 +1284,58 @@ QCheckBox { color: #2b2b2b; }</string>
         <string>Rows: 0 | Selected: 0</string>
        </property>
       </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_importCsvRowJump">
+     <item>
+      <widget class="QLineEdit" name="importCsvJumpRowLineEdit">
+       <property name="minimumSize">
+        <size>
+         <width>64</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>84</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Type a 1-based row number and press Enter or Go to jump directly to that row.</string>
+       </property>
+       <property name="placeholderText">
+        <string>Row #</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="importCsvJumpRowButton">
+       <property name="styleSheet">
+        <string>QPushButton { background-color: #495057; color: white; border-radius: 6px; padding: 4px 10px; } QPushButton:hover { background-color: #343a40; }</string>
+       </property>
+       <property name="text">
+        <string>Go</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_importCsvRowJump">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>

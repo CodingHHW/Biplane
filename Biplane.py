@@ -97,6 +97,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.importedExperimentFieldNames = []
         self.importedExperimentRowIndex = -1
         self.importedExperimentRestoreStatus = "Transforms: n/a"
+        self.importCsvJumpRowValidator = None
         self.controlledPerturbationEnabled = False
         self.controlledPerturbationNoiseType = "marker-only"
         self.controlledPerturbationNoiseSigmaPx = 0.0
@@ -108,9 +109,15 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.lastRayGapMmRaw = None
         self.markerSortMetrics = {}
         self.stepTimingsMs = {}
+        self._suppressErrorDialogs = False
 
     def _error(self, message: str, detailedText: Optional[str] = None) -> None:
         """统一错误处理入口：优先使用 Slicer 弹窗，弹窗失败时写入日志。"""
+        if getattr(self, "_suppressErrorDialogs", False):
+            logging.error(message)
+            if detailedText:
+                logging.error(detailedText)
+            return
         try:
             slicer.util.errorDisplay(message, detailedText=detailedText)
         except Exception:
@@ -505,12 +512,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.runControlledPerturbationWorkflowButton.connect(
             "clicked(bool)", self.onRunControlledPerturbationWorkflow
         )
+        self.ui.runControlledPerturbationBatchWorkflowButton.connect(
+            "clicked(bool)", self.onRunControlledPerturbationBatchWorkflow
+        )
         self.ui.browseCsvPathButton.connect("clicked(bool)", self.onBrowseCsvPath)
         self.ui.saveResultsCsvButton.connect("clicked(bool)", self.onSaveResultsCsv)
         self.ui.browseImportCsvPathButton.connect("clicked(bool)", self.onBrowseImportCsvPath)
         self.ui.loadImportCsvButton.connect("clicked(bool)", self.onLoadImportCsv)
         self.ui.importCsvPrevRowButton.connect("clicked(bool)", self.onImportCsvPreviousRow)
         self.ui.importCsvNextRowButton.connect("clicked(bool)", self.onImportCsvNextRow)
+        if hasattr(self.ui, "importCsvJumpRowLineEdit") and self.ui.importCsvJumpRowLineEdit is not None:
+            self.importCsvJumpRowValidator = qt.QIntValidator(1, 1, self.ui.importCsvJumpRowLineEdit)
+            self.ui.importCsvJumpRowLineEdit.setValidator(self.importCsvJumpRowValidator)
+            self.ui.importCsvJumpRowLineEdit.connect("returnPressed()", self.onImportCsvJumpToRow)
+        if hasattr(self.ui, "importCsvJumpRowButton") and self.ui.importCsvJumpRowButton is not None:
+            self.ui.importCsvJumpRowButton.connect("clicked(bool)", self.onImportCsvJumpToRow)
 
         self.ui.debugVisCheckBox.connect("toggled(bool)", self.onDebugVisToggle)
         self.ui.debugPlaneScaleSpinBox.connect("valueChanged(double)", self.onDebugPlaneScaleChanged)
@@ -3561,29 +3577,33 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.controlledPerturbationNoiseSigmaPx,
         )
 
-    def onRunControlledPerturbationWorkflow(self, checked=False) -> None:
-        """Run the repeated CopyBlackCenter/redPush/greenPush workflow in one click."""
-        if not self._require_markers_sorted():
-            return
-
-        for source_name in ("blackCenter1", "blackCenter2"):
-            source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
-            if source_node is None or source_node.GetNumberOfControlPoints() < 1:
-                self._error(f"Please click blackCenter first so {source_name} is available")
-                return
-
-        self.controlledPerturbationLastAppliedSummary = "Auto workflow running"
-        self._update_controlled_perturbation_status()
-
-        for stale_node_name in ("GreenLine2D", "TargetP3D", "TargetP2DYellow"):
-            stale_node = slicer.mrmlScene.GetFirstNodeByName(stale_node_name)
-            if stale_node is not None:
-                try:
-                    slicer.mrmlScene.RemoveNode(stale_node)
-                except Exception:
-                    logging.warning("Failed to remove stale %s before auto workflow", stale_node_name, exc_info=True)
-
+    def _run_controlled_perturbation_workflow_once(self, show_feedback: bool = True) -> None:
+        """Run one CopyBlackCenter/redPush/greenPush workflow cycle."""
+        previous_suppress_errors = self._suppressErrorDialogs
         try:
+            if not show_feedback:
+                self._suppressErrorDialogs = True
+            if not self._require_markers_sorted():
+                raise RuntimeError("markersSort prerequisites are not ready")
+
+            for source_name in ("blackCenter1", "blackCenter2"):
+                source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
+                if source_node is None or source_node.GetNumberOfControlPoints() < 1:
+                    if show_feedback:
+                        self._error(f"Please click blackCenter first so {source_name} is available")
+                    raise RuntimeError(f"{source_name} is not available")
+
+            self.controlledPerturbationLastAppliedSummary = "Auto workflow running"
+            self._update_controlled_perturbation_status()
+
+            for stale_node_name in ("GreenLine2D", "TargetP3D", "TargetP2DYellow"):
+                stale_node = slicer.mrmlScene.GetFirstNodeByName(stale_node_name)
+                if stale_node is not None:
+                    try:
+                        slicer.mrmlScene.RemoveNode(stale_node)
+                    except Exception:
+                        logging.warning("Failed to remove stale %s before auto workflow", stale_node_name, exc_info=True)
+
             self.onCopyBlackCenter1()
             point_red = slicer.mrmlScene.GetFirstNodeByName("PointRed")
             if point_red is None or point_red.GetNumberOfControlPoints() < 1:
@@ -3612,15 +3632,157 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         except Exception as exc:
             self.controlledPerturbationLastAppliedSummary = "Auto workflow failed"
             self._update_controlled_perturbation_status()
-            self._error("Run Full Copy+Push Workflow failed", detailedText=str(exc))
+            if show_feedback:
+                self._error("Run Full Copy+Push Workflow failed", detailedText=str(exc))
+            raise
+        else:
+            run_state = self.controlledPerturbationRunState if isinstance(self.controlledPerturbationRunState, dict) else None
+            if run_state is not None and run_state.get("stage") == "completed":
+                self.controlledPerturbationLastAppliedSummary = f"Run #{run_state['run_id']} completed | Auto workflow"
+            else:
+                self.controlledPerturbationLastAppliedSummary = "Auto workflow completed"
+            self._update_controlled_perturbation_status()
+        finally:
+            self._suppressErrorDialogs = previous_suppress_errors
+
+    def onRunControlledPerturbationWorkflow(self, checked=False) -> None:
+        """Run the repeated CopyBlackCenter/redPush/greenPush workflow in one click."""
+        try:
+            self._run_controlled_perturbation_workflow_once(show_feedback=True)
+        except Exception:
             return
 
-        run_state = self.controlledPerturbationRunState if isinstance(self.controlledPerturbationRunState, dict) else None
-        if run_state is not None and run_state.get("stage") == "completed":
-            self.controlledPerturbationLastAppliedSummary = f"Run #{run_state['run_id']} completed | Auto workflow"
-        else:
-            self.controlledPerturbationLastAppliedSummary = "Auto workflow completed"
+    def _get_controlled_perturbation_batch_count(self) -> int:
+        """Return the configured batch repeat count for auto workflow export loops."""
+        spin_box = getattr(self.ui, "controlledPerturbationBatchCountSpinBox", None)
+        if spin_box is None or not hasattr(spin_box, "value"):
+            return 1
+        try:
+            return max(1, int(spin_box.value))
+        except TypeError:
+            return max(1, int(spin_box.value()))
+
+    def _get_controlled_perturbation_batch_max_attempts(self, target_success_count: int) -> int:
+        """Return a safety cap on batch attempts to avoid infinite retries when many samples fail."""
+        target_success_count = max(1, int(target_success_count))
+        return min(max(target_success_count * 10, target_success_count + 20), 5000)
+
+    def _is_fatal_batch_workflow_error(self, exc: Exception) -> bool:
+        """Return whether a workflow exception indicates a broken setup rather than a skip-worthy sample."""
+        message = str(exc)
+        fatal_markers = (
+            "markersSort prerequisites are not ready",
+            "blackCenter1 is not available",
+            "blackCenter2 is not available",
+            "PointRed was not created from blackCenter1",
+            "PointGreen was not created from blackCenter2",
+        )
+        return any(marker in message for marker in fatal_markers)
+
+    def onRunControlledPerturbationBatchWorkflow(self, checked=False) -> None:
+        """Collect the requested number of successful Auto Copy+Push + CSV exports, skipping failed samples."""
+        target_success_count = self._get_controlled_perturbation_batch_count()
+        if target_success_count < 1:
+            self._error("Batch count must be at least 1")
+            return
+        if not self._require_markers_sorted():
+            return
+        for source_name in ("blackCenter1", "blackCenter2"):
+            source_node = slicer.mrmlScene.GetFirstNodeByName(source_name)
+            if source_node is None or source_node.GetNumberOfControlPoints() < 1:
+                self._error(f"Please click blackCenter first so {source_name} is available")
+                return
+
+        completed_count = 0
+        skipped_count = 0
+        attempt_count = 0
+        max_attempts = self._get_controlled_perturbation_batch_max_attempts(target_success_count)
+        csv_path = getattr(self, "csvFilePath", "") or self._default_experiment_csv_path()
+        batch_start = time.perf_counter()
+
+        try:
+            while completed_count < target_success_count:
+                if attempt_count >= max_attempts:
+                    raise RuntimeError(
+                        f"Reached batch retry safety cap ({max_attempts} attempts) before collecting "
+                        f"{target_success_count} successful runs"
+                    )
+
+                attempt_count += 1
+                self.controlledPerturbationLastAppliedSummary = (
+                    f"Batch {completed_count}/{target_success_count} saved | "
+                    f"skipped {skipped_count} | attempt {attempt_count}"
+                )
+                self._update_controlled_perturbation_status()
+                slicer.app.processEvents()
+
+                try:
+                    self._run_controlled_perturbation_workflow_once(show_feedback=False)
+                except Exception as exc:
+                    if self._is_fatal_batch_workflow_error(exc):
+                        raise
+                    skipped_count += 1
+                    logging.warning(
+                        "Skipped failed perturbation sample during batch run | attempt=%s | skipped=%s | error=%s",
+                        attempt_count,
+                        skipped_count,
+                        exc,
+                    )
+                    self.controlledPerturbationLastAppliedSummary = (
+                        f"Batch {completed_count}/{target_success_count} saved | "
+                        f"skipped {skipped_count} | last skip at attempt {attempt_count}"
+                    )
+                    self._update_controlled_perturbation_status()
+                    slicer.app.processEvents()
+                    continue
+
+                csv_path = self._save_current_results_csv(show_feedback=False)
+                completed_count += 1
+
+                self.controlledPerturbationLastAppliedSummary = (
+                    f"Batch {completed_count}/{target_success_count} saved | "
+                    f"skipped {skipped_count} | attempts {attempt_count}"
+                )
+                self._update_controlled_perturbation_status()
+                slicer.app.processEvents()
+        except Exception as exc:
+            self.controlledPerturbationLastAppliedSummary = (
+                f"Batch stopped: {completed_count}/{target_success_count} saved | "
+                f"skipped {skipped_count} | attempts {attempt_count}"
+            )
+            self._update_controlled_perturbation_status()
+            self._error(
+                "Batch Auto Copy+Push + CSV export stopped before reaching the requested success count",
+                detailedText=str(exc),
+            )
+            return
+
+        elapsed_seconds = time.perf_counter() - batch_start
+        self.controlledPerturbationLastAppliedSummary = (
+            f"Batch completed: {completed_count}/{target_success_count} saved | "
+            f"skipped {skipped_count} | attempts {attempt_count}"
+        )
         self._update_controlled_perturbation_status()
+        logging.info(
+            "Completed Auto Copy+Push + CSV batch | success_count=%s | skipped_count=%s | attempts=%s | "
+            "csv_path=%s | elapsed_seconds=%.3f",
+            completed_count,
+            skipped_count,
+            attempt_count,
+            csv_path,
+            elapsed_seconds,
+        )
+        try:
+            slicer.util.infoDisplay(
+                "Batch Auto Copy+Push + CSV export completed:\n"
+                f"Successful runs: {completed_count}/{target_success_count}\n"
+                f"Skipped failed attempts: {skipped_count}\n"
+                f"Total attempts: {attempt_count}\n"
+                f"Saved to:\n{csv_path}\n"
+                f"Elapsed: {elapsed_seconds:.1f} s"
+            )
+        except Exception:
+            pass
 
     def _selector_current_node_name(self, selector_name: str) -> str:
         """Return current node name from a qMRMLNodeComboBox-like widget."""
@@ -3708,6 +3870,141 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value).strip())
         sanitized = sanitized.strip("._-")
         return sanitized or "item"
+
+    def _parse_optional_float(self, value):
+        """Return float(value) when available, otherwise None."""
+        text_value = self._normalize_optional_csv_value(value)
+        if text_value is None:
+            return None
+        try:
+            return float(text_value)
+        except (TypeError, ValueError):
+            return None
+
+    def _format_condition_id_component(self, value, digits: int = 2) -> str:
+        """Format numeric metadata into a stable key component used by exported experiment IDs."""
+        float_value = self._parse_optional_float(value)
+        if float_value is not None:
+            return f"{float_value:.{digits}f}"
+        text_value = self._normalize_optional_csv_value(value)
+        if text_value is None:
+            return "na"
+        return self._safe_filename_component(text_value)
+
+    def _build_point_id(self, testpoint_x, testpoint_y, testpoint_z, digits: int = 2) -> str:
+        """Build a stable point identifier from testPoint world coordinates."""
+        return "tp_" + "_".join(
+            self._format_condition_id_component(value, digits)
+            for value in (testpoint_x, testpoint_y, testpoint_z)
+        )
+
+    def _build_base_condition_id(
+        self,
+        dataset_name: str,
+        projection_mode: str,
+        testpoint_xyz,
+        shot_angles_deg,
+        digits: int = 2,
+    ) -> str:
+        """Build a stable base-condition identifier from volume, projection, testPoint, and angle metadata."""
+        testpoint_x, testpoint_y, testpoint_z = testpoint_xyz
+        shot2_angle_deg, shot3_angle_m3_m1_deg, shot3_angle_m3_m2_deg = shot_angles_deg
+        dataset_key = self._safe_filename_component(dataset_name or "unknown_volume")
+        projection_key = self._safe_filename_component(projection_mode or "unknown_projection")
+        point_key = self._build_point_id(testpoint_x, testpoint_y, testpoint_z, digits)
+        angle_key = "__".join(
+            [
+                f"shot2_{self._format_condition_id_component(shot2_angle_deg, digits)}",
+                f"shot3m3m1_{self._format_condition_id_component(shot3_angle_m3_m1_deg, digits)}",
+                f"shot3m3m2_{self._format_condition_id_component(shot3_angle_m3_m2_deg, digits)}",
+            ]
+        )
+        return f"{dataset_key}__{projection_key}__{point_key}__{angle_key}"
+
+    def _normalize_experiment_noise_metadata(self, noise_type, sigma_px):
+        """Normalize perturbation metadata for experiment-table export."""
+        normalized_noise_type = self._normalize_optional_csv_value(noise_type) or ""
+        normalized_sigma = self._parse_optional_float(sigma_px)
+        is_clean_baseline = 0
+        if normalized_sigma is not None and abs(normalized_sigma) <= 1e-9:
+            is_clean_baseline = 1
+        elif normalized_noise_type == "baseline":
+            is_clean_baseline = 1
+
+        if is_clean_baseline:
+            normalized_noise_type = "baseline"
+            normalized_sigma = 0.0
+
+        return normalized_noise_type, normalized_sigma, is_clean_baseline
+
+    def _normalized_experiment_noise_from_row(self, row: dict):
+        """Read normalized noise metadata from either the new schema or legacy perturbation fields."""
+        noise_type = row.get("noise_type", "")
+        sigma_px = row.get("noise_sigma_px", "")
+        if self._normalize_optional_csv_value(noise_type) is None:
+            noise_type = row.get("controlled_perturbation_noise_type", "")
+        if self._normalize_optional_csv_value(sigma_px) is None:
+            sigma_px = row.get("controlled_perturbation_noise_sigma_px", "")
+        return self._normalize_experiment_noise_metadata(noise_type, sigma_px)
+
+    def _build_base_condition_id_from_row(self, row: dict, digits: int = 2) -> str:
+        """Reconstruct base_condition_id from an exported CSV row, including legacy rows without this field."""
+        existing_value = self._normalize_optional_csv_value(row.get("base_condition_id", ""))
+        if existing_value is not None:
+            return existing_value
+        dataset_name = (
+            self._normalize_optional_csv_value(row.get("dataset", ""))
+            or self._normalize_optional_csv_value(row.get("input_volume", ""))
+            or "unknown_volume"
+        )
+        projection_mode = self._normalize_optional_csv_value(row.get("projection_mode", "")) or "unknown_projection"
+        testpoint_xyz = (
+            row.get("testpoint_x", ""),
+            row.get("testpoint_y", ""),
+            row.get("testpoint_z", ""),
+        )
+        shot_angles_deg = (
+            row.get("shot2_angle_deg", ""),
+            row.get("shot3_angle_m3_m1_deg", ""),
+            row.get("shot3_angle_m3_m2_deg", ""),
+        )
+        return self._build_base_condition_id(
+            dataset_name,
+            projection_mode,
+            testpoint_xyz,
+            shot_angles_deg,
+            digits=digits,
+        )
+
+    def _count_existing_experiment_repeats(self, csv_path: str, base_condition_id: str, noise_type: str, noise_sigma_px) -> int:
+        """Count how many rows already exist for the same base condition and normalized noise setting."""
+        if not csv_path or not os.path.exists(csv_path) or os.path.getsize(csv_path) == 0:
+            return 0
+        target_noise_type = self._normalize_optional_csv_value(noise_type) or ""
+        target_sigma = self._parse_optional_float(noise_sigma_px)
+        repeat_count = 0
+        with open(csv_path, "r", newline="", encoding="utf-8-sig") as csv_file:
+            reader = csv.DictReader(csv_file)
+            for existing_row in reader:
+                if self._build_base_condition_id_from_row(existing_row) != base_condition_id:
+                    continue
+                existing_noise_type, existing_sigma, _ = self._normalized_experiment_noise_from_row(existing_row)
+                if existing_noise_type != target_noise_type:
+                    continue
+                if target_sigma is None and existing_sigma is None:
+                    repeat_count += 1
+                elif target_sigma is not None and existing_sigma is not None and abs(existing_sigma - target_sigma) <= 1e-9:
+                    repeat_count += 1
+        return repeat_count
+
+    def _mean_numeric_values(self, values):
+        """Return mean of available numeric values, or empty string if none are valid."""
+        numeric_values = []
+        for value in values:
+            float_value = self._parse_optional_float(value)
+            if float_value is not None:
+                numeric_values.append(float_value)
+        return float(np.mean(numeric_values)) if numeric_values else ""
 
     def _export_marker_transform_snapshots(self, csv_path: str, record_id: str):
         """Save the 3 marker transform nodes next to the CSV for experiment reproducibility."""
@@ -3899,6 +4196,21 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if hasattr(self.ui, "importCsvNextRowButton") and self.ui.importCsvNextRowButton is not None:
             self.ui.importCsvNextRowButton.setEnabled(next_enabled)
 
+        jump_enabled = total_rows > 0
+        if self.importCsvJumpRowValidator is not None:
+            self.importCsvJumpRowValidator.setRange(1, max(total_rows, 1))
+        if hasattr(self.ui, "importCsvJumpRowLineEdit") and self.ui.importCsvJumpRowLineEdit is not None:
+            desired_text = str(selected_row) if selected_row > 0 else ""
+            current_text = self._widget_text("importCsvJumpRowLineEdit")
+            self.ui.importCsvJumpRowLineEdit.setEnabled(jump_enabled)
+            self.ui.importCsvJumpRowLineEdit.setPlaceholderText(
+                f"1-{total_rows}" if jump_enabled else "Load CSV first"
+            )
+            if current_text != desired_text:
+                self.ui.importCsvJumpRowLineEdit.setText(desired_text)
+        if hasattr(self.ui, "importCsvJumpRowButton") and self.ui.importCsvJumpRowButton is not None:
+            self.ui.importCsvJumpRowButton.setEnabled(jump_enabled)
+
     def _parse_imported_testpoint_xyz(self, row: dict):
         """Return imported testPoint xyz as floats, or None if the row is invalid."""
         coords = []
@@ -4063,6 +4375,30 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
         self._select_imported_experiment_row(self.importedExperimentRowIndex + 1)
 
+    def onImportCsvJumpToRow(self):
+        """Jump directly to a 1-based imported CSV row number from the UI input."""
+        if not self.importedExperimentRows:
+            self._error("Please load an experiment CSV first")
+            return
+
+        row_text = self._widget_text("importCsvJumpRowLineEdit")
+        if not row_text:
+            self._error("Please enter a row number to jump to")
+            return
+
+        try:
+            row_number = int(row_text)
+        except ValueError:
+            self._error("Please enter a valid row number")
+            return
+
+        total_rows = len(self.importedExperimentRows)
+        if row_number < 1 or row_number > total_rows:
+            self._error(f"Please enter a row number between 1 and {total_rows}")
+            return
+
+        self._select_imported_experiment_row(row_number - 1)
+
     def onBrowseCsvPath(self):
         """Open file dialog to choose export CSV output path."""
         current_path = getattr(self, "csvFilePath", "") or self._default_experiment_csv_path()
@@ -4076,7 +4412,7 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
         self._set_csv_file_path(selected_path)
 
-    def onSaveResultsCsv(self):
+    def _save_current_results_csv(self, show_feedback: bool = True) -> str:
         """Append current test outputs and key runtime status fields into the export CSV."""
         try:
             if self._markersSorted:
@@ -4100,6 +4436,9 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             shot2_angle_display = self._widget_text("shot2AngleLineEdit")
             shot3_angle1_display = self._widget_text("shot3Angle1LineEdit")
             shot3_angle2_display = self._widget_text("shot3Angle2LineEdit")
+            shot2_angle_deg = self._extract_first_float(shot2_angle_display)
+            shot3_angle_m3_m1_deg = self._extract_first_float(shot3_angle1_display)
+            shot3_angle_m3_m2_deg = self._extract_first_float(shot3_angle2_display)
             testpoint_x, testpoint_y, testpoint_z = self._get_first_control_point_xyz("testPoint")
             (
                 testpoint_marker_distance_t1_mm,
@@ -4109,44 +4448,94 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ) = self._testpoint_marker_distances_mm()
 
             input_volume_node = self._getBodyVolumeNode()
+            input_volume_name = input_volume_node.GetName() if input_volume_node else ""
             camera_view_angle_deg = self._get_current_3d_camera_view_angle()
             red_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Red2DPSelector", "blackCenter1"))
             green_uses_blackcenter_auto_point = int(self._selector_matches_named_node("Green2DPSelector", "blackCenter2"))
+            tre_value_mm = self.lastTreMmRaw if self.lastTreMmRaw is not None else self._extract_first_float(tre_display)
+            reprojection_error_px = (
+                self.lastReprojectionErrorPxRaw
+                if self.lastReprojectionErrorPxRaw is not None
+                else self._extract_first_float(reproj_display)
+            )
+            ray_gap_mm = self.lastRayGapMmRaw if self.lastRayGapMmRaw is not None else self._extract_first_float(line_gap_display)
             perturbation_state = (
                 self.controlledPerturbationRunState
                 if isinstance(self.controlledPerturbationRunState, dict)
                 else {}
             )
+            raw_noise_type = perturbation_state.get(
+                "noise_type",
+                self.controlledPerturbationNoiseType if self.controlledPerturbationEnabled else "",
+            )
+            raw_noise_sigma_px = perturbation_state.get(
+                "sigma_px",
+                float(self.controlledPerturbationNoiseSigmaPx) if self.controlledPerturbationEnabled else "",
+            )
+            (
+                normalized_noise_type,
+                normalized_noise_sigma_px,
+                is_clean_baseline,
+            ) = self._normalize_experiment_noise_metadata(raw_noise_type, raw_noise_sigma_px)
+            experiment_family = (
+                "controlled_perturbation_study"
+                if (
+                    bool(perturbation_state)
+                    or bool(self.controlledPerturbationEnabled)
+                    or normalized_noise_type != ""
+                    or normalized_noise_sigma_px is not None
+                )
+                else "standard_reconstruction"
+            )
+            point_id = self._build_point_id(testpoint_x, testpoint_y, testpoint_z)
+            base_condition_id = self._build_base_condition_id(
+                input_volume_name,
+                self.projectionMode,
+                (testpoint_x, testpoint_y, testpoint_z),
+                (shot2_angle_deg, shot3_angle_m3_m1_deg, shot3_angle_m3_m2_deg),
+            )
+            perspective_calibration_ready = int(self._is_calibration_ready(self._get_active_perspective_calibrations()))
+            orthographic_calibration_ready = int(self._is_calibration_ready(self._get_active_orthographic_calibrations()))
             row = {
                 "timestamp": capture_time.isoformat(timespec="seconds"),
                 "experiment_record_id": record_id,
+                "experiment_family": experiment_family,
+                "base_condition_id": base_condition_id,
                 "csv_output_path": csv_path,
-                "input_volume": input_volume_node.GetName() if input_volume_node else "",
+                "input_volume": input_volume_name,
+                "dataset": input_volume_name,
                 "projection_mode": self.projectionMode,
                 "projection_mode_status": self._widget_text("projectionModeStatusLabel"),
+                "angle_group": "",
+                "distance_group": "",
+                "point_id": point_id,
                 "markers_sorted": int(bool(self._markersSorted)),
-                "perspective_calibration_ready": int(self._is_calibration_ready(self._get_active_perspective_calibrations())),
-                "orthographic_calibration_ready": int(self._is_calibration_ready(self._get_active_orthographic_calibrations())),
+                "perspective_calibration_ready": perspective_calibration_ready,
+                "orthographic_calibration_ready": orthographic_calibration_ready,
                 "shot1_available": int(self._get_shot_node_by_index(1) is not None),
                 "shot2_available": int(self._get_shot_node_by_index(2) is not None),
                 "shot3_available": int(self._get_shot_node_by_index(3) is not None),
-                "shot2_angle_deg": self._extract_first_float(shot2_angle_display),
-                "shot3_angle_m3_m1_deg": self._extract_first_float(shot3_angle1_display),
-                "shot3_angle_m3_m2_deg": self._extract_first_float(shot3_angle2_display),
-                "tre_value_mm": self.lastTreMmRaw if self.lastTreMmRaw is not None else self._extract_first_float(tre_display),
-                "reprojection_error_px": (
-                    self.lastReprojectionErrorPxRaw
-                    if self.lastReprojectionErrorPxRaw is not None
-                    else self._extract_first_float(reproj_display)
-                ),
-                "ray_gap_mm": self.lastRayGapMmRaw if self.lastRayGapMmRaw is not None else self._extract_first_float(line_gap_display),
+                "shot2_angle_deg": shot2_angle_deg,
+                "shot3_angle_m3_m1_deg": shot3_angle_m3_m1_deg,
+                "shot3_angle_m3_m2_deg": shot3_angle_m3_m2_deg,
+                "noise_type": normalized_noise_type,
+                "noise_sigma_px": normalized_noise_sigma_px if normalized_noise_sigma_px is not None else "",
+                "tre_mm_raw": tre_value_mm,
+                "re_px_raw": reprojection_error_px,
+                "ray_gap_mm_raw": ray_gap_mm,
+                "tre_value_mm": tre_value_mm,
+                "reprojection_error_px": reprojection_error_px,
+                "ray_gap_mm": ray_gap_mm,
                 "tre_display": tre_display,
                 "reprojection_display": reproj_display,
                 "ray_gap_display": line_gap_display,
-                "controlled_perturbation_enabled": int(bool(self.controlledPerturbationEnabled)),
-                "controlled_perturbation_noise_type": self.controlledPerturbationNoiseType if self.controlledPerturbationEnabled else "",
+                "is_clean_baseline": is_clean_baseline,
+                "controlled_perturbation_enabled": int(
+                    bool(self.controlledPerturbationEnabled or perturbation_state)
+                ),
+                "controlled_perturbation_noise_type": raw_noise_type,
                 "controlled_perturbation_noise_sigma_px": (
-                    float(self.controlledPerturbationNoiseSigmaPx) if self.controlledPerturbationEnabled else ""
+                    raw_noise_sigma_px if self._normalize_optional_csv_value(raw_noise_sigma_px) is not None else ""
                 ),
                 "controlled_perturbation_run_id": perturbation_state.get("run_id", ""),
                 "controlled_perturbation_run_stage": perturbation_state.get("stage", ""),
@@ -4171,6 +4560,11 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "testpoint_marker_distance_t2_mm": testpoint_marker_distance_t2_mm,
                 "testpoint_marker_distance_t3_mm": testpoint_marker_distance_t3_mm,
                 "testpoint_marker_distance_mean_mm": testpoint_marker_distance_mean_mm,
+                "repeat_index": "",
+                "success_flag": "",
+                "failure_reason": "",
+                "marker_sort_rms": "",
+                "calibration_reproj_rms": "",
                 "debug_visualization": int(bool(self.debugVisualization)),
                 "debug_plane_scale": float(self.debugPlaneScale),
                 "debug_ray_scale": float(self.debugRayScale),
@@ -4207,6 +4601,48 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     )
                     row[f"{mode_name}_calibration_view{view_idx}_view_angle_deg"] = calib.get("view_angle_deg", "")
 
+            row["marker_sort_rms"] = self._mean_numeric_values(
+                [row[f"marker_sort_view{view_idx}_rms_px"] for view_idx in (1, 2, 3)]
+            )
+            active_mode_name = "orthographic" if self.projectionMode == "orthographic" else "perspective"
+            row["calibration_reproj_rms"] = self._mean_numeric_values(
+                [row[f"{active_mode_name}_calibration_view{view_idx}_reproj_rms_px"] for view_idx in (1, 2, 3)]
+            )
+
+            repeat_index = ""
+            if experiment_family == "controlled_perturbation_study" and normalized_noise_type:
+                repeat_index = self._count_existing_experiment_repeats(
+                    csv_path,
+                    base_condition_id,
+                    normalized_noise_type,
+                    normalized_noise_sigma_px,
+                ) + 1
+            row["repeat_index"] = repeat_index
+
+            failure_reasons = []
+            if not self._markersSorted:
+                failure_reasons.append("markers_not_sorted")
+            if self.projectionMode == "perspective" and not perspective_calibration_ready:
+                failure_reasons.append("perspective_calibration_incomplete")
+            if self.projectionMode == "orthographic" and not orthographic_calibration_ready:
+                failure_reasons.append("orthographic_calibration_incomplete")
+            if tre_value_mm in ("", None):
+                failure_reasons.append("missing_tre_mm_raw")
+            if reprojection_error_px in ("", None):
+                failure_reasons.append("missing_re_px_raw")
+            if ray_gap_mm in ("", None):
+                failure_reasons.append("missing_ray_gap_mm_raw")
+            if experiment_family == "controlled_perturbation_study":
+                perturbation_stage = perturbation_state.get("stage", "")
+                if perturbation_stage and perturbation_stage != "completed":
+                    failure_reasons.append(f"perturbation_stage_{perturbation_stage}")
+                elif not perturbation_stage and bool(self.controlledPerturbationEnabled):
+                    failure_reasons.append("perturbation_not_run")
+                if is_clean_baseline and isinstance(repeat_index, int) and repeat_index > 1:
+                    failure_reasons.append("duplicate_baseline_for_base_condition")
+            row["success_flag"] = int(len(failure_reasons) == 0)
+            row["failure_reason"] = ";".join(failure_reasons)
+
             timing_keys = (
                 "shot1_all_ms",
                 "shot2_all_ms",
@@ -4227,15 +4663,23 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             text_fields = {
                 "timestamp",
                 "experiment_record_id",
+                "experiment_family",
+                "base_condition_id",
                 "csv_output_path",
                 "input_volume",
+                "dataset",
                 "projection_mode",
                 "projection_mode_status",
+                "angle_group",
+                "distance_group",
+                "point_id",
+                "noise_type",
                 "tre_display",
                 "reprojection_display",
                 "ray_gap_display",
                 "controlled_perturbation_noise_type",
                 "controlled_perturbation_run_stage",
+                "failure_reason",
                 "point1_selector",
                 "point2_selector",
                 "reprojection_point1_selector",
@@ -4259,12 +4703,23 @@ class BiplaneWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._append_csv_row_with_schema_upgrade(csv_path, row)
 
             logging.info(f"Current results exported to CSV: {csv_path}")
-            try:
-                slicer.util.infoDisplay(f"Current results exported to CSV:\n{csv_path}")
-            except Exception:
-                pass
+            if show_feedback:
+                try:
+                    slicer.util.infoDisplay(f"Current results exported to CSV:\n{csv_path}")
+                except Exception:
+                    pass
+            return csv_path
         except Exception as e:
-            self._error(f"Error exporting current results to CSV: {str(e)}", detailedText=f"{e}")
+            if show_feedback:
+                self._error(f"Error exporting current results to CSV: {str(e)}", detailedText=f"{e}")
+            raise
+
+    def onSaveResultsCsv(self):
+        """Append current test outputs and key runtime status fields into the export CSV."""
+        try:
+            self._save_current_results_csv(show_feedback=True)
+        except Exception:
+            return
 
     def onDebugVisToggle(self, enabled):
         """界面回调：执行 `onDebugVisToggle` 对应的交互处理流程。"""
