@@ -1,0 +1,9 @@
+# Python packages for running the analysis notebook outside 3D Slicer.
+# The Biplane Slicer module itself runs inside 3D Slicer 5.8.1.
+
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+jupyter
