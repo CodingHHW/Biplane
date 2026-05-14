@@ -70,7 +70,7 @@ The module may currently appear under the `Examples` category.
 
 ## Demo Videos
 
-Recorded demonstration videos are available in `demo_videos/`. The preview images below open lightweight web versions that can be played directly on GitHub.
+Recorded demonstration videos are available in `demo_videos/`. The preview images below open higher-resolution web preview versions.
 
 <p align="center">
   <strong>Video 1. Localization and navigation workflow without measurement error</strong><br>
