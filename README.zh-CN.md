@@ -70,30 +70,30 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 ## 演示视频
 
-录制的演示视频位于 `demo_videos/`。三段视频按照“完整流程 -> 误差计算 -> 噪声扰动验证”的顺序组织，便于快速复现实验逻辑。
+录制的演示视频位于 `demo_videos/`。下方预览图会打开轻量版 web 视频，可在 GitHub 页面中直接播放。
 
 <p align="center">
   <strong>视频 1：无测量误差的目标定位与导航显示流程</strong><br>
-  <a href="demo_videos/localization-navigation-no-error.mp4">
+  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="视频 1 预览图" width="720">
   </a><br>
-  <a href="demo_videos/localization-navigation-no-error.mp4">点击预览图或打开视频文件</a>
+  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">点击预览图播放 web 预览版</a>
 </p>
 
 <p align="center">
   <strong>视频 2：TRE 与 RE 误差计算流程</strong><br>
-  <a href="demo_videos/tre-re-error-calculation.mp4">
+  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="视频 2 预览图" width="720">
   </a><br>
-  <a href="demo_videos/tre-re-error-calculation.mp4">点击预览图或打开视频文件</a>
+  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">点击预览图播放 web 预览版</a>
 </p>
 
 <p align="center">
   <strong>视频 3：噪声扰动下 TRE 与 RE 的变化</strong><br>
-  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">
+  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="视频 3 预览图" width="720">
   </a><br>
-  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">点击预览图或打开视频文件</a>
+  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">点击预览图播放 web 预览版</a>
 </p>
 
 ## 示例与分析

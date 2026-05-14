@@ -70,30 +70,30 @@ The module may currently appear under the `Examples` category.
 
 ## Demo Videos
 
-Recorded demonstration videos are available in `demo_videos/`. They are organized as a short review path from the complete workflow to quantitative error analysis.
+Recorded demonstration videos are available in `demo_videos/`. The preview images below open lightweight web versions that can be played directly on GitHub.
 
 <p align="center">
   <strong>Video 1. Localization and navigation workflow without measurement error</strong><br>
-  <a href="demo_videos/localization-navigation-no-error.mp4">
+  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="Video 1 preview" width="720">
   </a><br>
-  <a href="demo_videos/localization-navigation-no-error.mp4">Click the preview image or open the video file</a>
+  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">Click the preview image to play the web preview</a>
 </p>
 
 <p align="center">
   <strong>Video 2. TRE and RE calculation workflow</strong><br>
-  <a href="demo_videos/tre-re-error-calculation.mp4">
+  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="Video 2 preview" width="720">
   </a><br>
-  <a href="demo_videos/tre-re-error-calculation.mp4">Click the preview image or open the video file</a>
+  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">Click the preview image to play the web preview</a>
 </p>
 
 <p align="center">
   <strong>Video 3. TRE and RE changes with noise perturbations</strong><br>
-  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">
+  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="Video 3 preview" width="720">
   </a><br>
-  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">Click the preview image or open the video file</a>
+  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">Click the preview image to play the web preview</a>
 </p>
 
 ## Examples and Analysis
