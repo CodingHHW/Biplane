@@ -74,20 +74,26 @@ Recorded demonstration videos are available in `demo_videos/`. They are organize
 
 <p align="center">
   <strong>Video 1. Localization and navigation workflow without measurement error</strong><br>
-  <video src="demo_videos/localization-navigation-no-error.mp4" poster="demo_videos/poster-localization-navigation-no-error.png" controls width="720"></video><br>
-  <a href="demo_videos/localization-navigation-no-error.mp4">Open video file</a>
+  <a href="demo_videos/localization-navigation-no-error.mp4">
+    <img src="demo_videos/poster-localization-navigation-no-error.png" alt="Video 1 preview" width="720">
+  </a><br>
+  <a href="demo_videos/localization-navigation-no-error.mp4">Click the preview image or open the video file</a>
 </p>
 
 <p align="center">
   <strong>Video 2. TRE and RE calculation workflow</strong><br>
-  <video src="demo_videos/tre-re-error-calculation.mp4" poster="demo_videos/poster-tre-re-error-calculation.png" controls width="720"></video><br>
-  <a href="demo_videos/tre-re-error-calculation.mp4">Open video file</a>
+  <a href="demo_videos/tre-re-error-calculation.mp4">
+    <img src="demo_videos/poster-tre-re-error-calculation.png" alt="Video 2 preview" width="720">
+  </a><br>
+  <a href="demo_videos/tre-re-error-calculation.mp4">Click the preview image or open the video file</a>
 </p>
 
 <p align="center">
   <strong>Video 3. TRE and RE changes with noise perturbations</strong><br>
-  <video src="demo_videos/noise-perturbation-tre-re-changes.mp4" poster="demo_videos/poster-noise-perturbation-tre-re-changes.png" controls width="720"></video><br>
-  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">Open video file</a>
+  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">
+    <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="Video 3 preview" width="720">
+  </a><br>
+  <a href="demo_videos/noise-perturbation-tre-re-changes.mp4">Click the preview image or open the video file</a>
 </p>
 
 ## Examples and Analysis
