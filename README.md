@@ -82,18 +82,18 @@ Recorded demonstration videos are available on YouTube for stable web playback. 
 
 <p align="center">
   <strong>Video 2. TRE and RE calculation workflow</strong><br>
-  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="Video 2 preview" width="720">
   </a><br>
-  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">Watch on YouTube</a>
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">Watch on YouTube</a>
 </p>
 
 <p align="center">
   <strong>Video 3. TRE and RE changes with noise perturbations</strong><br>
-  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="Video 3 preview" width="720">
   </a><br>
-  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">Watch on YouTube</a>
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">Watch on YouTube</a>
 </p>
 
 ## Examples and Analysis

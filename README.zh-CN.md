@@ -82,18 +82,18 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 <p align="center">
   <strong>视频 2：TRE 与 RE 误差计算流程</strong><br>
-  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="视频 2 预览图" width="720">
   </a><br>
-  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">在 YouTube 观看</a>
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">在 YouTube 观看</a>
 </p>
 
 <p align="center">
   <strong>视频 3：噪声扰动下 TRE 与 RE 的变化</strong><br>
-  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="视频 3 预览图" width="720">
   </a><br>
-  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">在 YouTube 观看</a>
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">在 YouTube 观看</a>
 </p>
 
 ## 示例与分析
