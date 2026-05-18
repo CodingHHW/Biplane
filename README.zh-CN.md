@@ -2,22 +2,23 @@
 
 [English](README.md) | [论文：待补充] | [演示视频](#演示视频)
 
-本仓库为以下论文的研究源码：
+本仓库提供以下论文的研究代码与补充材料：
 
 > Multiview Target Localization and Navigation Using a Biplanar Fiducial Structure: A Decoupled Validation Study
 
-论文目前仍处于准备/评审阶段。论文链接与正式引用信息将在发表后补充。
+论文目前处于准备/评审阶段。论文链接与正式引用信息将在发表后补充。
 
 <p align="center">
   <img src="manuscript/fig_framework_overview.png" alt="Biplane framework overview" width="720">
 </p>
 
-Biplane 是一个 3D Slicer Scripted Module，用于基于已知双平面 fiducial 结构的多视角目标定位与导航显示验证。模块通过 2D-3D marker 对应关系标定投影几何，从两个 2D 观测恢复 3D 目标点，并将该目标点前向投影到独立第三视图中进行验证。
+Biplane 是一个 3D Slicer Scripted Module，用于验证基于 marker 支撑的多视角目标定位与导航显示流程。模块利用已知双平面 fiducial 结构估计投影几何，从两个 2D 观测重建 3D 目标点，并将重建结果前向投影到独立第三视图中进行验证。
 
-## 最新状态
+## 仓库状态
 
-- 2026 年 5 月：仓库整理为论文评审阶段源码。
+- 本仓库整理为论文评审阶段的研究代码。
 - 已测试版本：3D Slicer 5.8.1。
+- 当前实现面向方法验证与结果复现，不作为临床部署软件使用。
 
 ## 安装
 
@@ -46,9 +47,9 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 当前模块可能仍显示在 `Examples` 分类下。
 
-## 快速开始
+## 工作流程
 
-### 基本流程
+### 基本步骤
 
 1. 加载示例体数据，并在 `Input volume` 中选择该 volume。
 2. 选择 `Perspective` 或 `Orthographic`。
@@ -59,7 +60,7 @@ git clone https://github.com/CodingHHW/Biplane.git
 7. 在 Red 视图中选择目标点并点击 `redPush`。
 8. 在 Green 视图中确认对应点并点击 `greenPush`。
 9. 查看 `TargetP3D` 与 `TargetP2DYellow`。
-10. 可选：计算 `TRE`、`Reprojection Error` 与 `Ray Gap`。
+10. 可选：计算 Target Registration Error（TRE）、Reprojection Error（RE）与 Ray Gap。
 11. 点击 `Export Current Results to CSV`。
 
 ### 输出
@@ -70,35 +71,35 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 ## 演示视频
 
-录制的演示视频已上传至 YouTube，以便在网页中稳定播放。仓库仅在 `demo_videos/` 中保留本地预览图。
+以下视频记录了主要验证流程及其对应的误差分析步骤。
 
 <p align="center">
-  <strong>视频 1：无测量误差的目标定位与导航显示流程</strong><br>
+  <strong>演示 1：无测量误差的目标定位与导航显示流程</strong><br>
   <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">
-    <img src="demo_videos/poster-localization-navigation-no-error.png" alt="视频 1 预览图" width="720">
+    <img src="demo_videos/poster-localization-navigation-no-error.png" alt="演示 1 预览图" width="720">
   </a><br>
   <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">在 YouTube 观看</a>
 </p>
 
 <p align="center">
-  <strong>视频 2：TRE 与 RE 误差计算流程</strong><br>
+  <strong>演示 2：TRE 与 RE 误差计算流程</strong><br>
   <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
-    <img src="demo_videos/poster-tre-re-error-calculation.png" alt="视频 2 预览图" width="720">
+    <img src="demo_videos/poster-tre-re-error-calculation.png" alt="演示 2 预览图" width="720">
   </a><br>
   <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">在 YouTube 观看</a>
 </p>
 
 <p align="center">
-  <strong>视频 3：噪声扰动下 TRE 与 RE 的变化</strong><br>
+  <strong>演示 3：噪声扰动下 TRE 与 RE 的变化</strong><br>
   <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
-    <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="视频 3 预览图" width="720">
+    <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="演示 3 预览图" width="720">
   </a><br>
   <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">在 YouTube 观看</a>
 </p>
 
 ## 示例与分析
 
-仓库包含论文准备阶段使用的实验记录与分析文件：
+仓库包含用于支撑论文准备工作的实验记录与分析脚本：
 
 - `experiment/experiment_results.csv`
 - `Analysis/experiment_results_analysis.ipynb`
@@ -121,7 +122,7 @@ jupyter notebook Analysis/experiment_results_analysis.ipynb
 
 如果某些文件不能公开再分发，应移至外部归档或 release asset，并在此处提供链接。
 
-## 开发说明
+## 代码组织
 
 - Slicer 模块主文件：`Biplane.py`
 - 几何计算逻辑：`BiplaneLogics.py`
