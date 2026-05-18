@@ -70,7 +70,7 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 ## 演示视频
 
-录制的演示视频已上传至 YouTube，以便在网页中稳定播放。原始视频文件仍归档在 `demo_videos/`。
+录制的演示视频已上传至 YouTube，以便在网页中稳定播放。仓库仅在 `demo_videos/` 中保留本地预览图。
 
 <p align="center">
   <strong>视频 1：无测量误差的目标定位与导航显示流程</strong><br>

@@ -70,7 +70,7 @@ The module may currently appear under the `Examples` category.
 
 ## Demo Videos
 
-Recorded demonstration videos are available on YouTube for stable web playback. The original video files are also archived in `demo_videos/`.
+Recorded demonstration videos are available on YouTube for stable web playback. The repository keeps only local preview images in `demo_videos/`.
 
 <p align="center">
   <strong>Video 1. Localization and navigation workflow without measurement error</strong><br>
