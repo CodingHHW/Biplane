@@ -1,6 +1,6 @@
 # Biplane：基于双平面 Fiducial 结构的多视角目标定位
 
-[English](README.md) | [论文：待补充] | [演示视频](demo_videos/)
+[English](README.md) | [论文：待补充] | [演示视频](#演示视频)
 
 本仓库为以下论文的研究源码：
 
@@ -70,30 +70,30 @@ git clone https://github.com/CodingHHW/Biplane.git
 
 ## 演示视频
 
-录制的演示视频位于 `demo_videos/`。下方预览图会打开高分辨率 web 预览版视频。
+录制的演示视频已上传至 YouTube，以便在网页中稳定播放。原始视频文件仍归档在 `demo_videos/`。
 
 <p align="center">
   <strong>视频 1：无测量误差的目标定位与导航显示流程</strong><br>
-  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="视频 1 预览图" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">点击预览图播放 web 预览版</a>
+  <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">在 YouTube 观看</a>
 </p>
 
 <p align="center">
   <strong>视频 2：TRE 与 RE 误差计算流程</strong><br>
-  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="视频 2 预览图" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">点击预览图播放 web 预览版</a>
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">在 YouTube 观看</a>
 </p>
 
 <p align="center">
   <strong>视频 3：噪声扰动下 TRE 与 RE 的变化</strong><br>
-  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="视频 3 预览图" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">点击预览图播放 web 预览版</a>
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">在 YouTube 观看</a>
 </p>
 
 ## 示例与分析

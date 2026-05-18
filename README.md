@@ -1,6 +1,6 @@
 # Biplane: Multiview Target Localization with a Biplanar Fiducial Structure
 
-[Paper: coming soon] | [Demo videos](demo_videos/) | [中文](README.zh-CN.md)
+[Paper: coming soon] | [Demo videos](#demo-videos) | [中文](README.zh-CN.md)
 
 Research code for the manuscript:
 
@@ -70,30 +70,30 @@ The module may currently appear under the `Examples` category.
 
 ## Demo Videos
 
-Recorded demonstration videos are available in `demo_videos/`. The preview images below open higher-resolution web preview versions.
+Recorded demonstration videos are available on YouTube for stable web playback. The original video files are also archived in `demo_videos/`.
 
 <p align="center">
   <strong>Video 1. Localization and navigation workflow without measurement error</strong><br>
-  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="Video 1 preview" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/localization-navigation-no-error-preview.mp4">Click the preview image to play the web preview</a>
+  <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">Watch on YouTube</a>
 </p>
 
 <p align="center">
   <strong>Video 2. TRE and RE calculation workflow</strong><br>
-  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">
     <img src="demo_videos/poster-tre-re-error-calculation.png" alt="Video 2 preview" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/tre-re-error-calculation-preview.mp4">Click the preview image to play the web preview</a>
+  <a href="https://www.youtube.com/watch?v=QhqlMMyc5a8">Watch on YouTube</a>
 </p>
 
 <p align="center">
   <strong>Video 3. TRE and RE changes with noise perturbations</strong><br>
-  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">
     <img src="demo_videos/poster-noise-perturbation-tre-re-changes.png" alt="Video 3 preview" width="720">
   </a><br>
-  <a href="demo_videos/web-preview/noise-perturbation-tre-re-changes-preview.mp4">Click the preview image to play the web preview</a>
+  <a href="https://www.youtube.com/watch?v=b19Zt3hKDdA">Watch on YouTube</a>
 </p>
 
 ## Examples and Analysis
