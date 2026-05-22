@@ -9,7 +9,7 @@ This repository provides the research code and supplementary materials for the m
 The manuscript is currently under preparation/review. Paper links and final citation information will be added after publication.
 
 <p align="center">
-  <img src="manuscript/fig_framework_overview.png" alt="Biplane framework overview" width="720">
+  <img src="docs/assets/fig_framework_overview.png" alt="Biplane framework overview" width="720">
 </p>
 
 Biplane is a 3D Slicer scripted module for validating marker-supported multiview target localization and navigation display. The module uses a known biplanar fiducial structure to estimate projection geometry, reconstruct a 3D target from two 2D observations, and forward-project the reconstructed target into an independent third view for validation.
@@ -127,7 +127,7 @@ If any data file cannot be redistributed publicly, it should be moved to an exte
 - Main Slicer module: `Biplane.py`
 - Geometry logic: `BiplaneLogics.py`
 - UI resources: `Resources/`
-- Manuscript figures and drafts: `manuscript/`
+- Public documentation assets: `docs/assets/`
 
 ## License
 
