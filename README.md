@@ -4,15 +4,15 @@
 
 This repository provides the research code and supplementary materials for the manuscript:
 
-> Multiview Target Localization and Navigation Using a Biplanar Fiducial Structure: A Decoupled Validation Study
+> Geometric conditioning and error propagation in biplanar fiducial-based multiview target localization: a simulation study
 
-The manuscript is currently under preparation/review. Paper links and final citation information will be added after publication.
+The manuscript is currently under review. Paper links and final citation information will be added after publication.
 
 <p align="center">
   <img src="docs/assets/fig_framework_overview.png" alt="Biplane framework overview" width="720">
 </p>
 
-Biplane is a 3D Slicer scripted module for validating marker-supported multiview target localization and navigation display. The module uses a known biplanar fiducial structure to estimate projection geometry, reconstruct a 3D target from two 2D observations, and forward-project the reconstructed target into an independent third view for validation.
+Biplane is a 3D Slicer scripted module for validating the geometric chain of fiducial-supported multiview target localization under controlled simulated conditions. The module uses a known biplanar fiducial structure to estimate projection geometry, reconstruct a 3D target from two 2D observations, and forward-project the reconstructed target into an independent third view that did not contribute to localization, in order to assess projection consistency.
 
 ## Repository Status
 
@@ -74,7 +74,7 @@ The module may currently appear under the `Examples` category.
 The following videos document the main validation workflow and the corresponding error-analysis procedures.
 
 <p align="center">
-  <strong>Demonstration 1. Localization and navigation workflow without measurement error</strong><br>
+  <strong>Demonstration 1. Localization and third-view projection workflow without measurement error</strong><br>
   <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="Demonstration 1 preview" width="720">
   </a><br>

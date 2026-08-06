@@ -4,15 +4,15 @@
 
 本仓库提供以下论文的研究代码与补充材料：
 
-> Multiview Target Localization and Navigation Using a Biplanar Fiducial Structure: A Decoupled Validation Study
+> Geometric conditioning and error propagation in biplanar fiducial-based multiview target localization: a simulation study
 
-论文目前处于准备/评审阶段。论文链接与正式引用信息将在发表后补充。
+论文目前处于评审阶段。论文链接与正式引用信息将在发表后补充。
 
 <p align="center">
   <img src="docs/assets/fig_framework_overview.png" alt="Biplane framework overview" width="720">
 </p>
 
-Biplane 是一个 3D Slicer Scripted Module，用于验证基于 marker 支撑的多视角目标定位与导航显示流程。模块利用已知双平面 fiducial 结构估计投影几何，从两个 2D 观测重建 3D 目标点，并将重建结果前向投影到独立第三视图中进行验证。
+Biplane 是一个 3D Slicer Scripted Module，用于在受控仿真条件下验证基于 fiducial 支撑的多视角目标定位几何链。模块利用已知双平面 fiducial 结构估计投影几何，从两个 2D 观测重建 3D 目标点，并将重建结果前向投影到一个未参与定位的独立第三视图中，用于评估投影一致性。
 
 ## 仓库状态
 
@@ -74,7 +74,7 @@ git clone https://github.com/CodingHHW/Biplane.git
 以下视频记录了主要验证流程及其对应的误差分析步骤。
 
 <p align="center">
-  <strong>演示 1：无测量误差的目标定位与导航显示流程</strong><br>
+  <strong>演示 1：无测量误差的目标定位与第三视图投影流程</strong><br>
   <a href="https://www.youtube.com/watch?v=6F34s5bbvA0">
     <img src="demo_videos/poster-localization-navigation-no-error.png" alt="演示 1 预览图" width="720">
   </a><br>
